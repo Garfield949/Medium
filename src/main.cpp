@@ -14,6 +14,7 @@ using Vec3i = Eigen::Vector3i;
 using Mat4f = Eigen::Matrix4f;
 using Mat3f = Eigen::Matrix3f;
 
+// 颜色结构体，提供rgb
 struct Color {
     unsigned r,g,b;
 };
@@ -36,10 +37,12 @@ const Vec3f AXIS_Z_WORLD = Vec3f::UnitZ();
 const Vec3f POS_CAM{0, 0, 0};
 const Vec3f UP_REF{0,1,0};
 
+// 计算缓冲索引
 unsigned calcIndex(unsigned x, unsigned y) {
     return (unsigned)((HEIGHT_WINDOW - y) * WIDTH_WINDOW + x);
 }
 
+// 放置颜色
 void setColor(uint32_t* buffer, unsigned x, unsigned y, const Color &color) {
     if (x >= WIDTH_WINDOW || y >= HEIGHT_WINDOW)
         return;
@@ -47,6 +50,7 @@ void setColor(uint32_t* buffer, unsigned x, unsigned y, const Color &color) {
     buffer[index] = MFB_RGB(color.r, color.g, color.b);
 }
 
+// 直线绘制
 void Bresenham(int x0, int y0, int x1, int y1, uint32_t *buffer, Color &color) {
     // 确保x为最大位移方向
     bool steep = false;
@@ -148,33 +152,40 @@ int main() {
         {5,4,7},{7,6,5}     // 前面
     };
 
+    // 横纵比
     const float aspect_ratio = WIDTH_WINDOW / HEIGHT_WINDOW;
 
+    // MiniFB 窗口创建
     mfb_window *window = mfb_open_ex("Renderer", WIDTH_WINDOW, HEIGHT_WINDOW, WF_RESIZABLE);
-
     if (!window) {
         return -1;
     }
 
+    // 帧缓冲
     uint32_t *buffer = new uint32_t[WIDTH_WINDOW * HEIGHT_WINDOW * 4];
 
+    // 背景和线条颜色
     Color clearColor{255,255,255};
     Color lineColor{79,147,184};
 
-    int angle = 45;
+    // 模型旋转角度
+    int angle = 0;
 
     do {
         mfb_update_state state;
 
+        // 填充背景颜色
         for (int i = 0; i < WIDTH_WINDOW * HEIGHT_WINDOW * 4; i++) {
             buffer[i] = MFB_RGB(clearColor.r, clearColor.g, clearColor.b);
         }
 
+        // 获取矩阵
         Mat4f m = getModelMatrix(Vec3f{0,0,4},1, AXIS_Y_WORLD,angle++);
         Mat4f v = getViewMatrix();
         Mat4f p = getProjectionMatrix(90,aspect_ratio,0.1,100);
         Mat4f mvp = p * v * m;
 
+        // 遍历三角形
         for (auto &tri: cube_triangles) {
             Vec4f verts[] = {
                 mvp * cube_verts[tri[0]].homogeneous(),
