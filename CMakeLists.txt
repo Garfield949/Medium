@@ -7,16 +7,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # 加入MiniFB项目
 add_subdirectory(external/minifb)
-option(USE_METAL_API "开启MiniFB的macOS Metal支持" ON)
+option(USE_METAL_API "开启 MiniFB 的 macOS Metal 支持" ON)
 
 # 生成可执行文件
 add_executable(${PROJECT_NAME}
         src/main.cpp
         src/Math.h
         src/Types.h
-        src/Framebuffer.cpp
         src/Framebuffer.h
-        src/Color.cpp
         src/Color.h
         src/Utils.h
 )

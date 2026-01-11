@@ -15,7 +15,7 @@ namespace Medium {
     using Mat4f = Eigen::Matrix4f;
 
     // 类型别名
-    // u32为RGBA，u8为单通道分量
+    // u32为ARGB，u8为单通道分量
     using u32 = uint32_t;
     using u8  = uint8_t;
 

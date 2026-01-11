@@ -2,8 +2,6 @@
 #include <MiniFB.h>
 
 #include "Types.h"
-#include "Math.h"
-#include "Color.h"
 #include "Framebuffer.h"
 
 using namespace Medium;
@@ -12,35 +10,12 @@ using namespace Medium;
 const unsigned WIDTH_WINDOW = 800;
 const unsigned HEIGHT_WINDOW = 800;
 
-// 视口尺寸、横纵比
-const float WIDTH_VIEWPORT = 800;
-const float HEIGHT_VIEWPORT = 600;
-
-// DirectX style 世界坐标系：+z 指向屏幕内部
-const Vec3f ORIGIN_WORLD = {0,0,0};
-const Vec3f AXIS_X_WORLD = Vec3f::UnitX();
-const Vec3f AXIS_Y_WORLD = Vec3f::UnitY();
-const Vec3f AXIS_Z_WORLD = Vec3f::UnitZ();
-
 // 设置相机参数
 const Vec3f POS_CAM{0, 0, 0};
 const Vec3f UP_REF{0,1,0};
 
-// 计算缓冲索引
-unsigned calcIndex(unsigned x, unsigned y) {
-    return (HEIGHT_WINDOW - y) * WIDTH_WINDOW + x;
-}
-
-// 放置颜色
-void setColor(uint32_t* buffer, unsigned x, unsigned y, const Color &color) {
-    if (x >= WIDTH_WINDOW || y >= HEIGHT_WINDOW)
-        return;
-    unsigned index = calcIndex(x, y);
-    buffer[index] = color.argb;
-}
-
 // 直线绘制
-void Bresenham(int x0, int y0, int x1, int y1, Framebuffer &buffer, const Color &color) {
+void Bresenham(int x0, int y0, int x1, int y1, Framebuffer &buffer, Color color) {
     // 确保x为最大位移方向
     bool steep = false;
     if (std::abs(x0-x1)<std::abs(y0-y1)) {
@@ -78,9 +53,9 @@ void Bresenham(int x0, int y0, int x1, int y1, Framebuffer &buffer, const Color 
 // 返回模型变换矩阵
 // 参数：旋转轴、角度、平移、缩放
 Mat4f getModelMatrix(const Vec3f &translation = Vec3f::Zero(),
-                     const float &scale = 1,
+                     const f32 &scale = 1,
                      const Vec3f &axis = Vec3f::Zero(),
-                     const float &angle = 0)
+                     const f32 &angle = 0)
 {
     Aff3f model = Aff3f::Identity();
 
@@ -104,13 +79,13 @@ Mat4f getViewMatrix() {
 }
 
 // 返回投影变换矩阵
-Mat4f getProjectionMatrix(const float &fov_y,
-                          const float &aspect_ratio,
-                          const float &near,
-                          const float &far) {
+Mat4f getProjectionMatrix(const f32 fov_y,
+                          const f32 aspect_ratio,
+                          const f32 near,
+                          const f32 far) {
     Mat4f projection = Mat4f::Zero();
-    const float zoomy = 1 / tanf(Medium::radians(fov_y / 2));
-    const float zoomx = zoomy / aspect_ratio;
+    const f32 zoomy = 1 / tanf(radians(fov_y / 2));
+    const f32 zoomx = zoomy / aspect_ratio;
     projection << zoomx, 0, 0, 0,
                   0, zoomy, 0, 0,
                   0, 0, (far+near)/(far-near), (-2*near*far) / (far-near),
@@ -139,29 +114,30 @@ int main() {
     // 横纵比
     const float aspect_ratio = WIDTH_WINDOW / HEIGHT_WINDOW;
 
-    // MiniFB 窗口创建
+    // 创建 MiniFB 窗口实例
     mfb_window *window = mfb_open_ex("Medium", WIDTH_WINDOW, HEIGHT_WINDOW, WF_RESIZABLE);
     if (!window) {
         return -1;
     }
 
+    // 创建缓冲区实例
     Framebuffer buffer(WIDTH_WINDOW, HEIGHT_WINDOW);
 
     // 模型旋转角度
-    int angle = 0;
+    f32 angle = 0;
 
-    Color color(79, 147, 184);
+    Color color{255};
 
     do {
         mfb_update_state state;
 
         // 填充背景颜色
-        buffer.clearPixel();
+        buffer.clearPixel({255});
 
         // 获取矩阵
-        Mat4f m = getModelMatrix(Vec3f{0,0,4},1, AXIS_Y_WORLD,angle++);
+        Mat4f m = getModelMatrix(Vec3f{0,0,4},1, Vec3f::UnitY(),angle++);
         Mat4f v = getViewMatrix();
-        Mat4f p = getProjectionMatrix(100,aspect_ratio,0.1,100);
+        Mat4f p = getProjectionMatrix(100, aspect_ratio,0.1,100);
         Mat4f mvp = p * v * m;
 
         // 遍历三角形
@@ -181,18 +157,17 @@ int main() {
                 vert.y() = 0.5*HEIGHT_WINDOW*(vert.y()+1.0);
             }
 
-            // for (auto &vert: verts) {
-            //     std::cout << vert.x() << " " << vert.y() << " " << vert.z() << " " << vert.w() << std::endl;
-            // }
-
             Bresenham(verts[0].x(), verts[0].y(), verts[1].x(), verts[1].y(), buffer, color);
             Bresenham(verts[1].x(), verts[1].y(), verts[2].x(), verts[2].y(), buffer, color);
             Bresenham(verts[2].x(), verts[2].y(), verts[0].x(), verts[0].y(), buffer, color);
         }
 
-        state = mfb_update_ex(window, (void*)buffer.pixelBuf(), WIDTH_WINDOW, HEIGHT_WINDOW);
+        // buffer 参数类型为 void* ，故必须将 const 卸去
+        state = mfb_update_ex(window, const_cast<u32*>(buffer.pixelBuf()), WIDTH_WINDOW, HEIGHT_WINDOW);
+
+        // MiniFB 状态检测
         if (state != STATE_OK) {
-            window = NULL;
+            window = nullptr;
             break;
         }
     } while(mfb_wait_sync(window));
