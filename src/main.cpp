@@ -1,23 +1,12 @@
 #include <iostream>
-#include <cmath>
-
 #include <MiniFB.h>
-#include <Eigen/Core>
-#include <Eigen/Geometry>
 
-// 类型别名
-// Affine3f底层是四维矩阵，包含了常用变换方法
-using Aff3f = Eigen::Affine3f;
-using Vec3f = Eigen::Vector3f;
-using Vec4f = Eigen::Vector4f;
-using Vec3i = Eigen::Vector3i;
-using Mat4f = Eigen::Matrix4f;
-using Mat3f = Eigen::Matrix3f;
+#include "Types.h"
+#include "Math.h"
+#include "Color.h"
+#include "Framebuffer.h"
 
-// 颜色结构体，提供rgb
-struct Color {
-    unsigned r,g,b;
-};
+using namespace Medium;
 
 // 窗口大小
 const unsigned WIDTH_WINDOW = 800;
@@ -39,7 +28,7 @@ const Vec3f UP_REF{0,1,0};
 
 // 计算缓冲索引
 unsigned calcIndex(unsigned x, unsigned y) {
-    return (unsigned)((HEIGHT_WINDOW - y) * WIDTH_WINDOW + x);
+    return (HEIGHT_WINDOW - y) * WIDTH_WINDOW + x;
 }
 
 // 放置颜色
@@ -47,11 +36,11 @@ void setColor(uint32_t* buffer, unsigned x, unsigned y, const Color &color) {
     if (x >= WIDTH_WINDOW || y >= HEIGHT_WINDOW)
         return;
     unsigned index = calcIndex(x, y);
-    buffer[index] = MFB_RGB(color.r, color.g, color.b);
+    buffer[index] = color.argb;
 }
 
 // 直线绘制
-void Bresenham(int x0, int y0, int x1, int y1, uint32_t *buffer, Color &color) {
+void Bresenham(int x0, int y0, int x1, int y1, Framebuffer &buffer, const Color &color) {
     // 确保x为最大位移方向
     bool steep = false;
     if (std::abs(x0-x1)<std::abs(y0-y1)) {
@@ -75,8 +64,8 @@ void Bresenham(int x0, int y0, int x1, int y1, uint32_t *buffer, Color &color) {
     int x = x0, y = y0;
 
     for(int i = x; i <= x1; i++) {
-        !steep ? setColor(buffer, i, y, color)
-               : setColor(buffer, y, i, color);
+        !steep ? buffer.setPixel(i, y, color)
+               : buffer.setPixel(y, i, color);
         if(delta < 0) {
             y += (y0<y1?1:-1);
             delta += dStepUp;
@@ -84,11 +73,6 @@ void Bresenham(int x0, int y0, int x1, int y1, uint32_t *buffer, Color &color) {
             delta += dStepDown;
         }
     }
-}
-
-// 度数转弧度
-constexpr float radians(float deg) {
-    return EIGEN_PI * deg / 180.0f;
 }
 
 // 返回模型变换矩阵
@@ -102,7 +86,7 @@ Mat4f getModelMatrix(const Vec3f &translation = Vec3f::Zero(),
 
     // Eigen绕轴旋转是右手系的，所以CCW取负相当于CW
     model.translate(translation)
-        .rotate(Eigen::AngleAxisf(radians(-angle), axis.normalized()))
+        .rotate(Eigen::AngleAxisf(Medium::radians(-angle), axis.normalized()))
         .scale(scale);
 
     return model.matrix();
@@ -125,7 +109,7 @@ Mat4f getProjectionMatrix(const float &fov_y,
                           const float &near,
                           const float &far) {
     Mat4f projection = Mat4f::Zero();
-    const float zoomy = 1 / tanf(radians(fov_y / 2));
+    const float zoomy = 1 / tanf(Medium::radians(fov_y / 2));
     const float zoomx = zoomy / aspect_ratio;
     projection << zoomx, 0, 0, 0,
                   0, zoomy, 0, 0,
@@ -156,33 +140,28 @@ int main() {
     const float aspect_ratio = WIDTH_WINDOW / HEIGHT_WINDOW;
 
     // MiniFB 窗口创建
-    mfb_window *window = mfb_open_ex("Renderer", WIDTH_WINDOW, HEIGHT_WINDOW, WF_RESIZABLE);
+    mfb_window *window = mfb_open_ex("Medium", WIDTH_WINDOW, HEIGHT_WINDOW, WF_RESIZABLE);
     if (!window) {
         return -1;
     }
 
-    // 帧缓冲
-    uint32_t *buffer = new uint32_t[WIDTH_WINDOW * HEIGHT_WINDOW * 4];
-
-    // 背景和线条颜色
-    Color clearColor{255,255,255};
-    Color lineColor{79,147,184};
+    Framebuffer buffer(WIDTH_WINDOW, HEIGHT_WINDOW);
 
     // 模型旋转角度
     int angle = 0;
+
+    Color color(79, 147, 184);
 
     do {
         mfb_update_state state;
 
         // 填充背景颜色
-        for (int i = 0; i < WIDTH_WINDOW * HEIGHT_WINDOW * 4; i++) {
-            buffer[i] = MFB_RGB(clearColor.r, clearColor.g, clearColor.b);
-        }
+        buffer.clearPixel();
 
         // 获取矩阵
         Mat4f m = getModelMatrix(Vec3f{0,0,4},1, AXIS_Y_WORLD,angle++);
         Mat4f v = getViewMatrix();
-        Mat4f p = getProjectionMatrix(90,aspect_ratio,0.1,100);
+        Mat4f p = getProjectionMatrix(100,aspect_ratio,0.1,100);
         Mat4f mvp = p * v * m;
 
         // 遍历三角形
@@ -206,12 +185,12 @@ int main() {
             //     std::cout << vert.x() << " " << vert.y() << " " << vert.z() << " " << vert.w() << std::endl;
             // }
 
-            Bresenham(verts[0].x(), verts[0].y(), verts[1].x(), verts[1].y(), buffer, lineColor);
-            Bresenham(verts[1].x(), verts[1].y(), verts[2].x(), verts[2].y(), buffer, lineColor);
-            Bresenham(verts[2].x(), verts[2].y(), verts[1].x(), verts[1].y(), buffer, lineColor);
+            Bresenham(verts[0].x(), verts[0].y(), verts[1].x(), verts[1].y(), buffer, color);
+            Bresenham(verts[1].x(), verts[1].y(), verts[2].x(), verts[2].y(), buffer, color);
+            Bresenham(verts[2].x(), verts[2].y(), verts[0].x(), verts[0].y(), buffer, color);
         }
 
-        state = mfb_update_ex(window, buffer, WIDTH_WINDOW, HEIGHT_WINDOW);
+        state = mfb_update_ex(window, (void*)buffer.pixelBuf(), WIDTH_WINDOW, HEIGHT_WINDOW);
         if (state != STATE_OK) {
             window = NULL;
             break;
