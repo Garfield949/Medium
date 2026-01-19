@@ -1,0 +1,51 @@
+TODO 建立光栅化器类
+TODO 建立Timer类
+TODO 脏标记
+
+命名规范：
+1. 普通变量：foo_bar
+2. class成员：foo_bar_
+3. struct成员：foo_bar
+3. 函数：fooBar
+4. 全局常量：FOO_BAR
+5. 类型名称：FooBar
+6. 文件名称：FooBar
+7. 宏：FOO_BAR
+
+// // 正方体顶点，位于模型空间，原点为正方体重心
+// const Vec3f cube_verts[] = {
+//     {1,1,1},{-1,1,1},{-1,-1,1},{1,-1,1},
+//     {1,1,-1},{-1,1,-1},{-1,-1,-1},{1,-1,-1}
+// };
+//
+// // 正方体索引数组，每个面分为两个三角形，采用顺时针CW顶点索引
+// const Vec3i cube_triangles[] = {
+//     {0,2,3},{0,1,2},    // 背面
+//     {1,5,2},{5,6,2},    // 左面
+//     {1,0,4},{5,1,4},    // 上面
+//     {4,0,3},{7,4,3},    // 右面
+//     {2,7,3},{6,7,2},    // 下面
+//     {5,4,7},{7,6,5}     // 前面
+// };
+
+// // 遍历三角形
+// for (auto &tri: cube_triangles) {
+//     Vec4f verts[] = {
+//         mvp * cube_verts[tri[0]].homogeneous(),
+//         mvp * cube_verts[tri[1]].homogeneous(),
+//         mvp * cube_verts[tri[2]].homogeneous()
+//     };
+//
+//     for (auto &vert: verts) {
+//         vert /= vert.w();
+//     }
+//
+//     for (auto &vert : verts) {
+//         vert.x() = 0.5f * WIDTH_WINDOW * (vert.x() + 1.0f);
+//         vert.y() = 0.5f * HEIGHT_WINDOW * (1.0f - vert.y());
+//     }
+//
+//     Bresenham(verts[0].x(), verts[0].y(), verts[1].x(), verts[1].y(), buffer, color);
+//     Bresenham(verts[1].x(), verts[1].y(), verts[2].x(), verts[2].y(), buffer, color);
+//     Bresenham(verts[2].x(), verts[2].y(), verts[0].x(), verts[0].y(), buffer, color);
+// }

@@ -17,6 +17,11 @@ add_executable(${PROJECT_NAME}
         src/Framebuffer.h
         src/Color.h
         src/Utils.h
+        src/Vertex.h
+        src/Mesh.h
+        src/Camera.h
+        src/RenderConfig.h
+        src/Camera.cpp
 )
 
 # 设置包含目录
