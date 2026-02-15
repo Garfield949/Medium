@@ -1,9 +1,13 @@
+///
+/// @file Vertex.h
+/// @brief 顶点类型
+///
 #pragma once
 
 #include <utility>
 
-#include "Types.h"
-#include "Color.h"
+#include "Core/Types.h"
+#include "Core/Color.h"
 
 namespace Medium {
 
@@ -11,10 +15,8 @@ namespace Medium {
     /// @brief 顶点类型
     /// @details 存储位置、法线、UV和颜色
     struct Vertex {
-        // 参数均为 POD, Plain Old Data 类型，移动和拷贝的开销没有差别，目前
-        // 没必要使用 std::move
-        Vertex(Vec3f p, Vec3f n, Vec2f  t)
-            : pos(std::move(p)), normal(std::move(n)), tex_coord(std::move(t)) {}
+        Vertex(Vec3f position, Vec3f normal, Vec2f tex_coord)
+            : pos(std::move(position)), normal(std::move(normal)), tex_coord(std::move(tex_coord)) {}
         // 直接传分量
         Vertex(f32 vx, f32 vy, f32 vz,
                f32 nx = 0, f32 ny = 0, f32 nz = 0,
