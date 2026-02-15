@@ -78,7 +78,7 @@ namespace Medium::Math {
         // 插值当前像素的 1/w，即透视矫正公式的分母
         f32 w_inv_interp = tmp0 + tmp1 + tmp2;
         // 避免除零，w_inv_interp 极小说明像素位于"无穷远"
-        if(std::abs(w_inv_interp) < 1e-5f) return attrib0;
+        if(std::abs(w_inv_interp) < KINDA_SMALL_NUMBER) return attrib0;
         // 透视矫正公式的分子，对三个顶点的 attrib/w 进行插值
         T val = (attrib0 * tmp0) + (attrib1 * tmp1) + (attrib2 * tmp2);
         // 当前像素的 w，透视矫正公式分母的倒数

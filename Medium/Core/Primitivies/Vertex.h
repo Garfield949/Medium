@@ -26,11 +26,11 @@ namespace Medium {
         Vertex() = default;
 
         // 位置
-        Vec3f pos;
+        Vec3f pos{};
         // 法线
-        Vec3f normal;
+        Vec3f normal{};
         // 纹理坐标
-        Vec2f tex_coord;
+        Vec2f tex_coord{};
         // 顶点默认白色
         Color color{255};
     };

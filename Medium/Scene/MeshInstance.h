@@ -8,6 +8,7 @@
 
 #include "Scene/Node.h"
 #include "Resources/Mesh.h"
+#include "Resources/Texture.h"
 
 namespace Medium {
 
@@ -18,8 +19,11 @@ namespace Medium {
 
         void render(RenderContext &context) override;
 
+        void setTexture(std::shared_ptr<Texture> texture);
+
     private:
         std::shared_ptr<Mesh> mesh_;
+        std::shared_ptr<Texture> texture_;
     };
 
 } // namespace Medium

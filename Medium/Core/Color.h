@@ -26,6 +26,20 @@ namespace Medium {
         // 委托构造：默认黑色
         constexpr Color() : Color{0} {}
 
+        Color operator*(f32 value) const noexcept{
+            if(value <= 0) return Black();
+            if(value >= 1) return *this;
+
+            // 定点数映射，将 0.0 ~ 1.0 映射到 0 ~ 256
+            u8 scale = static_cast<u8>(value * 256);
+
+            u8 new_r = (r() * scale) >> 8; // 移位代替除法
+            u8 new_g = (g() * scale) >> 8;
+            u8 new_b = (b() * scale) >> 8;
+
+            return Color{new_r, new_g, new_b, a()};
+        }
+
         // 静态工厂
         static Color Black() noexcept { return {}; }
         static Color White() noexcept { return {255}; }

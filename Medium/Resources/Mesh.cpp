@@ -17,32 +17,6 @@ namespace Medium {
     std::shared_ptr<Mesh> Mesh::loadFromObj(const std::filesystem::path& path) {
         using namespace tinyobj;
 
-        struct IndexHash {  // 定义一个 Hash 仿函数，() 被重载以创建函数对象，注意重载函数必须为 const
-            size_t operator()(const index_t& idx) const noexcept {
-                // {} 为初始化列表，这里是实例化一个计算 int 的临时对象，() 调用了
-                // 为 int 重载的 operator().
-                const size_t h1 = std::hash<int>{}(idx.vertex_index);
-                const size_t h2 = std::hash<int>{}(idx.normal_index);
-                const size_t h3 = std::hash<int>{}(idx.texcoord_index);
-                // boost::hash_combine 风格
-                auto combine = [](size_t h, size_t v) {
-                    return h ^ (v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2));
-                };
-                size_t h = combine(h1, h2);
-                h = combine(h, h3);
-                return h;
-            }
-        };
-        struct IndexEqual { // 定义重载比较运算符的仿函数
-            bool operator()(const index_t& lhs, const index_t& rhs) const noexcept {
-                // 仅索引相同还不够，因为同一个空间位置可能被多个面共用，而其在每个面上的法线和 uv 都可能不同
-                // 这样的是会被算作两个不同的顶点。
-                return lhs.vertex_index == rhs.vertex_index &&
-                       lhs.normal_index == rhs.normal_index &&
-                       lhs.texcoord_index == rhs.texcoord_index;
-            }
-        };
-
         ObjReader reader;          // OBJ 读取器
         ObjReaderConfig config;    // OBJ 配置器
         config.mtl_search_path = "";
@@ -83,6 +57,32 @@ namespace Medium {
         mesh.indices.reserve(total_indices);
         mesh.vertices.reserve(total_indices / 3);
 
+        struct IndexHash {  // 定义一个 Hash 仿函数，() 被重载以创建函数对象，注意重载函数必须为 const
+            size_t operator()(const index_t& idx) const noexcept {
+                // {} 为初始化列表，这里是实例化一个计算 int 的临时对象，() 调用了
+                // 为 int 重载的 operator().
+                const size_t h1 = std::hash<int>{}(idx.vertex_index);
+                const size_t h2 = std::hash<int>{}(idx.normal_index);
+                const size_t h3 = std::hash<int>{}(idx.texcoord_index);
+                // boost::hash_combine 风格
+                auto combine = [](size_t h, size_t v) {
+                    return h ^ (v + 0x9e3779b97f4a7c15ULL + (h << 6) + (h >> 2));
+                };
+                size_t h = combine(h1, h2);
+                h = combine(h, h3);
+                return h;
+            }
+        };
+        struct IndexEqual { // 定义重载比较运算符的仿函数
+            bool operator()(const index_t& lhs, const index_t& rhs) const noexcept {
+                // 仅索引相同还不够，因为同一个空间位置可能被多个面共用，而其在每个面上的法线和 uv 都可能不同
+                // 这样的是会被算作两个不同的顶点。
+                return lhs.vertex_index == rhs.vertex_index &&
+                       lhs.normal_index == rhs.normal_index &&
+                       lhs.texcoord_index == rhs.texcoord_index;
+            }
+        };
+
         // 负责存储 index -> 对应顶点在 mesh.vertices 中下标的对应键值；映射表 unordered_map 不允许重复键值
         // 对，所以能确保绝对的一对一关系。
         std::unordered_map<index_t, size_t, IndexHash, IndexEqual> unique_map;
@@ -113,6 +113,27 @@ namespace Medium {
                 } else
                     mesh.indices.push_back(unique_map[index]);      // 已存在则直接存入对应顶点在 mesh.vertices 中的下标
             }
+
+        // 面积加权平均法线 Area-weighted vertex normals.
+        // 若模型不自带法线就手动计算：对于每个三角面片，计算其法向，并累加到三个顶点的法向上。最后将所有顶点的法向归一化。
+        if(attrib.normals.empty()) {
+            fmt::print("Mesh::loadFromObj - No normals detected in [{}]\n"
+                "Vertex normals will be generated automatically.\n\n", path.string());
+
+            for(size_t i = 0; i < mesh.indices.size(); i += 3) {
+                const Vec3f& pos0 = mesh.vertices[mesh.indices[i + 0]].pos;
+                const Vec3f& pos1 = mesh.vertices[mesh.indices[i + 1]].pos;
+                const Vec3f& pos2 = mesh.vertices[mesh.indices[i + 2]].pos;
+
+                Vec3f face_normal = (pos1 - pos0).cross(pos2 - pos0);
+
+                for(size_t j = 0; j < 3; ++j)
+                    mesh.vertices[mesh.indices[i + j]].normal += face_normal;
+            }
+
+            for(auto & vertex : mesh.vertices) vertex.normal.normalize();
+        }
+
         return std::make_shared<Mesh>(std::move(mesh));
     }
 

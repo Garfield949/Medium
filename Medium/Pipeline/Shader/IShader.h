@@ -9,6 +9,8 @@
 #include "Core/Types.h"
 #include "Core/Primitivies/Vertex.h"
 
+#include "Resources/Texture.h"
+
 namespace Medium {
 
     // Varying 是单个 draw call 里不断被插值变化的量，描述了属性如何从顶点的“点数据”
@@ -53,6 +55,8 @@ namespace Medium {
 
         std::array<Varying, 3> varyings; // 保存三个顶点各自的 Varying
         Uniform uniforms;
+
+        const Texture* texture = nullptr;
     };
 
 } // namespace Medium

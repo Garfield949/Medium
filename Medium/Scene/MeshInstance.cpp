@@ -22,10 +22,16 @@ namespace Medium {
         uniform.wvp = p * v * w;
         uniform.camera_pos = context.camera.transform.worldPosition();
 
+        context.shader.texture = texture_.get();
+
         context.rasterizer.draw(*(this->mesh_),
                              context.shader,
                              context.render_target);
         Node::render(context);
+    }
+
+    void MeshInstance::setTexture(std::shared_ptr<Texture> texture) {
+        texture_ = std::move(texture);
     }
 
 } // namespace Medium

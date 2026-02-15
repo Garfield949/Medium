@@ -44,12 +44,12 @@ namespace Medium {
     // 最近邻采样 Nearest Neighbor Sampling.
     Color Texture::sample(f32 U, f32 V) const {
         U -= std::floor(U); // Repeat 平铺模式，取小数部分：1.1 -> 0.1, 1.0 -> 0.0
-        V -= std::floor(V);
+        V -= std::floor(V); // U, V 能取到的范围是 0 ~ 0.999...
 
         auto x = static_cast<int>(U * static_cast<f32>(width_)); // 0.999 * width 转型为 int 自动截断为 width - 1
         auto y = static_cast<int>(V * static_cast<f32>(height_));
 
-        x = std::clamp(x, 0, width_ - 1);
+        x = std::clamp(x, 0, width_ - 1); // 保险措施。
         y = std::clamp(y, 0, height_ - 1);
 
         auto offset = (y * width_ + x) * 4; // R,G,B,A

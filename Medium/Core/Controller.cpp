@@ -31,10 +31,8 @@ namespace Medium {
 
         // 获取相机的物体轴
         Vec3f forward = attach_to_->transform.forward();
-        Vec3f right = attach_to_->transform.right();
-
-        forward.y() = 0;
-        forward.normalize();
+        Vec3f right   = attach_to_->transform.right();
+        Vec3f up_ref  = Vec3f::UnitY();
 
         // 位移 = 速度 * 时间
         f32 trans = move_speed_ * dt;
@@ -51,6 +49,13 @@ namespace Medium {
         if (input_->key_held(KB_KEY_D)) {
             attach_to_->transform.translate(right * trans);
         }
+        if (input_->key_held(KB_KEY_SPACE)) {
+            attach_to_->transform.translate(up_ref * trans);
+        }
+        if (input_->key_held(KB_KEY_LEFT_SHIFT)) {
+            attach_to_->transform.translate(-up_ref * trans);
+        }
+
     }
 
 } // namespace Medium

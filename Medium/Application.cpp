@@ -35,7 +35,8 @@ namespace Medium {
         }
         mfb_show_cursor(mfb_window_, true);
 
-        auto obj_path = std::filesystem::path(PROJECT_ROOT_DIR) / "assets" / "models" / "bunny.obj";
+        auto obj_path = std::filesystem::path(PROJECT_ROOT_DIR)
+        / "assets" / "models" / "teapot" / "teapot.obj";
 
         // 网格类型，也负责读取模型
         // TODO: 读取失败就渲染一个蓝黑相间的正方体或其它东西
@@ -57,12 +58,13 @@ namespace Medium {
         // 创建场景根结点。
         scene_root_node_ = std::make_unique<Node>("SceneRoot");
 
-        auto bunny = std::make_unique<MeshInstance>("Bunny", mesh);
-        bunny->transform.setPosition({0, -0.7, 2});
-        bunny->transform.setScale(0.5);
-        bunny->transform.setRotation({0, 180, 0});
+        auto mesh_instance = std::make_unique<MeshInstance>("Bunny", mesh);
+        mesh_instance->setTexture(texture);
+        mesh_instance->transform.setPosition({0, -0.7, 2});
+        mesh_instance->transform.setScale(0.01);
+        mesh_instance->transform.setRotation({0, 180, 0});
 
-        scene_root_node_->attachChild(std::move(bunny));
+        scene_root_node_->attachChild(std::move(mesh_instance));
 
         camera_ = scene_root_node_->attachChild(std::make_unique<Camera>());
         camera_->setName("MainCamera");

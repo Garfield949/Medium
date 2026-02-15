@@ -32,12 +32,20 @@ namespace Medium {
                                                 varyings[1].normal,
                                                varyings[2].normal, weights, w_invs);
 
+            // UV 插值
+            Vec2f uv_interp = Math::interpolate(varyings[0].uv,
+                                                varyings[1].uv,
+                                                varyings[2].uv, weights, w_invs);
+
+            const Color sample = texture->sample(uv_interp.x(), uv_interp.y());
+
             // 简单的兰伯特光照
             f32 intensity = std::max(0.0f, n_interp.dot(uniforms.light_dir.normalized()));
-            color = {static_cast<u8>(255 * intensity)};
+            color = sample * intensity;
 
             return false;
         }
+
     };
 
 } // namespace Medium
