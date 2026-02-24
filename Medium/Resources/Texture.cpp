@@ -14,11 +14,12 @@
 
 namespace Medium {
 
-    std::shared_ptr<Texture> Texture::loadFromFile(const std::filesystem::path& path) {
+    TexturePtr Texture::loadFromFile(const std::filesystem::path& path) {
         // UV 空间的原点在左下角，而纹理图的存储是行优先的，原点在左上角。为了索引方便，先设置将读进的纹理上下翻转。
         stbi_set_flip_vertically_on_load(true);
 
-        auto tex = std::shared_ptr<Texture>(new Texture());
+        // Texture 的构造函数是私有的，故 std::make_shared 无法隐式构造。
+        auto tex = TexturePtr(new Texture());
 
         unsigned char* raw = stbi_load(path.string().c_str(),
                                             &tex->width_,
@@ -41,13 +42,21 @@ namespace Medium {
         return tex;
     }
 
-    // 最近邻采样 Nearest Neighbor Sampling.
-    Color Texture::sample(f32 U, f32 V) const {
-        U -= std::floor(U); // Repeat 平铺模式，取小数部分：1.1 -> 0.1, 1.0 -> 0.0
-        V -= std::floor(V); // U, V 能取到的范围是 0 ~ 0.999...
+    Color Texture::getCheckerBoardColor(Vec2f UV) noexcept {
+        f32 side = 8; // 定义棋盘格边长。
+        u32 idxU = static_cast<u32>(std::floor(UV.x() * side)); // 将 [0.0 ~ 1.0] 的 UV 映射到 [0 ~ 8] 的棋盘格。
+        u32 idxV = static_cast<u32>(std::floor(UV.y() * side));
+        if((idxU + idxV) % 2 == 0) return Color::Navy(); // 奇偶校验
+        return {255};
+    }
 
-        auto x = static_cast<int>(U * static_cast<f32>(width_)); // 0.999 * width 转型为 int 自动截断为 width - 1
-        auto y = static_cast<int>(V * static_cast<f32>(height_));
+    // 最近邻采样 Nearest Neighbor Sampling.
+    Color Texture::sample(Vec2f UV) const noexcept {
+        UV.x() -= std::floor(UV.x()); // Repeat 平铺模式，取小数部分：1.1 -> 0.1, 1.0 -> 0.0
+        UV.y() -= std::floor(UV.y()); // U, V 能取到的范围是 0 ~ 0.999...
+
+        auto x = static_cast<int>(UV.x() * static_cast<f32>(width_)); // 0.999 * width 转型为 int 自动截断为 width - 1
+        auto y = static_cast<int>(UV.y() * static_cast<f32>(height_));
 
         x = std::clamp(x, 0, width_ - 1); // 保险措施。
         y = std::clamp(y, 0, height_ - 1);

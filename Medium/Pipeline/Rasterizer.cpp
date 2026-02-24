@@ -14,16 +14,19 @@
 namespace Medium {
 
     // 实现 Rasterizer 成员函数 draw
-    void Rasterizer::draw(const Mesh& mesh, IShader& shader, RenderTarget& render_target) {
+    void Rasterizer::draw(const Mesh &mesh, const SubMesh &sub_mesh,
+                          IShader &shader,  RenderTarget &render_target) {
 
         // 三角面片的三个顶点
         std::array<Vec4f, 3> tri;
 
         // 每次取 3 个顶点作为一个面片
-        for(auto i = 0; i < mesh.triangleCount(); i ++) {
+        for(auto i = 0; i < sub_mesh.triangleCount(); i ++) {
+            auto tri_idx = sub_mesh.index_offset + (i * 3);
+
             // 运行顶点着色器 World Space -> Clip Space
             for(int j = 0; j < 3; j++)
-                tri[j] = shader.vertex(j, mesh.vertices[mesh.indices[i * 3 + j]]);
+                tri[j] = shader.vertex(j, mesh.vertices[mesh.indices[tri_idx + j]]);
 
             // 简单的全三角形剔除：只要有一个点在近平面后面或太近，就丢弃。
             // 这里取 0.1f 作为近平面阈值

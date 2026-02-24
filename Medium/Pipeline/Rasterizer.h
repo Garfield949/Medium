@@ -9,8 +9,9 @@
 
 namespace Medium {
     // 前向声明
-    class RenderTarget;
-    struct Mesh;
+    class  RenderTarget;
+    class  Mesh;
+    struct SubMesh;
     struct IShader;
 } // namespace Medium
 
@@ -24,7 +25,8 @@ namespace Medium {
         Rasterizer() = default;
 
         // 绘制入口，传入顶点汤与着色器
-        void draw(const Mesh& mesh, IShader& shader, RenderTarget& render_target);
+        void draw(const Mesh &mesh, const SubMesh &sub_mesh,
+                  IShader &shader,  RenderTarget &render_target);
 
     private:
         // 光栅化单个三角面片

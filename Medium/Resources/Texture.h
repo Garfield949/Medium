@@ -11,17 +11,21 @@
 #include "stb_image.h"
 
 #include "Core/Types.h"
+#include "Core/Forwards.h"
 #include "Core/Color.h"
 
 namespace Medium {
 
     class Texture {
     public:
+
         ~Texture() = default;
 
-        static std::shared_ptr<Texture> loadFromFile(const std::filesystem::path& path);
+        static TexturePtr loadFromFile(const std::filesystem::path& path);
 
-        [[nodiscard]] Color sample(f32 U, f32 V) const;
+        static Color getCheckerBoardColor(Vec2f UV) noexcept;
+
+        [[nodiscard]] Color sample(Vec2f UV) const noexcept; // 颜色采样
 
         [[nodiscard]] int width()  const noexcept { return width_; }
         [[nodiscard]] int height() const noexcept { return height_; }

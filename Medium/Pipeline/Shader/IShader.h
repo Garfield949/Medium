@@ -28,6 +28,14 @@ namespace Medium {
         Mat4f wvp;
         Vec3f camera_pos; // 用于高光着色
         Vec3f light_dir = {1.0f, 1.0f, -1.0f};
+
+        Vec3f Ka = {0.2f, 0.2f, 0.2f};
+        Vec3f Kd = {0.8f, 0.8f, 0.8f};
+        Vec3f Ks = {0.0f, 0.0f, 0.0f};
+        f32   Ns = 0.0f;
+        f32   d  = 1.0f;
+
+        bool draw_checkerboard = false;
     };
 
     /// @class IShader

@@ -21,7 +21,6 @@ namespace Medium {
     }
 
     void Transform::setScale(f32 scale) noexcept {
-        assert(scale >= 0.1f);
         scale_local_ = scale;
         updateDirtyFlags();
     }

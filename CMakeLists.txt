@@ -52,6 +52,7 @@ add_executable(${PROJECT_NAME}
         Medium/Resources/Texture.h
         Medium/Resources/Material.cpp
         Medium/Resources/Material.h
+        Medium/Core/Forwards.h
 )
 
 # 设置包含目录

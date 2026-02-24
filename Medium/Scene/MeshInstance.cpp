@@ -9,6 +9,8 @@
 #include "Camera.h"
 #include "Pipeline/Rasterizer.h"
 #include "Pipeline/Shader/IShader.h"
+#include "Resources/Material.h"
+#include "Resources/Mesh.h"
 
 namespace Medium {
 
@@ -22,16 +24,24 @@ namespace Medium {
         uniform.wvp = p * v * w;
         uniform.camera_pos = context.camera.transform.worldPosition();
 
-        context.shader.texture = texture_.get();
+        // 遍历网格中的每一个子网格，发起多个 Draw Call
+        for (const auto& submesh : mesh_->sub_meshes) {
+            MaterialPtr mat = mesh_->materials[submesh.material_index];
 
-        context.rasterizer.draw(*(this->mesh_),
-                             context.shader,
-                             context.render_target);
+            if(int mat_id = submesh.material_index; mat_id == -1) {
+                context.shader.texture = nullptr;
+                context.shader.uniforms.draw_checkerboard = true;
+            } else {
+                context.shader.texture = mat->map_Kd.get();
+            }
+
+            uniform.Kd = mat->Kd;
+
+            // 调用光栅化器，绘制这个局部的 SubMesh
+            context.rasterizer.draw(*(this->mesh_), submesh, context.shader, context.render_target);
+        }
+
         Node::render(context);
-    }
-
-    void MeshInstance::setTexture(std::shared_ptr<Texture> texture) {
-        texture_ = std::move(texture);
     }
 
 } // namespace Medium

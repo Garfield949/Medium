@@ -41,7 +41,7 @@ namespace Medium {
         Rasterizer rasterizer_;
 
         // 场景
-        std::unique_ptr<Node> scene_root_node_;
+        std::unique_ptr<Node> scene_root_;
         Camera *camera_ = nullptr;
 
         // 输入与控制

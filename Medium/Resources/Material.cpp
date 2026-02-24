@@ -8,4 +8,7 @@
 #include "Material.h"
 
 namespace Medium {
-} // Medium
+
+
+
+} // namespace Medium

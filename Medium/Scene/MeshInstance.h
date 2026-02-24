@@ -7,23 +7,19 @@
 #pragma once
 
 #include "Scene/Node.h"
-#include "Resources/Mesh.h"
-#include "Resources/Texture.h"
+#include "Core/Forwards.h"
 
 namespace Medium {
 
     class MeshInstance : public Node {
     public:
-        explicit MeshInstance(std::string name, std::shared_ptr<Mesh> mesh)
+        explicit MeshInstance(std::string name, MeshPtr mesh)
             : Node(std::move(name)), mesh_(std::move(mesh)) {}
 
         void render(RenderContext &context) override;
 
-        void setTexture(std::shared_ptr<Texture> texture);
-
     private:
-        std::shared_ptr<Mesh> mesh_;
-        std::shared_ptr<Texture> texture_;
+        MeshPtr mesh_;
     };
 
 } // namespace Medium
