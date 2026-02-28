@@ -6,12 +6,15 @@
 ///
 #pragma once
 
-#include "Core/Types.h"
-#include "Core/Primitivies/Vertex.h"
-
-#include "Resources/Texture.h"
+#include "Base/Types.h"
+#include "Base/Primitives/Vertex.h"
+#include "Resources/Material.h"
 
 namespace Medium {
+
+    enum class ColorSource {
+        Checkerboard, Textured, SolidColor
+    };
 
     // Varying 是单个 draw call 里不断被插值变化的量，描述了属性如何从顶点的“点数据”
     // 演变成覆盖整个三角形面的“面数据”。
@@ -27,15 +30,15 @@ namespace Medium {
         Mat4f world;
         Mat4f wvp;
         Vec3f camera_pos; // 用于高光着色
-        Vec3f light_dir = {1.0f, 1.0f, -1.0f};
+        Vec3f light_dir;
 
-        Vec3f Ka = {0.2f, 0.2f, 0.2f};
-        Vec3f Kd = {0.8f, 0.8f, 0.8f};
-        Vec3f Ks = {0.0f, 0.0f, 0.0f};
-        f32   Ns = 0.0f;
-        f32   d  = 1.0f;
+        MaterialParams mat_params;
 
-        bool draw_checkerboard = false;
+        const Texture* map_Kd = nullptr;
+        const Texture* map_Ks = nullptr;
+
+        ColorSource color_source_diffuse  = ColorSource::Checkerboard;
+        ColorSource color_source_specular = ColorSource::Checkerboard;
     };
 
     /// @class IShader
@@ -56,15 +59,13 @@ namespace Medium {
 
         /// @brief 片元着色器
         /// @param weights 重心坐标 (alpha, beta, gamma)
-        /// @param color 输出颜色
+        /// @param color_final 输出颜色
         /// @return true 若需丢弃该像素，false 保留
         /// @details 利用 weights 对 varying 进行插值
-        virtual bool fragment(const Vec3f& weights, Color& color) = 0;
+        virtual bool fragment(const Vec3f& weights, Color& color_final) = 0;
 
-        std::array<Varying, 3> varyings; // 保存三个顶点各自的 Varying
+        std::array<Varying, 3> varyings;
         Uniform uniforms;
-
-        const Texture* texture = nullptr;
     };
 
 } // namespace Medium

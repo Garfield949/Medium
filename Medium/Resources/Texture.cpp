@@ -24,8 +24,8 @@ namespace Medium {
         unsigned char* raw = stbi_load(path.string().c_str(),
                                             &tex->width_,
                                             &tex->height_,
-                                         &tex->channels,
-                                      STBI_rgb_alpha); // 强制补齐 alpha 通道。
+                                            &tex->channels,
+                                            STBI_rgb_alpha); // 强制补齐 alpha 通道。
 
         if(!raw) {
             fmt::print(stderr, "\nTexture::loadFromFile - StbImage::{}\n\n", stbi_failure_reason());
@@ -33,9 +33,9 @@ namespace Medium {
         }
 
         // 打印调试信息
-        fmt::print("Texture::loadFromFile - [{}] - Success.\n"
-                   "Height: {}\n"
-                   "Width : {}\n\n", path.string(), tex->height_, tex->width_);
+        // fmt::print("Texture::loadFromFile - [{}] - Success.\n"
+        //            "Height: {}\n"
+        //            "Width : {}\n\n", path.string(), tex->height_, tex->width_);
 
         tex->data_.reset(raw);
 
@@ -44,10 +44,11 @@ namespace Medium {
 
     Color Texture::getCheckerBoardColor(Vec2f UV) noexcept {
         f32 side = 8; // 定义棋盘格边长。
-        u32 idxU = static_cast<u32>(std::floor(UV.x() * side)); // 将 [0.0 ~ 1.0] 的 UV 映射到 [0 ~ 8] 的棋盘格。
-        u32 idxV = static_cast<u32>(std::floor(UV.y() * side));
+        int idxU = static_cast<int>(std::floor(UV.x() * side)); // 将 [0.0 ~ 1.0] 的 UV 映射到 [0 ~ 8] 的棋盘格。
+        int idxV = static_cast<int>(std::floor(UV.y() * side));
+
         if((idxU + idxV) % 2 == 0) return Color::Navy(); // 奇偶校验
-        return {255};
+        return Color::White();
     }
 
     // 最近邻采样 Nearest Neighbor Sampling.

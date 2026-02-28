@@ -4,7 +4,7 @@
 ///
 #pragma once
 
-#include "Core/Types.h"
+#include "Base/Types.h"
 
 namespace Medium {
 
@@ -14,9 +14,9 @@ namespace Medium {
 
     class Controller {
     public:
-        Controller(Node* attach_to, Input* input);
+        Controller(Node* attach_to, Input* input) noexcept;
 
-        void update(f32 dt);
+        void update(f32 dt) noexcept;
     private:
         f32 move_speed_ = 1.5f;
         f32 mouse_sensitivity_ = 0.2f;

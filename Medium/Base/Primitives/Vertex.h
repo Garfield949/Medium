@@ -6,8 +6,8 @@
 
 #include <utility>
 
-#include "Core/Types.h"
-#include "Core/Color.h"
+#include "Base/Types.h"
+#include "Base/Color.h"
 
 namespace Medium {
 

@@ -4,7 +4,7 @@
 ///
 #pragma once
 
-#include "Core/Types.h"
+#include "Base/Types.h"
 
 namespace Medium {
 

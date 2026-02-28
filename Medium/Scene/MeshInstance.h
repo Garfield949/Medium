@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Scene/Node.h"
-#include "Core/Forwards.h"
+#include "Base/Forwards.h"
 
 namespace Medium {
 

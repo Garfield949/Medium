@@ -1,6 +1,7 @@
-/build
-/assets
 /.cache
 /.idea
+/.zed
+/assets
+/build
 /.vscode
 .DS_Store

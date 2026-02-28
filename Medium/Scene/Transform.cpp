@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-#include "Core/Math/Math.h"
+#include "Base/Math.h"
 #include "Scene/Node.h"
 
 namespace Medium {

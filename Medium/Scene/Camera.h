@@ -4,7 +4,7 @@
 ///
 #pragma once
 
-#include "Core/Types.h"
+#include "Base/Types.h"
 #include "Scene/Node.h"
 
 namespace Medium {
@@ -19,6 +19,7 @@ namespace Medium {
 
         // Setters
         void setFOV(f32 fov)                  noexcept;
+        // 使用 infinite far.
         void setNear(f32 near_plane)          noexcept;
         void setAspectRatio(f32 aspect_ratio) noexcept;
 

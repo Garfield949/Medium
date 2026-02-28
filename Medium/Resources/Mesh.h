@@ -6,8 +6,8 @@
 
 #include <filesystem>
 
-#include "Core/Primitivies/Vertex.h"
-#include "Core/Forwards.h"
+#include "Base/Primitives/Vertex.h"
+#include "Base/Forwards.h"
 
 namespace Medium {
 
@@ -16,9 +16,9 @@ namespace Medium {
             return index_count / 3;
         }
 
-        u32 index_offset    = 0;
-        u32 index_count     = 0;
-        int material_index  = 0;
+        size_t index_offset    = 0;
+        size_t index_count     = 0;
+        int    material_index  = 0;
     };
 
     /// @class Mesh

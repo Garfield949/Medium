@@ -10,9 +10,9 @@
 
 #include "stb_image.h"
 
-#include "Core/Types.h"
-#include "Core/Forwards.h"
-#include "Core/Color.h"
+#include "Base/Types.h"
+#include "Base/Forwards.h"
+#include "Base/Color.h"
 
 namespace Medium {
 

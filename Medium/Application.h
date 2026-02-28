@@ -4,11 +4,11 @@
 ///
 #pragma once
 
-#include "Core/Timer.h"
+#include "Base/Timer.h"
 #include "Pipeline/Rasterizer.h"
 #include "Pipeline/RenderTarget.h"
-#include "Core/Input.h"
-#include "Core/Controller.h"
+#include "Base/Input.h"
+#include "Base/Controller.h"
 #include "Scene/Node.h"
 
 // 该前向声明不能放在 namespace Medium 里，否则编译器会将类型识别为 Medium::mfb_window，但

@@ -1,3 +1,32 @@
+/// @brief BBox2D 成员函数，接收三角面片顶点、屏幕宽高
+// static BBox2D fromTriangle(const std::array<Vec4f, 3>& tri, u32 width, u32 height) {
+//     BBox2D bbox;
+
+//     // 先找出面片的边界；
+//     // std::minmax 返回一个 std::pair，第一个为最小值，第二个为最大值；
+//     // C++11：传的参数为一个初始化列表，编译器在背后隐式地在栈上创建一个数组；C++17：结构化绑定语法，允许将某些类型的成员解包到独立的变量中；
+//     // 注意：minmax 的参数为初始化列表时，返回值为值拷贝；若使用双参数版本 std::minmax(a,b)，auto [res1, res2] 接收的将是临时变量 a
+//     // 和 b 的常量引用，会造成引用悬垂错误。
+//     auto [min_x, max_x] = std::minmax({tri[0].x(), tri[1].x(), tri[2].x()});
+//     auto [min_y, max_y] = std::minmax({tri[0].y(), tri[1].y(), tri[2].y()});
+
+//     // 转换为整数，并进行安全的取整策略：宁可多框一些像素，多余的用重心坐标测试裁掉，避免漏掉边缘像素
+//     // floor: 保证 min 有 10.9 -> 10
+//     // ceil:  保证 max 有 10.1 -> 11
+//     int i_min_x = static_cast<int>(std::floor(min_x));
+//     int i_max_x = static_cast<int>(std::ceil(max_x));
+//     int i_min_y = static_cast<int>(std::floor(min_y));
+//     int i_max_y = static_cast<int>(std::ceil(max_y));
+
+//     // 计算与屏幕矩形的交集
+//     bbox.min.x() = std::max(0, i_min_x);
+//     bbox.min.y() = std::max(0, i_min_y);
+//     bbox.max.x() = std::min(static_cast<int>(width - 1),  i_max_x);
+//     bbox.max.y() = std::min(static_cast<int>(height - 1), i_max_y);
+
+//     return bbox;
+// }
+
 // // ---------- 更新 _mat_model_inv
 // // 旋转的逆 (R^-1 = R^T)
 // // 转置后，其行分别为物体当前姿态的物体 x, y, z 轴。

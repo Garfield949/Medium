@@ -14,6 +14,12 @@ namespace Medium {
     using u32 = uint32_t;
     using u16 = uint16_t;
     using u8  = uint8_t;
+    
+    // 类型别名
+    using i64 = int64_t;
+    using i32 = int32_t;
+    using i16 = int16_t;
+    using i8  = int8_t;
 
     // 类型别名
     using f32 = float;
@@ -28,7 +34,7 @@ namespace Medium {
     using Vec4f = Eigen::Vector4f;
     using Vec3i = Eigen::Vector3i;
     using Vec2f = Eigen::Vector2f;
-    using Vec2i = Eigen::Vector2i;
+    using Vec2i = Eigen::Matrix<i32, 2, 1>;
     using Vec2u = Eigen::Matrix<u32, 2, 1>;
     using Quatf = Eigen::Quaternionf;
 

@@ -17,16 +17,16 @@ add_definitions(-DFMT_HEADER_ONLY)
 
 # 生成可执行文件
 add_executable(${PROJECT_NAME}
-        Medium/Core/Math/Math.h
-        Medium/Core/Types.h
+        Medium/Base/Math.h
+        Medium/Base/Types.h
         Medium/Pipeline/RenderTarget.h
-        Medium/Core/Color.h
-        Medium/Core/Primitivies/Vertex.h
+        Medium/Base/Color.h
+        Medium/Base/Primitives/Vertex.h
         Medium/Resources/Mesh.h
         Medium/Scene/Camera.h
         Medium/Pipeline/RenderConfig.h
         Medium/Pipeline/Rasterizer.h
-        Medium/Core/Math/Geometry.h
+        Medium/Base/Geometry.h
         Medium/Pipeline/Shader/Shaders.h
         Medium/Scene/Transform.h
         Medium/Pipeline/Rasterizer.cpp
@@ -34,12 +34,12 @@ add_executable(${PROJECT_NAME}
         Medium/main.cpp
         Medium/Resources/Mesh.cpp
         Medium/Scene/Transform.cpp
-        Medium/Core/Timer.h
-        Medium/Core/Timer.cpp
-        Medium/Core/Input.cpp
-        Medium/Core/Input.h
-        Medium/Core/Controller.h
-        Medium/Core/Controller.cpp
+        Medium/Base/Timer.h
+        Medium/Base/Timer.cpp
+        Medium/Base/Input.cpp
+        Medium/Base/Input.h
+        Medium/Base/Controller.h
+        Medium/Base/Controller.cpp
         Medium/Application.cpp
         Medium/Application.h
         Medium/Scene/Node.cpp
@@ -52,7 +52,9 @@ add_executable(${PROJECT_NAME}
         Medium/Resources/Texture.h
         Medium/Resources/Material.cpp
         Medium/Resources/Material.h
-        Medium/Core/Forwards.h
+        Medium/Base/Forwards.h
+        Medium/Base/Color.cpp
+        Medium/Base/SubPixel.h
 )
 
 # 设置包含目录

@@ -4,8 +4,8 @@
 ///
 #pragma once
 
-#include "Core/Color.h"
-#include "Core/Types.h"
+#include "Base/Color.h"
+#include "Base/Types.h"
 
 namespace Medium {
 

@@ -2,42 +2,54 @@
 /// @file   MeshInstance.cpp
 /// @author Garfield949
 /// @date   2026/2/13 22:58
-/// @brief  
+/// @brief
 ///
 #include "MeshInstance.h"
 
-#include "Camera.h"
+#include "Base/Types.h"
+#include "Resources/Texture.h"
+#include "Scene/Camera.h"
 #include "Pipeline/Rasterizer.h"
 #include "Pipeline/Shader/IShader.h"
-#include "Resources/Material.h"
 #include "Resources/Mesh.h"
 
 namespace Medium {
 
     void MeshInstance::render(RenderContext& context) {
-        const Mat4f &w = transform.worldMatrix();
-        const Mat4f &v = context.camera.viewMatrix();
+        // w 和 v 返回的是临时对象，所以不使用引用。
+        const Mat4f w  = transform.worldMatrix();
+        const Mat4f v  = context.camera.viewMatrix();
         const Mat4f &p = context.camera.projMatrix();
 
-        Uniform &uniform = context.shader.uniforms;
-        uniform.world = w;
-        uniform.wvp = p * v * w;
-        uniform.camera_pos = context.camera.transform.worldPosition();
+        Uniform &uniforms = context.shader.uniforms;
+        uniforms.world = w;
+        uniforms.wvp = p * v * w;
+        uniforms.camera_pos = context.camera.transform.worldPosition();
+        uniforms.light_dir = {1.0f, 1.0f, -1.0f};
+        uniforms.light_dir.normalize();
 
-        // 遍历网格中的每一个子网格，发起多个 Draw Call
         for (const auto& submesh : mesh_->sub_meshes) {
-            MaterialPtr mat = mesh_->materials[submesh.material_index];
-
-            if(int mat_id = submesh.material_index; mat_id == -1) {
-                context.shader.texture = nullptr;
-                context.shader.uniforms.draw_checkerboard = true;
+            int curr_mat_idx = submesh.material_index;
+            // 为当前 SubMesh 绑定材质参数
+            if (curr_mat_idx == -1) {
+                uniforms.color_source_diffuse = ColorSource::Checkerboard;
             } else {
-                context.shader.texture = mat->map_Kd.get();
+                // Lambda.
+                auto inferColorSource = [&](const Texture* tex) -> ColorSource {
+                    if(tex) return ColorSource::Textured;
+                    else    return ColorSource::SolidColor;
+                };
+
+                uniforms.map_Kd = mesh_->materials[curr_mat_idx]->map_Kd.get();
+                uniforms.map_Ks = mesh_->materials[curr_mat_idx]->map_Ks.get();
+
+                uniforms.color_source_diffuse  = inferColorSource(uniforms.map_Kd);
+                uniforms.color_source_specular = inferColorSource(uniforms.map_Ks);
+                
+                uniforms.mat_params = mesh_->materials[curr_mat_idx]->params;
             }
 
-            uniform.Kd = mat->Kd;
-
-            // 调用光栅化器，绘制这个局部的 SubMesh
+            // 各 SubMesh 一次 Draw Call.
             context.rasterizer.draw(*(this->mesh_), submesh, context.shader, context.render_target);
         }
 

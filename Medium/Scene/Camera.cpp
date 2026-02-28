@@ -3,7 +3,7 @@
 ///
 #include "Camera.h"
 
-#include "Core/Math/Math.h"
+#include "Base/Math.h"
 
 namespace Medium {
 
@@ -15,7 +15,8 @@ namespace Medium {
 
     // 实现 Camera 成员函数 setNearFar
     void Camera::setNear(f32 near_plane) noexcept {
-        near_ = near_plane;
+        // Clamp 到 0.001f.
+        near_ = std::max(near_plane, 0.001f);
         dirty_proj_matrix_ = true;
     }
 

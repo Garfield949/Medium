@@ -3,7 +3,6 @@
 ///
 #include "Mesh.h"
 
-#include <iostream>
 #include <unordered_map>
 
 // 定义此宏以在该文件内展开 TinyObjLoader 的具体实现；
@@ -14,6 +13,7 @@
 #include <fmt/color.h>
 
 #include "Resources/Material.h"
+#include "Resources/Texture.h"
 
 namespace Medium {
 
@@ -29,8 +29,8 @@ namespace Medium {
                 fmt::print(stderr, "\nMesh::loadFromObj - TinyObjReader::{}\n", reader.Error());
             return nullptr;
         }
-        if(!reader.Warning().empty())
-            fmt::print("TinyObjReader::{}\n", reader.Warning());
+        // if(!reader.Warning().empty())
+        //     fmt::print("Mesh::loadFromObj - TinyObjReader::{}\n", reader.Warning());
 
         // 1. attrib_t 存储实际的顶点数据（坐标、法线、纹理等）。注意：attrib_t 的顶点数组 std::vector<real_t> vertices
         //    存放的是平铺的分量数据，即 x0, y0, z0, x1, y1, z1, ... 法线和纹理同理；
@@ -64,12 +64,21 @@ namespace Medium {
         // 读入材质 (MTL)
         for(const auto & mat_t : materials) {
             auto m = std::make_shared<Material>();
+
             m->name = mat_t.name;
-            m->Ka = {mat_t.ambient[0],  mat_t.ambient[1],  mat_t.ambient[2]};
-            m->Kd = {mat_t.diffuse[0],  mat_t.diffuse[1],  mat_t.diffuse[2]};
-            m->Ks = {mat_t.specular[0], mat_t.specular[1], mat_t.specular[2]};
-            m->Ns = mat_t.shininess;
-            m->d  = mat_t.dissolve;
+
+            // 将 TinyObjLoader 读取的原始材质参数装入 MaterialParams 结构。
+            MaterialParams& mat_params = m->params;
+            mat_params.Ka = {mat_t.ambient[0],  mat_t.ambient[1],  mat_t.ambient[2]};
+            mat_params.Kd = {mat_t.diffuse[0],  mat_t.diffuse[1],  mat_t.diffuse[2]};
+            mat_params.Ks = {mat_t.specular[0], mat_t.specular[1], mat_t.specular[2]};
+            mat_params.Ke = {mat_t.emission[0], mat_t.emission[1], mat_t.emission[2]};
+
+            mat_params.Ns = mat_t.shininess;
+            mat_params.Ni = mat_t.ior;
+            mat_params.d  = mat_t.dissolve;
+            mat_params.Tf = mat_t.transmittance[0];
+            mat_params.illum = mat_t.illum;
 
             // Lambda, 拼接材质完整路径。
             auto loadTex = [&](std::string path) -> TexturePtr {
@@ -80,14 +89,37 @@ namespace Medium {
                 return Texture::loadFromFile(full_path);
             };
 
-            m->map_Ka   = loadTex(mat_t.ambient_texname);
-            m->map_Kd   = loadTex(mat_t.diffuse_texname);
-            m->map_Ks   = loadTex(mat_t.specular_texname);
-            m->map_d    = loadTex(mat_t.alpha_texname);
+            // 材质贴图指针先赋给 Material 对象，在 draw call 阶段再装配给 Uniform.
+            m->map_Ka = loadTex(mat_t.ambient_texname);
+            m->map_Kd = loadTex(mat_t.diffuse_texname);
+            m->map_Ks = loadTex(mat_t.specular_texname);
+            m->map_d = loadTex(mat_t.alpha_texname);
             m->map_bump = loadTex(mat_t.bump_texname);
 
             mesh.materials.push_back(std::move(m));
         }
+        
+        auto texStatus = [](const TexturePtr& tex) -> std::string {
+            return tex ? " [X] " : " [ ] ";
+        };
+
+        fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan), 
+                   "--- Material Summary ({}) ---\n", mesh.materials.size());
+        fmt::print("{:<20} | {:<5} | {:<5} | {:<5} | {:<5} | {:<5} | {:<5}\n", 
+                   "Name", "Illum", "Diff", "Spec", "Norm", "Alpha", "Ambi");
+        fmt::print("{:-<85}\n", "");
+        
+        for (const auto& m : mesh.materials) {
+            fmt::print("{:<20} | {:<5} | {} | {} | {} | {} | {}\n",
+                       m->name.substr(0, 20),
+                       m->params.illum,
+                       texStatus(m->map_Kd),
+                       texStatus(m->map_Ks),
+                       texStatus(m->map_bump),
+                       texStatus(m->map_d),
+                       texStatus(m->map_Ka));
+        }
+        fmt::print("\n");
 
         struct IndexHash {  // 定义一个 Hash 仿函数，() 被重载以创建函数对象，注意重载函数必须为 const
             size_t operator()(const index_t& idx) const noexcept {
@@ -177,7 +209,6 @@ namespace Medium {
             }
         }
 
-        // 面积加权平均法线 Area-weighted vertex normals.
         // 若模型不自带法线就手动计算。
         if(attrib.normals.empty()) {
             fmt::print("Mesh::loadFromObj - No normals detected in [{}]\n"
@@ -189,19 +220,19 @@ namespace Medium {
         return std::make_shared<Mesh>(std::move(mesh));
     }
 
-    // 对于每个三角面片，计算其法向，并累加到三个顶点的法向上。最后将所有顶点的法向归一化。
+    // 面积加权平均法线 Area-weighted vertex normals. 对于每个三角面片，计算其法向，并累加到三个顶点的法向上。
+    // 最后将所有顶点的法向归一化。
     void Mesh::calculateNormals() {
-        for(size_t i = 0; i < indices.size(); i += 3) {
-            const Vec3f& pos0 = vertices[indices[i + 0]].pos;
-            const Vec3f& pos1 = vertices[indices[i + 1]].pos;
-            const Vec3f& pos2 = vertices[indices[i + 2]].pos;
+        for(size_t f = 0; f < indices.size(); f += 3) {
+            const Vec3f& pos0 = vertices[indices[f + 0]].pos;
+            const Vec3f& pos1 = vertices[indices[f + 1]].pos;
+            const Vec3f& pos2 = vertices[indices[f + 2]].pos;
 
             Vec3f face_normal = (pos1 - pos0).cross(pos2 - pos0);
 
             for(size_t j = 0; j < 3; ++j)
-                vertices[indices[i + j]].normal += face_normal;
+                vertices[indices[f + j]].normal += face_normal;
         }
-
         for(auto & vertex : vertices) vertex.normal.normalize();
     }
 

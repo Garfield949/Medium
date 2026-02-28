@@ -8,7 +8,6 @@
 #include <fmt/core.h>
 
 #include "Resources/Mesh.h"
-#include "Resources/Texture.h"
 #include "Pipeline/Shader/Shaders.h"
 #include "Scene/Camera.h"
 #include "Scene/MeshInstance.h"
@@ -20,7 +19,7 @@ namespace Medium {
           render_target_(width, height)
     {
         render_config_.title = title;
-        render_config_.clear_color = {79, 147, 184};
+        render_config_.clear_color = Color::Navy();
     }
 
     bool Application::init() {
@@ -34,7 +33,7 @@ namespace Medium {
         mfb_show_cursor(mfb_window_, true);
 
         auto obj_path = std::filesystem::path(PROJECT_ROOT_DIR) / "assets" / "models"
-            / "conference" / "conference.obj";
+            / "sponza_crytek" / "sponza.obj";
 
         auto mesh = Mesh::loadFromObj(obj_path);
         if(!mesh) {
@@ -47,7 +46,7 @@ namespace Medium {
 
         auto mesh_instance = std::make_unique<MeshInstance>("Mesh Instance", mesh);
         mesh_instance->transform.setPosition({0, 0, 0});
-        mesh_instance->transform.setScale(0.01);
+        mesh_instance->transform.setScale(0.006);
         mesh_instance->transform.setRotation({0, 0, 0});
 
         scene_root_->attachChild(std::move(mesh_instance));
@@ -55,7 +54,7 @@ namespace Medium {
         camera_ = scene_root_->attachChild(std::make_unique<Camera>());
         camera_->setName("MainCamera");
         camera_->setAspectRatio(render_config_.vpRatio());
-        camera_->setNear(1);
+        camera_->setNear(0.01);
         camera_->setFOV(85);
 
         controller_ = std::make_unique<Controller>(camera_, &input_);

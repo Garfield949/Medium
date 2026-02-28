@@ -9,10 +9,10 @@
 
 namespace Medium {
 
-    Controller::Controller(Node* attach_to, Input* input)
+    Controller::Controller(Node* attach_to, Input* input) noexcept
         : attach_to_(attach_to), input_(input) {}
 
-    void Controller::update(f32 dt) {
+    void Controller::update(f32 dt) noexcept {
         assert(attach_to_ && input_);
 
         // 由于 delta 要与灵敏度等参数相乘，所以转为浮点类型

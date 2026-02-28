@@ -23,7 +23,7 @@ namespace Medium {
         void setReportInterval(f32 interval_s) noexcept { fps_report_interval_s_ = interval_s; }
 
         // 重置计时器
-        void reset() { time_last_tick_ = Clock::now(); }
+        void reset() noexcept { time_last_tick_ = Clock::now(); }
 
     private:
         // 重置累积时间和累积帧数
