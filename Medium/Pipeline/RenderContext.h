@@ -6,20 +6,23 @@
 ///
 #pragma once
 
+#include "Base/Types.h"
+#include "Pipeline/Shader/ShaderType.h"
+
 namespace Medium {
 
-    class  Rasterizer;
-    class  RenderTarget;
-    struct IShader;
-    class  Camera;
+    class RenderTarget;
+    class Camera;
 
     struct RenderContext {
-        RenderContext(Rasterizer &r, RenderTarget &t, IShader &s, Camera &c)
-            : rasterizer(r), render_target(t), shader(s), camera(c) {}
-        Rasterizer   &rasterizer;
-        RenderTarget &render_target;
-        IShader      &shader;
-        Camera       &camera;
+        RenderContext(RenderTarget &t, VariantShader &s, Camera &c)
+            : render_target(t), shader(s), camera(c) {}
+
+        RenderTarget  &render_target;
+        VariantShader &shader;
+        Camera        &camera;
+        
+        Mat4f projection_view;
     };
 
 } // namespace Medium

@@ -8,17 +8,17 @@
 
 namespace Medium::Math {
 
-    inline constexpr f32 MEDIUM_PI = 3.141592653f;
+    inline constexpr f32 MEDIUM_PI          = 3.141592653f;
     inline constexpr f32 KINDA_SMALL_NUMBER = 1e-4f;
-    inline constexpr f32 VERY_SMALL_NUMBER = 1e-6f;
-    inline constexpr f32 KINDA_LIKE_ONE = 0.99f;
+    inline constexpr f32 VERY_SMALL_NUMBER  = 1e-6f;
+    inline constexpr f32 KINDA_LIKE_ONE     = 0.99f;
 
 } // namespace Medium::Math
 
 namespace Medium::Math {
 
     // 判定浮点数是否接近零
-    inline bool isNearlyZero(f32 value, f32 tolerance = KINDA_SMALL_NUMBER) noexcept {
+    inline bool isNearlyZero(f32 value, f32 tolerance = VERY_SMALL_NUMBER) noexcept {
         return std::abs(value) <= tolerance;
     }
 

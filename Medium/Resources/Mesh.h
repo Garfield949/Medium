@@ -15,7 +15,6 @@ namespace Medium {
         [[nodiscard]] size_t triangleCount() const noexcept {
             return index_count / 3;
         }
-
         size_t index_offset    = 0;
         size_t index_count     = 0;
         int    material_index  = 0;

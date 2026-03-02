@@ -6,6 +6,7 @@
 ///
 #pragma once
 
+#include "Base/Color.h"
 #include "Base/Types.h"
 #include "Base/Forwards.h"
 
@@ -17,10 +18,10 @@ namespace Medium {
         // 1. Ambient,   环境光系数；
         // 2. Diffuse,   漫反射系数设为 0.8 是因为没有物质能 100% 将入射光漫反射出去；
         // 3. Specular,  镜面反射系数，决定高光强度；
-        Vec3f Ka = {0.2f, 0.2f, 0.2f};
-        Vec3f Kd = {1.0f, 1.0f, 1.0f};
-        Vec3f Ks = {0.0f, 0.0f, 0.0f};
-        Vec3f Ke = {0.0f, 0.0f, 0.0f};
+        LinearColor Ka = {0.2f, 0.2f, 0.2f};
+        LinearColor Kd = {1.0f, 1.0f, 1.0f};
+        LinearColor Ks = {0.0f, 0.0f, 0.0f};
+        LinearColor Ke = {0.0f, 0.0f, 0.0f};
         // 表面属性参数，控制光线与表面交互的细节。
         // 1. Shininess,           亮泽度，决定了高光的聚散（清晰度）程度；
         // 2. Index Of Refraction, 折射率；

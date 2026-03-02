@@ -4,10 +4,10 @@
 ///
 #include <iostream>
 
-#include "Application.h"
+#include "App.h"
 
 int main() {
-    Medium::Application app(1100, 900, "Medium Canvas");
+    Medium::App app;
 
     if(!app.init()) return -1;
 

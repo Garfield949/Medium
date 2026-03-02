@@ -1,17 +1,21 @@
 TODO
 
-1. Top-Left rule; ✅
+- Top-Left rule : Done
 
-2. Edge function; ✅
+- Edge function : Done
 
-3. Shader 模板化;
+- 齐次裁剪 : Done
 
-4. 齐次裁剪;
+- Gamma 矫正 : Done
 
-5. Gamma 矫正；
+- 亚像素光栅化 : Done
 
-6. 亚像素；        ✅
+- Shader 模板化
 
-7. 阴影贴图；
+- 阴影贴图
 
-8. 统一项目内对宽度和高度的语义；
+- Alpha 预乘
+
+- Mipmap
+
+- 环境光遮蔽

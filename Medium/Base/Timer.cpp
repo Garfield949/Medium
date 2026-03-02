@@ -4,8 +4,6 @@
 ///
 #include "Timer.h"
 
-#include <iostream>
-
 #include <fmt/core.h>
 
 namespace Medium {

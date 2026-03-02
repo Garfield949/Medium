@@ -3,6 +3,7 @@
 ///
 #include "Mesh.h"
 
+#include <cmath>
 #include <unordered_map>
 
 // 定义此宏以在该文件内展开 TinyObjLoader 的具体实现；
@@ -70,7 +71,7 @@ namespace Medium {
             // 将 TinyObjLoader 读取的原始材质参数装入 MaterialParams 结构。
             MaterialParams& mat_params = m->params;
             mat_params.Ka = {mat_t.ambient[0],  mat_t.ambient[1],  mat_t.ambient[2]};
-            mat_params.Kd = {mat_t.diffuse[0],  mat_t.diffuse[1],  mat_t.diffuse[2]};
+            mat_params.Kd = {std::powf(mat_t.diffuse[0], 2.4), std::powf(mat_t.diffuse[1], 2.4), std::powf(mat_t.diffuse[2], 2.4)};
             mat_params.Ks = {mat_t.specular[0], mat_t.specular[1], mat_t.specular[2]};
             mat_params.Ke = {mat_t.emission[0], mat_t.emission[1], mat_t.emission[2]};
 

@@ -24,12 +24,8 @@ add_executable(${PROJECT_NAME}
         Medium/Base/Primitives/Vertex.h
         Medium/Resources/Mesh.h
         Medium/Scene/Camera.h
-        Medium/Pipeline/RenderConfig.h
-        Medium/Pipeline/Rasterizer.h
         Medium/Base/Geometry.h
-        Medium/Pipeline/Shader/Shaders.h
         Medium/Scene/Transform.h
-        Medium/Pipeline/Rasterizer.cpp
         Medium/Scene/Camera.cpp
         Medium/main.cpp
         Medium/Resources/Mesh.cpp
@@ -40,12 +36,11 @@ add_executable(${PROJECT_NAME}
         Medium/Base/Input.h
         Medium/Base/Controller.h
         Medium/Base/Controller.cpp
-        Medium/Application.cpp
-        Medium/Application.h
+        Medium/App.cpp
+        Medium/App.h
         Medium/Scene/Node.cpp
         Medium/Scene/Node.h
         Medium/Scene/MeshInstance.h
-        Medium/Pipeline/Shader/IShader.h
         Medium/Pipeline/RenderContext.h
         Medium/Scene/MeshInstance.cpp
         Medium/Resources/Texture.cpp
@@ -53,8 +48,13 @@ add_executable(${PROJECT_NAME}
         Medium/Resources/Material.cpp
         Medium/Resources/Material.h
         Medium/Base/Forwards.h
-        Medium/Base/Color.cpp
+        Medium/Base/Color.h
         Medium/Base/SubPixel.h
+        Medium/Pipeline/Pipeline.h
+        Medium/Pipeline/Pipeline.cpp
+        Medium/Base/Config.h
+        Medium/Pipeline/Shader/Shaders.h
+        Medium/Pipeline/Shader/ShaderType.h
 )
 
 # 设置包含目录

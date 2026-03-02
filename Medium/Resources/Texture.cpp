@@ -42,31 +42,4 @@ namespace Medium {
         return tex;
     }
 
-    Color Texture::getCheckerBoardColor(Vec2f UV) noexcept {
-        f32 side = 8; // 定义棋盘格边长。
-        int idxU = static_cast<int>(std::floor(UV.x() * side)); // 将 [0.0 ~ 1.0] 的 UV 映射到 [0 ~ 8] 的棋盘格。
-        int idxV = static_cast<int>(std::floor(UV.y() * side));
-
-        if((idxU + idxV) % 2 == 0) return Color::Navy(); // 奇偶校验
-        return Color::White();
-    }
-
-    // 最近邻采样 Nearest Neighbor Sampling.
-    Color Texture::sample(Vec2f UV) const noexcept {
-        UV.x() -= std::floor(UV.x()); // Repeat 平铺模式，取小数部分：1.1 -> 0.1, 1.0 -> 0.0
-        UV.y() -= std::floor(UV.y()); // U, V 能取到的范围是 0 ~ 0.999...
-
-        auto x = static_cast<int>(UV.x() * static_cast<f32>(width_)); // 0.999 * width 转型为 int 自动截断为 width - 1
-        auto y = static_cast<int>(UV.y() * static_cast<f32>(height_));
-
-        x = std::clamp(x, 0, width_ - 1); // 保险措施。
-        y = std::clamp(y, 0, height_ - 1);
-
-        auto offset = (y * width_ + x) * 4; // R,G,B,A
-
-        auto pixel = data_.get() + offset;
-
-        return {pixel[0], pixel[1], pixel[2], pixel[3]};
-    }
-
 } // namespace Medium

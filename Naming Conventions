@@ -8,8 +8,8 @@
 
 - 枚举：FooBar
 - 静态变量：FooBar
+- 全局常量：FooBar
 - 宏：MEDIUM_FOO_BAR
-- 全局常量：MEDIUM_FOO_BAR
 
 - 普通变量：foo_bar
 - 函数参数：foo_bar

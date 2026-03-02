@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Base/Color.h"
-#include "Pipeline/RenderConfig.h"
+#include "Base/Config.h"
 
 namespace Medium {
 
@@ -16,53 +16,53 @@ namespace Medium {
     class RenderTarget {
     public:
         // 构造函数
-        explicit RenderTarget(u32 width = 800, u32 height = 600)
-            : width_{width}, height_{height},
-              frameBuf_(width * height, Color::Black().data),
-              depthBuf_(width * height, RenderConfig::MEDIUM_DEPTH_CLEAR_VALUE) {
-        }
+        explicit RenderTarget()
+            : w_(AppConstants::ViewportWidth),
+              h_(AppConstants::ViewportHeight),
+              frameBuf_(w_ * h_, RenderConstants::FrameBufferClearColor.toColor(ColorSpace::SRGB).data),
+              depthBuf_(w_ * h_, RenderConstants::DepthClearValue) {}
 
         // 刷新像素与深度缓冲
-        void clearColor(Color color = Color::Black()) noexcept {
-            std::fill(frameBuf_.begin(), frameBuf_.end(), color.data);
+        void clearFrameBuffer(const LinearColor& linear) noexcept {
+            std::fill(frameBuf_.begin(), frameBuf_.end(), linear.toColor(ColorSpace::SRGB).data);
         }
 
-        void clearDepth() noexcept {
-            std::fill(depthBuf_.begin(), depthBuf_.end(), RenderConfig::MEDIUM_DEPTH_CLEAR_VALUE);
+        void clearDepthBuffer() noexcept {
+            std::fill(depthBuf_.begin(), depthBuf_.end(), RenderConstants::DepthClearValue);
         }
 
         // 视区范围是 [0, width][0, height]，而屏幕坐标系是定义在左上角，+y 指向下的，故需翻转 y 轴
         // 缓冲区索引是从 0 开始的，故 y 值减一。
-        [[nodiscard]] size_t index(u32 x, u32 y) const noexcept {
-            return (height_ - y - 1) * width_ + x;
+        [[nodiscard]] size_t getIndex(u32 x, u32 y) const noexcept {
+            return (h_ - y - 1) * w_ + x;
         }
 
         // 放置像素
-        void setColor(u32 x, u32 y, const Color& color) noexcept {
-            frameBuf_[index(x, y)] = color.data;
+        void setColor(u32 index, const LinearColor& linear) noexcept {
+            frameBuf_[index] = toneMapping(linear).toColor(ColorSpace::SRGB).data;
         }
 
         // 深度测试
-        [[nodiscard]] bool depthTest(u32 x, u32 y, f32 new_dep) const noexcept {
-            return new_dep > depthBuf_[index(x, y)];
+        [[nodiscard]] bool depthTest(u32 index, f32 new_dep) const noexcept {
+            return new_dep > depthBuf_[index];
         }
         
         // 深度写入
-        void writeDepth(u32 x, u32 y, f32 new_dep) noexcept {
-            depthBuf_[index(x, y)] = new_dep;
+        void writeDepth(u32 index, f32 new_dep) noexcept {
+            depthBuf_[index] = new_dep;
         }
         
         // 返回像素缓冲的只读指针
         [[nodiscard]] u32* frameBuf() noexcept { return frameBuf_.data(); }
 
         // 获取缓冲区宽/高
-        [[nodiscard]] u32 width()  const noexcept { return width_;  }
-        [[nodiscard]] u32 height() const noexcept { return height_; }
+        [[nodiscard]] u32 width()  const noexcept { return w_; }
+        [[nodiscard]] u32 height() const noexcept { return h_; }
 
     private:
         // 缓冲区宽高
-        u32 width_;
-        u32 height_;
+        u32 w_;
+        u32 h_;
 
         // 像素与深度缓冲
         std::vector<u32> frameBuf_;

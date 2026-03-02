@@ -7,37 +7,44 @@
 #include "MeshInstance.h"
 
 #include "Base/Types.h"
-#include "Resources/Texture.h"
+#include "Pipeline/Shader/Shaders.h"
+#include "Resources/Material.h"
 #include "Scene/Camera.h"
-#include "Pipeline/Rasterizer.h"
-#include "Pipeline/Shader/IShader.h"
 #include "Resources/Mesh.h"
+#include "Resources/Texture.h"
+#include "Pipeline/Pipeline.h"
+#include "Pipeline/Shader/ShaderType.h"
 
 namespace Medium {
 
     void MeshInstance::render(RenderContext& context) {
-        // w 和 v 返回的是临时对象，所以不使用引用。
-        const Mat4f w  = transform.worldMatrix();
-        const Mat4f v  = context.camera.viewMatrix();
-        const Mat4f &p = context.camera.projMatrix();
 
-        Uniform &uniforms = context.shader.uniforms;
-        uniforms.world = w;
-        uniforms.wvp = p * v * w;
-        uniforms.camera_pos = context.camera.transform.worldPosition();
-        uniforms.light_dir = {1.0f, 1.0f, -1.0f};
-        uniforms.light_dir.normalize();
+        Uniform& uniforms = std::visit(overloads {
+            [&](BlinnPhongShader& s) -> Uniform& {
+                Uniform& u = s.uniforms;
+                Mat4f world = transform.worldMatrix();
+                u.world = world;
+                u.wvp = context.projection_view * world;
+                u.camera_pos = context.camera.transform.worldPosition();
+                u.light_dir = Vec3f(3.0f, 2.0f, -1.0f).normalized();
+                return u;
+            }
+        }, context.shader);
 
         for (const auto& submesh : mesh_->sub_meshes) {
             int curr_mat_idx = submesh.material_index;
             // 为当前 SubMesh 绑定材质参数
             if (curr_mat_idx == -1) {
-                uniforms.color_source_diffuse = ColorSource::Checkerboard;
+                uniforms.color_source_diffuse  = ColorSource::Checkerboard;
+                uniforms.color_source_specular = ColorSource::Checkerboard;
+                uniforms.map_Kd     = nullptr;
+                uniforms.map_Ks     = nullptr;
+                uniforms.mat_params = MaterialParams{};
             } else {
                 // Lambda.
                 auto inferColorSource = [&](const Texture* tex) -> ColorSource {
                     if(tex) return ColorSource::Textured;
-                    else    return ColorSource::SolidColor;
+                    return ColorSource::SolidColor;
                 };
 
                 uniforms.map_Kd = mesh_->materials[curr_mat_idx]->map_Kd.get();
@@ -50,7 +57,7 @@ namespace Medium {
             }
 
             // 各 SubMesh 一次 Draw Call.
-            context.rasterizer.draw(*(this->mesh_), submesh, context.shader, context.render_target);
+            Pipeline::draw(*(this->mesh_), submesh, context.shader, context.render_target);
         }
 
         Node::render(context);
