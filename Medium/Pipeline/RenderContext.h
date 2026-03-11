@@ -11,18 +11,18 @@
 
 namespace Medium {
 
-    class RenderTarget;
-    class Camera;
+  class RenderTarget;
+  class Camera;
 
-    struct RenderContext {
-        RenderContext(RenderTarget &t, VariantShader &s, Camera &c)
-            : render_target(t), shader(s), camera(c) {}
+  struct RenderContext {
+    RenderContext(RenderTarget &t, VariantShader &s, Camera &c)
+      : render_target(t), shader(s), camera(c) {}
 
-        RenderTarget  &render_target;
-        VariantShader &shader;
-        Camera        &camera;
-        
-        Mat4f projection_view;
-    };
+    RenderTarget  &render_target;
+    VariantShader &shader;
+    Camera        &camera;
+    
+    Mat4f projection_view;
+  };
 
 } // namespace Medium

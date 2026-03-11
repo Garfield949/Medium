@@ -10,7 +10,7 @@ TODO
 
 - 亚像素光栅化 : Done
 
-- Shader 模板化
+- Shader 动态绑定 : Done
 
 - 阴影贴图
 
@@ -19,3 +19,5 @@ TODO
 - Mipmap
 
 - 环境光遮蔽
+
+- 将渲染分为多pass

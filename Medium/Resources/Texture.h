@@ -6,72 +6,95 @@
 ///
 #pragma once
 
-#include <filesystem>
-
-#include "stb_image.h"
-
 #include "Base/Types.h"
-#include "Base/Forwards.h"
 #include "Base/Color.h"
 
 namespace Medium {
 
-    class Texture {
-    public:
+  enum class FilterMode {
+    Nearest, Bilinear
+  };
 
-        ~Texture() = default;
+  class Texture {
+    friend class AssetCache;
+  public:
+    ~Texture() = default;
 
-        static TexturePtr loadFromFile(const std::filesystem::path& path);
+    static LinearColor getCheckerBoardColor(Vec2f UV) noexcept {
+      // 定义棋盘格边长。
+      f32 side = 8;
+      // 将 [0.0 ~ 1.0] 的 UV 映射到 [0 ~ 8] 的棋盘格。
+      int idxU = static_cast<int>(std::floor(UV.x() * side));
+      int idxV = static_cast<int>(std::floor(UV.y() * side));
+      // 奇偶校验
+      if((idxU + idxV) % 2 == 0) return {0.5f}; 
+      return {1.0f};
+    }
 
-        static LinearColor getCheckerBoardColor(Vec2f UV) noexcept {
-            // 定义棋盘格边长。
-            f32 side = 8;
-            // 将 [0.0 ~ 1.0] 的 UV 映射到 [0 ~ 8] 的棋盘格。
-            int idxU = static_cast<int>(std::floor(UV.x() * side));
-            int idxV = static_cast<int>(std::floor(UV.y() * side));
-            // 奇偶校验
-            if((idxU + idxV) % 2 == 0) return {0.5f}; 
-            return {1.0f};
-        }
+    [[nodiscard]] LinearColor sample(Vec2f UV, FilterMode filter_mode) const noexcept {
+      // Repeat 平铺模式，取小数部分：1.1 -> 0.1, 1.0 -> 0.0; U, V 能取到的范围是 0 ~ 0.999...
+      UV.x() -= std::floor(UV.x()); 
+      UV.y() -= std::floor(UV.y());
 
-        // 最近邻采样 Nearest Neighbor Sampling.
-        [[nodiscard]] Color sample(Vec2f UV) const noexcept {
-            // Repeat 平铺模式，取小数部分：1.1 -> 0.1, 1.0 -> 0.0; U, V 能取到的范围是 0 ~ 0.999...
-            UV.x() -= std::floor(UV.x()); 
-            UV.y() -= std::floor(UV.y());
-    
-            // 0.999 * width 转型为 int 自动截断为 width - 1
-            auto x = static_cast<int>(UV.x() * static_cast<f32>(width_));
-            auto y = static_cast<int>(UV.y() * static_cast<f32>(height_));
-    
-            x = std::clamp(x, 0, width_  - 1);
-            y = std::clamp(y, 0, height_ - 1);
-    
-            // 平铺的 R,G,B,A
-            auto offset = (y * width_ + x) * 4; 
-    
-            auto pixel = data_.get() + offset;
-    
-            return {pixel[0], pixel[1], pixel[2], pixel[3]};
-        }
+      // 在材质两个轴上分别减 0.5，以将各像素的中心对齐到网格线交点
+      // 比如 px = 4.2，则有 3.5 < 4.2 < 4.5. 减去 0.5 则区间重映射为 3.0 < 3.7 < 4.0
+      f32 px = UV.x() * static_cast<f32>(width_)  - 0.5f;
+      f32 py = UV.y() * static_cast<f32>(height_) - 0.5f;
+      
+      auto getPixel = [&](int x, int y) -> LinearColor {
+        x = std::clamp(x, 0, width_  - 1);
+        y = std::clamp(y, 0, height_ - 1);
+        auto offset = (y * width_ + x) * 4; // 平铺的 R,G,B,A
+        auto pixel = data_.get() + offset;
+        return Color{pixel[0], pixel[1], pixel[2], pixel[3]}.toLinear(this->color_space_);
+      };
 
-        [[nodiscard]] int width()  const noexcept { return width_; }
-        [[nodiscard]] int height() const noexcept { return height_; }
+      if(filter_mode == FilterMode::Nearest) {
+        int x = static_cast<int>(px + 0.5f);
+        int y = static_cast<int>(py + 0.5f);
+        return getPixel(x, y);
+      }
 
-    private:
-        Texture() = default;
+      // 左下角像素的坐标
+      int x0 = static_cast<int>(std::floor(px));
+      int y0 = static_cast<int>(std::floor(py));
 
-        struct StbImageDeleter { // 自定义删除器
-            void operator()(unsigned char *data) const {
-                stbi_image_free(data);
-            }
-        };
+      f32 u = px - static_cast<f32>(x0); // 距离左边界的偏移
+      f32 v = py - static_cast<f32>(y0); // 距离下边界的偏移
 
-        int width_   = 0;
-        int height_  = 0;
-        int channels = 0;
+      // 获得四个角的像素颜色
+      LinearColor bl = getPixel(x0, y0);
+      LinearColor br = getPixel(x0 + 1, y0);
+      LinearColor tl = getPixel(x0, y0 + 1);
+      LinearColor tr = getPixel(x0 + 1, y0 + 1);
 
-        std::unique_ptr<unsigned char, StbImageDeleter> data_ = nullptr;
+      // 水平混合
+      LinearColor bottom = bl + (br - bl) * u;
+      LinearColor top    = tl + (tr - tl) * u;
+
+      // 垂直混合
+      return bottom + (top - bottom) * v;
+    }
+
+    [[nodiscard]] int width()  const noexcept { return width_; }
+    [[nodiscard]] int height() const noexcept { return height_; }
+
+  private:
+    Texture() = default;
+
+    struct StbImageDeleter { // 自定义删除器
+      void operator()(unsigned char *data) const {
+        if(data) free(data);
+      }
     };
+
+    ColorSpace color_space_ = ColorSpace::SRGB;
+
+    int width_   = 0;
+    int height_  = 0;
+    int channels = 0;
+
+    std::unique_ptr<unsigned char, StbImageDeleter> data_ = nullptr;
+  };
 
 } // Medium

@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
+
 project(Medium)
 
 # C++17（对 Eigen 的对齐和现代特性更好）
@@ -12,7 +13,6 @@ option(USE_METAL_API "开启 MiniFB 的 macOS Metal 支持" ON)
 # 定义宏，记录项目的根路径，用于程序内寻找模型文件
 add_definitions(-DPROJECT_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/")
 
-# 定义宏，以在单文件内展开具体实现，防止多重定义
 add_definitions(-DFMT_HEADER_ONLY)
 
 # 生成可执行文件
@@ -21,7 +21,7 @@ add_executable(${PROJECT_NAME}
         Medium/Base/Types.h
         Medium/Pipeline/RenderTarget.h
         Medium/Base/Color.h
-        Medium/Base/Primitives/Vertex.h
+        Medium/Resources/Vertex.h
         Medium/Resources/Mesh.h
         Medium/Scene/Camera.h
         Medium/Base/Geometry.h
@@ -43,18 +43,24 @@ add_executable(${PROJECT_NAME}
         Medium/Scene/MeshInstance.h
         Medium/Pipeline/RenderContext.h
         Medium/Scene/MeshInstance.cpp
-        Medium/Resources/Texture.cpp
         Medium/Resources/Texture.h
-        Medium/Resources/Material.cpp
         Medium/Resources/Material.h
-        Medium/Base/Forwards.h
+        Medium/Resources/Forwards.h
         Medium/Base/Color.h
         Medium/Base/SubPixel.h
         Medium/Pipeline/Pipeline.h
         Medium/Pipeline/Pipeline.cpp
         Medium/Base/Config.h
-        Medium/Pipeline/Shader/Shaders.h
+        Medium/Pipeline/Shader/BlinnPhong.h
+        Medium/Pipeline/Shader/BlinnPhong.cpp
         Medium/Pipeline/Shader/ShaderType.h
+        Medium/Pipeline/Clip.h
+        Medium/Resources/AssetCache.cpp
+        Medium/Resources/AssetCache.h
+        Medium/Base/Meta.h
+        Medium/Resources/TextureSlot.h
+        Medium/Base/Util.h
+        Medium/Resources/Material.cpp
 )
 
 # 设置包含目录

@@ -15,35 +15,32 @@
 struct mfb_window;
 
 namespace Medium {
-    class App {
-    public:
-         App() = default;
-        ~App() = default;
+  class App {
+  public:
+     App() = default;
+    ~App() = default;
 
-        // 资源加载
-        [[nodiscard]] bool init();
+    // 资源加载
+    [[nodiscard]] bool init();
 
-        // 主循环
-        void loop();
+    // 主循环
+    void loop();
 
-    private:
-        void on_update(f32 dt);
-        void on_render();
+  private:
+    void on_update(f32 dt);
+    void on_render();
 
-        // 窗口与核心配置
-        mfb_window *mfb_window_ = nullptr;
-        Timer timer_;
+    mfb_window *mfb_window_ = nullptr;
+    Timer timer_;
 
-        RenderTarget render_target_;
+    RenderTarget render_target_;
 
-        // 场景
-        std::unique_ptr<Node> scene_root_;
-        Camera *camera_ = nullptr;
+    std::unique_ptr<Node> scene_root_;
+    Camera *camera_ = nullptr;
 
-        // 输入与控制
-        Input input_;
-        // Controller 的构造依赖 Camera 和 Input，前两者需设置参数，所以可实现延迟构造。
-        std::unique_ptr<Controller> controller_;
-    }; // Class App
+    Input input_;
+    // Controller 的构造依赖 Camera 和 Input，前两者需设置参数，所以可实现延迟构造。
+    std::unique_ptr<Controller> controller_;
+  };
 
 } // Medium

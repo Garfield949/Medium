@@ -7,19 +7,19 @@
 #pragma once
 
 #include "Scene/Node.h"
-#include "Base/Forwards.h"
+#include "Resources/Forwards.h"
 
 namespace Medium {
 
-    class MeshInstance : public Node {
-    public:
-        explicit MeshInstance(std::string name, MeshPtr mesh)
-            : Node(std::move(name)), mesh_(std::move(mesh)) {}
+  class MeshInstance : public Node {
+  public:
+    explicit MeshInstance(std::string name, MeshPtr mesh)
+      : Node(std::move(name)), mesh_(std::move(mesh)) {}
 
-        void render(RenderContext &context) override;
+    void render(const RenderContext& context) override;
 
-    private:
-        MeshPtr mesh_;
-    };
+  private:
+    MeshPtr mesh_;
+  };
 
 } // namespace Medium
