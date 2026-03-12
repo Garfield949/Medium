@@ -6,9 +6,6 @@
 
 #include "Base/Subpixel.h"
 #include "Math.h"
-#include "Base/Types.h"
-#include <algorithm>
-#include <array>
 
 namespace Medium::Geometry {
 

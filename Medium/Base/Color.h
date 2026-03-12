@@ -28,7 +28,7 @@ namespace Medium {
   }();
 
   // 注意表大小得是分辨率 + 1. 否则索引 i 范围为 [0, 4095]，最大只能计算 4095/4096，取不到 1.0 的 Linear 值
-  constexpr size_t GammaEncodeResolution = 4096;
+  inline constexpr size_t GammaEncodeResolution = 4096;
   inline static const std::array<u8, GammaEncodeResolution + 1> GammaEncodingLUT = [] {
     std::array<u8, GammaEncodeResolution + 1> lut{};
     for (size_t i = 0; i <= GammaEncodeResolution; i++) {

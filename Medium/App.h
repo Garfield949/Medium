@@ -15,6 +15,9 @@
 struct mfb_window;
 
 namespace Medium {
+
+  class Camera;
+
   class App {
   public:
      App() = default;
@@ -36,7 +39,7 @@ namespace Medium {
     RenderTarget render_target_;
 
     std::unique_ptr<Node> scene_root_;
-    Camera *camera_ = nullptr;
+    Camera* camera_ = nullptr;
 
     Input input_;
     // Controller 的构造依赖 Camera 和 Input，前两者需设置参数，所以可实现延迟构造。

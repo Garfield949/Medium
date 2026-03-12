@@ -9,14 +9,14 @@
 #include <filesystem>
 
 #include "Forwards.h"
-#include "Base/Color.h"
 
 namespace tinyobj {
   struct material_t;
-  class  ColorSpace;
 }
 
 namespace Medium {
+
+  enum class ColorSpace;
 
   class AssetCache {
   public:

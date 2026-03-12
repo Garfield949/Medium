@@ -6,56 +6,63 @@
 ///
 #include "Pipeline.h"
 
-#include "Base/Math.h"
 #include "Base/Geometry.h"
-#include "Base/Subpixel.h"
-#include "Base/Color.h"
+#include "Base/Types.h"
+#include "Pipeline/Clip.h"
+#include "Pipeline/Shader/BlinnPhong.h"
 #include "Resources/Mesh.h"
 #include "Pipeline/RenderTarget.h"
+#include "Pipeline/Shader/ShaderType.h"
 
 namespace Medium::Pipeline {
 
   void draw(const Mesh    &mesh,   const SubMesh &sub_mesh,
             VariantShader &shader, RenderTarget  &render_target) {
-    // 待装配的三角面片
-    std::array<Vec4f, 3> triangle;
 
-    // SubMesh 层面做 dispatch
-    std::visit([&](auto& concrete_shader) {
-      // 每次取 3 个顶点作为一个面片
+    std::visit([&](auto& concrete_shader) { // SubMesh 层面做 dispatch
+
       for(size_t i = 0; i < sub_mesh.triangleCount(); i ++) {
         size_t tri_idx = sub_mesh.index_offset + (i * 3);
-
-        // 组装三角面片：运行顶点着色器 World Space -> Clip Space.
+        
+        // 将当前三角形作为裁剪输入，运行顶点着色器 World Space -> Clip Space，并获取待插值的 varying
+        ClipPolygon clip_poly;
         for(int j = 0; j < 3; j++)
-          triangle[j] = concrete_shader.vertex(j, mesh.vertices[mesh.indices[tri_idx + j]]);
-
-        // 简单的全三角形剔除：只要有一个点在近平面后面或太近，就丢弃。
-        if(triangle[0].w() < 0.01f || triangle[1].w() < 0.01f || triangle[2].w() < 0.01f)
-          continue;
-
-        // 透视除法 Clip Space -> NDC.
-        // x,y -> [-1,1], z -> [0,1]
-        for(auto & coord : triangle) {
-          f32 w_inv = 1.0f / coord.w();
-          coord.x() *= w_inv;
-          coord.y() *= w_inv;
-          coord.z() *= w_inv;
+          clip_poly.verts[clip_poly.num_verts++].pos = 
+            concrete_shader.vertex(j, mesh.vertices[mesh.indices[tri_idx + j]], clip_poly.verts[j].varying);
+        
+        if(!clip(clip_poly)) continue;
+          
+        // 透视除法 Clip Space -> NDC. x,y -> [-1,1], reversed-z -> [0,1]
+        for(auto & vert : clip_poly.verts) {
+          Vec4f& pos = vert.pos;
+          f32 w_inv = 1.0f / pos.w();
+          pos.x() *= w_inv;
+          pos.y() *= w_inv;
+          pos.z() *= w_inv;
         }
-
-        // 背面剔除 Back-face Culling. NDC 空间和屏幕空间的剔除效果一致，所以在视口变换前先做剔除，免得白做一次视口变换；
-        // 有向面积为正说明三角形是逆时针的，这在左手系中是背对相机的；
-        // 由于这里已经剔除掉了所有逆时针三角形，所以后续计算 Edge Function 时只用处理顺时针三角形。
-        if (Geometry::orient2D(triangle[0], triangle[1], triangle[2]) > 0) continue;
-
-        // 视口变换 NDC -> Screen Space;
-        // 顶点的 x,y 由 [-1.0,1.0] 映射到 [0.0, width], [0.0, height];
-        for(auto & coord : triangle)
-          NDCToScreen(coord, render_target.width(), render_target.height());
-
-        // 将屏幕坐标送进光栅器。
-        rasterize(triangle, shader, render_target);
+        
+        // 扇形划分：n 个顶点的凸多边形可分出 n - 2 个三角形
+        for(int i = 0; i + 1 < clip_poly.num_verts; ++i) {
+          std::array<Vec4f, 3> triangle = {
+            clip_poly.verts[0].pos, clip_poly.verts[i].pos, clip_poly.verts[i + 1].pos
+          };
+          // 背面剔除 Back-face Culling. NDC 空间和屏幕空间的剔除效果一致，所以在视口变换前先做剔除，免得白做一次视口变换；
+          // 有向面积为正说明三角形是逆时针的，这在左手系中是背对相机的；
+          // 由于这里已经剔除掉了所有逆时针三角形，所以后续计算 Edge Function 时只用处理顺时针三角形。
+          if (Geometry::orient2D(triangle[0], triangle[1], triangle[2]) > 0) continue;
+          // 视口变换 NDC -> Screen Space; 顶点的 x,y 由 [-1.0,1.0] 映射到 [0.0, width], [0.0, height].
+          for(auto & coord : triangle)
+            NDCToScreen(coord, render_target.width(), render_target.height());
+            
+          std::array<Varying, 3> varyings = {
+            clip_poly.verts[0].varying, clip_poly.verts[i].varying, clip_poly.verts[i + 1].varying
+          };
+            
+          // 将屏幕坐标送进光栅器。
+          rasterize(triangle, varyings, shader, render_target);
+        }
       }
+      
     }, shader);
 
   } // draw
@@ -66,7 +73,11 @@ namespace Medium::Pipeline {
   //        = Ax + By + C.
   // 故当 E(x+1,y) 有 Delta E = A = y1-y0；当 E(x,y+1) 有 Delta E = B = -(x1-x0) = x0-x1.
   // 注：当应用了次像素，边函数就变为了 E(x*scale, y*scale) = (A*scale)x + (B*scale)y + C.
-  void rasterize(const std::array<Vec4f, 3>& tri_screen, VariantShader& shader, RenderTarget& render_target) {
+  void rasterize(const std::array<Vec4f, 3>   & tri_screen, 
+                 const std::array<Varying, 3> & varyings, 
+                 VariantShader                & shader, 
+                 RenderTarget                 & render_target) 
+  {  
     using namespace Geometry;
 
     std::array<Vec2i, 3> tri_fixed; // 将传入三角形的浮点屏幕坐标提升为次像素定点数；
@@ -142,7 +153,7 @@ namespace Medium::Pipeline {
             if(render_target.depthTest(index, z_interp)) {
               LinearColor pixel_color;
 
-              bool discard = concrete_shader.fragment(weights, pixel_color);
+              bool discard = concrete_shader.fragment(varyings, weights, pixel_color);
 
               if(!discard) {
                 render_target.writeDepth(index, z_interp);

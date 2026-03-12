@@ -27,12 +27,12 @@ namespace Medium::Math {
   }
 
   // 度数转弧度
-  constexpr f32 deg_to_rad(f32 deg) {
+  inline f32 deg_to_rad(f32 deg) noexcept {
     return MEDIUM_PI * deg / 180.0f;
   }
 
   // 弧度转度数
-  constexpr f32 rad_to_deg(f32 rad) {
+  inline f32 rad_to_deg(f32 rad) noexcept {
     return rad * 180.0f / MEDIUM_PI;
   }
 
@@ -89,6 +89,11 @@ namespace Medium::Math {
     f32 w_interp = 1.0f / w_inv_interp;
     // 除以 1/w 等价于乘以 w
     return val * w_interp;
+  }
+  
+  template<typename T>
+  T lerp(const T& a, const T& b, f32 t) noexcept {
+    return a * (1.0f - t) + b * t;
   }
 
 } // namespace Medium::Math

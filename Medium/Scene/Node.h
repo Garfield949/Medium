@@ -7,9 +7,10 @@
 #pragma once
 
 #include "Transform.h"
-#include "Pipeline/RenderContext.h"
 
 namespace Medium {
+
+  struct RenderContext;
 
   class Node {
     friend class Transform;
@@ -43,7 +44,7 @@ namespace Medium {
 
   protected:
     std::string name_;
-    Node *parent_;
+    Node* parent_;
     std::vector<std::unique_ptr<Node>> children_;
   };
 

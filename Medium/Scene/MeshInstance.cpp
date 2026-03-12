@@ -6,7 +6,10 @@
 ///
 #include "MeshInstance.h"
 
+#include "Base/Meta.h"
 #include "Pipeline/Pipeline.h"
+#include "Pipeline/RenderContext.h"
+#include "Resources/Mesh.h"
 
 namespace Medium {
 

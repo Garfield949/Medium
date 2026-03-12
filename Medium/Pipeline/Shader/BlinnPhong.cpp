@@ -7,6 +7,7 @@
 #include "BlinnPhong.h"
 
 #include "Scene/Camera.h"
+#include "Pipeline/RenderContext.h"
 
 namespace Medium {
   

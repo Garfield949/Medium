@@ -9,7 +9,7 @@
 
 #include "Scene/Camera.h"
 #include "Scene/MeshInstance.h"
-#include "Pipeline/Shader/ShaderType.h"
+#include "Pipeline/RenderContext.h"
 #include "Resources/AssetCache.h"
 
 namespace Medium {
@@ -25,7 +25,7 @@ namespace Medium {
     mfb_show_cursor(mfb_window_, true);
 
     auto obj_path = std::filesystem::path(PROJECT_ROOT_DIR) / "assets" / "models"
-      / "conference" / "conference.obj";
+      / "sponza" / "sponza.obj";
 
     auto mesh = AssetCache::Instance().loadObj(obj_path);
     if(!mesh) {

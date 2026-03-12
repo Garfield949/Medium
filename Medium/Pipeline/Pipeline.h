@@ -6,8 +6,6 @@
 ///
 #pragma once
 
-#include "Resources/Mesh.h"
-#include "Pipeline/RenderTarget.h"
 #include "Pipeline/Shader/ShaderType.h"
 
 namespace Medium {
@@ -30,8 +28,9 @@ namespace Medium::Pipeline {
             VariantShader &shader,
             RenderTarget  &render_target);
 
-  void rasterize(const std::array<Vec4f, 3> & tri_screen,
-                 VariantShader              & shader,
-                 RenderTarget               & render_target);
+  void rasterize(const std::array<Vec4f, 3>   & tri_screen,
+                 const std::array<Varying, 3> & varyings,
+                 VariantShader                & shader,
+                 RenderTarget                 & render_target);
   
 } // namespace Medium::Pipeline

@@ -9,7 +9,6 @@
 
 #include <variant>
 
-#include "Base/Meta.h"
 #include "Forwards.h"
 #include "Texture.h"
 
@@ -23,25 +22,12 @@ namespace Medium {
     return soild_color;
   }
   
-  // inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv) {
-  //   return std::visit(overloads {
-  //     [&](const TexturePtr& map) -> LinearColor {
-  //       return map->sample(uv, FilterMode::Nearest);
-  //     },
-  //     [](const LinearColor& solid_color) {
-  //       return solid_color;
-  //     }
-  //   }, slot);
-  // }
-  
   inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv) {
       // 0 对应 TexturePtr, 1 对应 LinearColor
       if (slot.index() == 0) {
           const auto& map = std::get<0>(slot);
-          return map->sample(uv, FilterMode::Nearest);
-      } 
-      
-      // 直接取第 1 个类型，省去类型查找
+          return map->sample(uv, FilterMode::Bilinear);
+      }
       return std::get<1>(slot);
   }
   
