@@ -32,7 +32,7 @@ namespace Medium {
     // ---------- Modifiers: 增量修改
     /// @brief 平移
     /// @param delta            分量 x,y,z 分别对应父空间轴上的位移
-    void translate(const Vec3f& delta) noexcept;
+    void translate(const Vec3f& delta, Space space = Space::Self) noexcept;
 
     /// @brief 复合轴旋转
     /// @param euler_degrees    欧拉角度数。分量 x,y,z 对应 Pitch,Yaw/Heading,Roll/Bank.
@@ -73,12 +73,12 @@ namespace Medium {
     Quatf rotation_local_ = Quatf::Identity();
     f32   scale_local_    = 1.0f;
 
-    // Transform 的矩阵形式
+    // Transform 的矩阵缓存
     Mat4f matrix_local_ = Mat4f::Identity(); // 局部矩阵
     Mat4f matrix_world_ = Mat4f::Identity(); // 世界矩阵
 
-    bool dirty_local_ = true; // 局部矩阵脏标记
-    bool dirty_world_ = true; // 世界矩阵脏标记
+    bool dirty_local_ = true; // 局部矩阵更新脏标记
+    bool dirty_world_ = true; // 世界矩阵更新脏标记
   }; // class Transform
 
 } // namespace Medium

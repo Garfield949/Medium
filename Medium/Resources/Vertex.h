@@ -16,8 +16,8 @@ namespace Medium {
   /// @details 存储位置、法线、UV和颜色
   struct Vertex {
     Vertex() = default;
-    Vertex(Vec3f position, Vec3f normal, Vec2f tex_coord)
-      : pos(std::move(position)), normal(std::move(normal)), uv(std::move(tex_coord)) {} 
+    Vertex(const Vec3f& position, const Vec3f& normal, const Vec2f& tex_coord)
+      : pos(position), normal(normal), uv(tex_coord) {} 
     
     Vec3f pos     = Vec3f::Zero(); // 位置
     Vec3f normal  = Vec3f::Zero(); // 法线

@@ -1,6 +1,6 @@
 ///
 /// @file App.h
-/// @brief 负责渲染器程序的生命周期管理：初始化、循环、关闭
+/// @brief 负责渲染器程序的生命周期管理：初始化、循环、析构
 ///
 #pragma once
 
@@ -9,9 +9,11 @@
 #include "Base/Controller.h"
 #include "Pipeline/RenderTarget.h"
 #include "Scene/Node.h"
+#include "Scene/Light/DirectionalLight.h"
+#include <memory>
 
-// 该前向声明不能放在 namespace Medium 里，否则编译器会将类型识别为 Medium::mfb_window，但
-// MiniFB 是在全局作用域声明的，即 ::mfb_window.
+// 该前向声明不能放在 namespace Medium 里，否则编译器会将类型识别为 Medium::mfb_window，
+// 但 MiniFB 是在全局作用域声明的，即 ::mfb_window.
 struct mfb_window;
 
 namespace Medium {
@@ -35,15 +37,15 @@ namespace Medium {
 
     mfb_window *mfb_window_ = nullptr;
     Timer timer_;
-
-    RenderTarget render_target_;
-
-    std::unique_ptr<Node> scene_root_;
-    Camera* camera_ = nullptr;
-
     Input input_;
-    // Controller 的构造依赖 Camera 和 Input，前两者需设置参数，所以可实现延迟构造。
-    std::unique_ptr<Controller> controller_;
+    std::unique_ptr<Controller> controller_ = nullptr;
+
+    std::unique_ptr<Node>         scene_root_;
+    std::unique_ptr<RenderTarget> main_buffer_ = nullptr;
+    Camera*                       main_camera_ = nullptr;
+
+    std::unique_ptr<DirectionalLight> main_light_ = nullptr;
+    std::unique_ptr<RenderTarget>     shadow_map_  = nullptr;
   };
 
 } // Medium

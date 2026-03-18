@@ -43,7 +43,7 @@ namespace Medium {
 
     if(!reader.ParseFromFile(obj_path, config)) {
       if(!reader.Error().empty())
-        fmt::print(stderr, "\nMesh::loadFromObj - TinyObjReader::{}\n", reader.Error());
+        fmt::print(stderr, "\nAssetCache::loadFromObj - TinyObjReader::{}\n", reader.Error());
       return nullptr;
     }
 
@@ -58,7 +58,7 @@ namespace Medium {
     auto& materials = reader.GetMaterials();
 
     // 打印 obj 信息
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan), "\nMesh::loadFromObj - [{}] - Success.\n", obj_path.string());
+    fmt::print(fmt::emphasis::bold | fg(fmt::color::cyan), "\nAssetCache::loadFromObj - [{}]\n", obj_path.string());
     fmt::print("Vertices : {}\n"
                "Normals  : {}\n"
                "UVs      : {}\n"
@@ -165,18 +165,17 @@ namespace Medium {
         mesh_new->sub_meshes.push_back(sub_mesh);
       }
     }
-
     // 若模型不自带法线就手动计算。
     if(attrib.normals.empty()) {
-      fmt::print("Mesh::loadFromObj - No normals detected in [{}], "
+      fmt::print("AssetCache::loadFromObj - No normals detected in [{}], "
         "Vertex normals will be generated automatically.\n\n", obj_path.string());
-
       mesh_new->calcNormals();
     }
 
     for(const auto& mat : mesh_new->materials)
       if(mat->enable_norm) {
-        mesh_new->calcTangents(); break;
+        mesh_new->calcTangents();
+        break;
       }
 
     return mesh_new;

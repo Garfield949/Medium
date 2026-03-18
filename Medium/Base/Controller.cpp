@@ -29,7 +29,7 @@ namespace Medium {
           .rotate(Vec3f::UnitX(), delta.y() * mouse_sensitivity_, Space::Self);
     }
 
-    // 获取相机的物体轴
+    // 获取相机的物体轴在世界空间的表示
     Vec3f forward = attach_to_->transform.forward();
     Vec3f right   = attach_to_->transform.right();
     Vec3f up_ref  = Vec3f::UnitY();

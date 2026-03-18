@@ -9,34 +9,30 @@
 #include "Base/Types.h"
 #include "Resources/Vertex.h"
 #include "Resources/Material.h"
+#include "Varying.h"
+#include "Pipeline/RenderTarget.h"
 
 namespace Medium {
   
   struct RenderContext;
-  
-  struct Varying {
-    Vec2f uv;        // 纹理坐标
-    Vec3f normal;    // 顶点变到世界空间里的法向
-    Vec4f tangent;   //
-    Vec3f pos_world; // 某些计算（比如光照）依赖顶点世界坐标
-    f32   w_inv;     // 保存顶点的 1/w
-  };
 
   struct BlinnPhongShader {
     struct Uniform {
       Mat4f world;
       Mat4f wvp;
       Vec3f camera_pos; // 用于高光着色
-      Vec3f light_dir;
+      const Material* material = nullptr;
 
-      const Material* material;
+      Mat4f wvp_light;
+      Vec3f light_dir;
+      const RenderTarget* shadow_map = nullptr;
     };
     
     Uniform uniforms;
     
     void bind(const RenderContext& context, const Mat4f& world, const Material* mat) noexcept;
 
-    Vec4f vertex(const u32 nth_vert, const Vertex& vert, Varying& varying) noexcept {
+    Vec4f vertex(const Vertex& vert, Varying& varying) noexcept {
       Vec4f pos_clip  = uniforms.wvp * vert.pos.homogeneous();
       Mat3f world_rot = uniforms.world.topLeftCorner(3, 3);
 
@@ -50,13 +46,16 @@ namespace Medium {
       return pos_clip;
     }
 
-    bool fragment(const std::array<Varying, 3>& varyings, Vec3f weights, LinearColor& color_final) noexcept {
+    bool fragment(const std::array<Varying, 3>& varyings, const Vec3f& weights, LinearColor& color_final) noexcept {
       Vec3f w_invs{varyings[0].w_inv, varyings[1].w_inv, varyings[2].w_inv};
 
       Vec3f n_interp  = Math::interpolate(varyings[0].normal, varyings[1].normal, varyings[2].normal, 
                                           weights, w_invs).normalized();
 
       Vec2f uv_interp = Math::interpolate(varyings[0].uv, varyings[1].uv, varyings[2].uv, weights, w_invs);
+
+      Vec3f pos_world_interp = Math::interpolate(varyings[0].pos_world, varyings[1].pos_world, varyings[2].pos_world,
+                                                   weights, w_invs);
 
       const Material* mat = uniforms.material;
 
@@ -71,7 +70,7 @@ namespace Medium {
       }
 
       if(mat->enable_norm) {
-        Vec4f T_interp{Math::interpolate(varyings[0].tangent, varyings[1].tangent, varyings[2].tangent, 
+        Vec4f T_interp{Math::interpolate(varyings[0].tangent, varyings[1].tangent, varyings[2].tangent,
                                          weights, w_invs)};
 
         Vec3f T = T_interp.head<3>();
@@ -95,9 +94,6 @@ namespace Medium {
       }
 
       if(mat->enable_spec) {
-        Vec3f pos_world_interp = Math::interpolate(varyings[0].pos_world, varyings[1].pos_world, varyings[2].pos_world, 
-                                                   weights, w_invs);
-
         Vec3f view_dir = (uniforms.camera_pos - pos_world_interp).normalized();
 
         Vec3f half_way = (view_dir + uniforms.light_dir).normalized();
@@ -106,13 +102,28 @@ namespace Medium {
 
         spec_color = (sampleSlot(mat->spec_slot, uv_interp) * spec_intens);
       }
+
+      f32 shadow_visibility = 1.0f;
+      if(uniforms.shadow_map) {
+        Vec4f light_clip = uniforms.wvp_light * pos_world_interp.homogeneous();
+        Vec4f light_ndc  = light_clip / light_clip.w();
+
+        Vec2f uv_shadow{(light_ndc.x() + 1) * 0.5f, (light_ndc.y() + 1) * 0.5f};
+
+        if(uv_shadow.x() >= 0.0f && uv_shadow.x() <= 1.0f && uv_shadow.y() >= 0.0f && uv_shadow.y() <= 1.0f) {
+          f32 z_map = uniforms.shadow_map->sampleDepth(uv_shadow);
+          f32 z_cur = light_clip.z();
+          f32 bias = std::max(0.005f * (1.0f - n_interp.dot(uniforms.light_dir)), 0.001f);
+          if(z_cur < z_map - bias) shadow_visibility = 0.2f;
+        }
+      }
       
       f32 diff_intens = std::max(n_interp.dot(uniforms.light_dir), 0.0f);
       
       f32 half_lambert = diff_intens * 0.5f + 0.5f;
       diff_intens = half_lambert * half_lambert;
       
-      color_final = diff_color * diff_intens + spec_color;
+      color_final = (diff_color * diff_intens + spec_color) * shadow_visibility;
 
       return false;
     }

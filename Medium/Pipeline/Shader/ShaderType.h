@@ -9,9 +9,10 @@
 #include <variant>
 
 #include "BlinnPhong.h"
+#include "ShadowShader.h"
 
 namespace Medium {
 
-  using VariantShader = std::variant<BlinnPhongShader>;
+  using VariantShader = std::variant<BlinnPhongShader, ShadowShader>;
 
 } // namespace Medium

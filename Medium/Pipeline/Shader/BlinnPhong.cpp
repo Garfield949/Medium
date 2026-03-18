@@ -8,15 +8,19 @@
 
 #include "Scene/Camera.h"
 #include "Pipeline/RenderContext.h"
+#include "Scene/Light/DirectionalLight.h"
 
 namespace Medium {
   
-  void BlinnPhongShader::bind(const RenderContext& context, const Mat4f& world, const Material *mat) noexcept {
+  void BlinnPhongShader::bind(const RenderContext& context, const Mat4f& world, const Material* mat) noexcept {
     uniforms.world      = world;
-    uniforms.wvp        = context.projection_view * world;
-    uniforms.camera_pos = context.camera.transform.worldPosition();
-    uniforms.light_dir  = Vec3f{0.0f, 1.0f, 1.0f}.normalized();
+    uniforms.wvp        = context.main_camera->matrixVP() * world;
+    uniforms.camera_pos = context.main_camera->transform.worldPosition();
     uniforms.material   = mat;
+
+    uniforms.shadow_map = context.shadow_map;
+    uniforms.wvp_light  = context.light->matrixVP();
+    uniforms.light_dir  = -context.light->transform.forward();
   }
   
 } // namespace Medium

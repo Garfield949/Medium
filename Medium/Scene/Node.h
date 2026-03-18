@@ -23,7 +23,7 @@ namespace Medium {
     virtual void render(const RenderContext& context);
 
     template<typename T>
-    T* attachChild(std::unique_ptr<T> child) {
+    T* attachChild(std::unique_ptr<T>&& child) {
       static_assert(std::is_base_of<Node, T>::value, "T must derive from Node");
       assert(child && "Cannot attach a null child.");
 
@@ -37,6 +37,8 @@ namespace Medium {
     }
 
     void setName(std::string name) { name_ = std::move(name); }
+    
+    void setParent(Node* parent) { parent_ = parent; }
 
     [[nodiscard]] const std::string& name() const noexcept { return name_; }
 

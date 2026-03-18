@@ -6,18 +6,18 @@
 ///
 #include "Pipeline.h"
 
+#include <fmt/base.h>
+
 #include "Base/Geometry.h"
 #include "Base/Types.h"
-#include "Pipeline/Clip.h"
-#include "Pipeline/Shader/BlinnPhong.h"
 #include "Resources/Mesh.h"
+#include "Pipeline/Clip.h"
 #include "Pipeline/RenderTarget.h"
 #include "Pipeline/Shader/ShaderType.h"
 
 namespace Medium::Pipeline {
 
-  void draw(const Mesh    &mesh,   const SubMesh &sub_mesh,
-            VariantShader &shader, RenderTarget  &render_target) {
+  void draw(const Mesh &mesh, const SubMesh &sub_mesh, VariantShader *shader, RenderTarget *buffer) {
 
     std::visit([&](auto& concrete_shader) { // SubMesh 层面做 dispatch
 
@@ -28,7 +28,7 @@ namespace Medium::Pipeline {
         ClipPolygon clip_poly;
         for(int j = 0; j < 3; j++)
           clip_poly.verts[clip_poly.num_verts++].pos = 
-            concrete_shader.vertex(j, mesh.vertices[mesh.indices[tri_idx + j]], clip_poly.verts[j].varying);
+            concrete_shader.vertex(mesh.vertices[mesh.indices[tri_idx + j]], clip_poly.verts[j].varying);
         
         if(!clip(clip_poly)) continue;
           
@@ -52,18 +52,18 @@ namespace Medium::Pipeline {
           if (Geometry::orient2D(triangle[0], triangle[1], triangle[2]) > 0) continue;
           // 视口变换 NDC -> Screen Space; 顶点的 x,y 由 [-1.0,1.0] 映射到 [0.0, width], [0.0, height].
           for(auto & coord : triangle)
-            NDCToScreen(coord, render_target.width(), render_target.height());
+            NDCToScreen(coord, buffer->width(), buffer->height());
             
-          std::array<Varying, 3> varyings = {
+          std::array<Varying, 3> varyings {
             clip_poly.verts[0].varying, clip_poly.verts[i].varying, clip_poly.verts[i + 1].varying
           };
             
           // 将屏幕坐标送进光栅器。
-          rasterize(triangle, varyings, shader, render_target);
+          rasterize(triangle, varyings, shader, buffer);
         }
       }
       
-    }, shader);
+    }, *shader);
 
   } // draw
 
@@ -73,10 +73,10 @@ namespace Medium::Pipeline {
   //        = Ax + By + C.
   // 故当 E(x+1,y) 有 Delta E = A = y1-y0；当 E(x,y+1) 有 Delta E = B = -(x1-x0) = x0-x1.
   // 注：当应用了次像素，边函数就变为了 E(x*scale, y*scale) = (A*scale)x + (B*scale)y + C.
-  void rasterize(const std::array<Vec4f, 3>   & tri_screen, 
-                 const std::array<Varying, 3> & varyings, 
-                 VariantShader                & shader, 
-                 RenderTarget                 & render_target) 
+  void rasterize(const std::array<Vec4f, 3>&   tri_screen, 
+                 const std::array<Varying, 3>& varyings, 
+                 VariantShader*                shader, 
+                 RenderTarget*                 buffer)
   {  
     using namespace Geometry;
 
@@ -89,7 +89,7 @@ namespace Medium::Pipeline {
       v_depth[i]       = tri_screen[i].z();
     }
 
-    BBox2D bbox = BBox2D::fromSubpixelTri(tri_fixed, render_target.width(), render_target.height());
+    BBox2D bbox = BBox2D::fromSubpixelTri(tri_fixed, buffer->width(), buffer->height());
     if(!bbox.valid()) return; // 若三角形完全在屏幕外，直接丢弃
 
     // 中间量语义化
@@ -149,15 +149,15 @@ namespace Medium::Pipeline {
             f32 z_interp = Math::interpolate(v_depth[0], v_depth[1], v_depth[2], weights);
             
             // Early-Z
-            u32 index = render_target.getBufferIndex(x, y);
-            if(render_target.depthTest(index, z_interp)) {
+            u32 index = buffer->getBufferIndex(x, y);
+            if(buffer->depthTest(index, z_interp)) {
               LinearColor pixel_color;
 
               bool discard = concrete_shader.fragment(varyings, weights, pixel_color);
 
               if(!discard) {
-                render_target.writeDepth(index, z_interp);
-                render_target.setColor(index, pixel_color);
+                buffer->writeDepth(index, z_interp);
+                buffer->setColor(index, pixel_color);
               }
             }
           }
@@ -171,7 +171,7 @@ namespace Medium::Pipeline {
         E12_row += B12;
         E20_row += B20;
       }
-    }, shader);
+    }, *shader);
 
   } // rasterize
 

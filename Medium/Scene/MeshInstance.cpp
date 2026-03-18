@@ -9,6 +9,7 @@
 #include "Base/Meta.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderContext.h"
+#include "Pipeline/Shader/ShadowShader.h"
 #include "Resources/Mesh.h"
 
 namespace Medium {
@@ -21,14 +22,22 @@ namespace Medium {
       
       [&](BlinnPhongShader& s) {
         for (const auto& submesh : mesh_->sub_meshes) {
-          int curr_mat_idx = submesh.material_index;
-          s.bind(context, world, mesh_->materials[curr_mat_idx].get());\
+          int mat_idx = submesh.material_index;
+          s.bind(context, world, mesh_->materials[mat_idx].get());
           // 各 SubMesh 一次 Draw Call.
-          Pipeline::draw(*(this->mesh_), submesh, context.shader, context.render_target);
+          Pipeline::draw(*(this->mesh_), submesh, context.shader, context.buffer);
+        }
+      },
+      [&](ShadowShader& s) {
+        for (const auto& submesh : mesh_->sub_meshes) {
+          int mat_idx = submesh.material_index;
+          s.bind(context, world, mesh_->materials[mat_idx].get());
+          // 各 SubMesh 一次 Draw Call.
+          Pipeline::draw(*(this->mesh_), submesh, context.shader, context.buffer);
         }
       }
       
-    }, context.shader);
+    }, *context.shader);
 
     Node::render(context);
   }

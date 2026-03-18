@@ -6,23 +6,20 @@
 ///
 #pragma once
 
-#include "Base/Types.h"
 #include "Pipeline/Shader/ShaderType.h"
 
 namespace Medium {
 
   class RenderTarget;
   class Camera;
+  class DirectionalLight;
 
   struct RenderContext {
-    RenderContext(RenderTarget &t, VariantShader &s, Camera &c)
-      : render_target(t), shader(s), camera(c) {}
-
-    RenderTarget  &render_target;
-    VariantShader &shader;
-    Camera        &camera;
-    
-    Mat4f projection_view;
+    RenderTarget     *buffer      = nullptr;
+    Camera           *main_camera = nullptr;
+    VariantShader    *shader      = nullptr;
+    DirectionalLight *light       = nullptr;
+    RenderTarget     *shadow_map  = nullptr;
   };
 
 } // namespace Medium

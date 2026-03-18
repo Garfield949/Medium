@@ -6,16 +6,35 @@
 ///
 #pragma once
 
+#include "Base/Types.h"
 #include "Pipeline/Shader/BlinnPhong.h"
 
 namespace Medium {
+  
+  enum class ClipPlane: u8 {
+    Left   = 1 << 0, 
+    Right  = 1 << 1, 
+    Top    = 1 << 2, 
+    Bottom = 1 << 3, 
+    Near   = 1 << 4, 
+    Far    = 1 << 5,
+    None   = 0
+  };
+  inline ClipPlane operator|(ClipPlane a, ClipPlane b) noexcept {
+    return static_cast<ClipPlane>(static_cast<u8>(a) | static_cast<u8>(b));
+  }
+  inline ClipPlane& operator|=(ClipPlane& a, ClipPlane b) noexcept {
+    a = a | b; return a;
+  }
+  inline ClipPlane operator&(ClipPlane a, ClipPlane b) noexcept {
+    return static_cast<ClipPlane>(static_cast<u8>(a) & static_cast<u8>(b));
+  }
   
   /// @struct ClipVertex
   /// @brief 裁剪过程中，三角形的某边若越过了裁剪面，则需在相交处生成新顶点。该顶点的 Clip Space 坐标
   ///        及 varying 由线性插值得到。
   struct ClipVertex {
     ClipVertex() = default;
-    
     // 1/w 在 clip space 里是非线性的，不能直接插值。这里先对 pos 进行插值，再取 1/w
     // Note: 不对插值过程中的 normal 和 tangent 进行归一化，因为 fragment 阶段会归一化
     // TODO: 让 Varying 自己负责插值
@@ -34,7 +53,6 @@ namespace Medium {
         }
       };
     }
-    
     Vec4f   pos;
     Varying varying;
   };
@@ -47,9 +65,16 @@ namespace Medium {
     u16 num_verts = 0;
   };
   
-  enum class ClipPlane {
-    Left, Right, Top, Bottom, Near, Far,
-  };
+  inline ClipPlane calcOutcode(const Vec4f& v) noexcept {
+    ClipPlane code = ClipPlane::None;
+    if(v.x() < -v.w()) code |= ClipPlane::Left;
+    if(v.x() >  v.w()) code |= ClipPlane::Right;
+    if(v.y() >  v.w()) code |= ClipPlane::Top;
+    if(v.y() < -v.w()) code |= ClipPlane::Bottom;
+    if(v.z() >  v.w()) code |= ClipPlane::Near;
+    if(v.z() <  0.0f)  code |= ClipPlane::Far;
+    return code;
+  }
   
   inline constexpr std::array<ClipPlane, 6> ClipPlanes = {
     ClipPlane::Near,   ClipPlane::Left, 
@@ -57,7 +82,7 @@ namespace Medium {
     ClipPlane::Bottom, ClipPlane::Far,
   };
   
-  inline f32 calcSignedDistance(const Vec4f& v, ClipPlane plane) {
+  [[nodiscard]] inline f32 calcSignedDistance(const Vec4f& v, ClipPlane plane) noexcept {
     switch(plane) {
       case ClipPlane::Left:   return v.x() + v.w();
       case ClipPlane::Right:  return v.w() - v.x();
@@ -69,7 +94,7 @@ namespace Medium {
     }
   }
   
-  [[nodiscard]] inline ClipPolygon clipByPlane(const ClipPolygon& poly_in, ClipPlane plane) {
+  [[nodiscard]] inline ClipPolygon clipByPlane(const ClipPolygon& poly_in, ClipPlane plane) noexcept {
     ClipPolygon poly_out;
     
     // 遍历输入多边形的所有边，由 head -> tail 定义
@@ -96,11 +121,26 @@ namespace Medium {
   }
   
   // 输入初始三角面片
-  [[nodiscard]] inline bool clip(ClipPolygon& tri) {
+  [[nodiscard]] inline bool clip(ClipPolygon& tri) noexcept {
+    using Outcode = ClipPlane;
+    
+    Outcode code0 = calcOutcode(tri.verts[0].pos);
+    Outcode code1 = calcOutcode(tri.verts[1].pos);
+    Outcode code2 = calcOutcode(tri.verts[2].pos);
+    
+    // 三个顶点均在某裁剪面外侧，不可见直接丢弃
+    if((code0 & code1 & code2) != ClipPlane::None) return false;
+    
+    Outcode union_code = code0 | code1 | code2;
+    // 三个顶点都不在任意一个裁剪面外部，则面片在视椎内，无需裁剪
+    if(union_code == ClipPlane::None) return true;
+    
+    // 剩下的情况：至少有一条边跨越了某个裁剪面。
     // 依次被六个面裁剪，若某次被裁到只剩不到三个顶点，说明三角形不在视椎体内部:
     // 1. 只有一个顶点：多边形只有一个顶点落在裁剪面上，其它顶点都在视椎外部；
     // 2. 只有两个顶点：多边形有一条边落在裁剪面上，其它顶点在视椎外部。
     for(const auto & plane : ClipPlanes) {
+      if((union_code & plane) == ClipPlane::None) continue;
       tri = clipByPlane(tri, plane);
       if(tri.num_verts < 3) return false;
     }

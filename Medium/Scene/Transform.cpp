@@ -4,8 +4,6 @@
 ///
 #include "Transform.h"
 
-#include <iostream>
-
 #include "Base/Math.h"
 #include "Scene/Node.h"
 
@@ -75,7 +73,7 @@ namespace Medium {
     updateDirtyFlags();
   }
 
-  void Transform::translate(const Vec3f& delta) noexcept {
+  void Transform::translate(const Vec3f& delta, Space space) noexcept {
     position_local_ += delta;
     updateDirtyFlags();
   }

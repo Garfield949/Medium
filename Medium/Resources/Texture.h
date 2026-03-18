@@ -20,27 +20,16 @@ namespace Medium {
   public:
     ~Texture() = default;
 
-    static LinearColor getCheckerBoardColor(Vec2f UV) noexcept {
-      // 定义棋盘格边长。
-      f32 side = 8;
-      // 将 [0.0 ~ 1.0] 的 UV 映射到 [0 ~ 8] 的棋盘格。
-      int idxU = static_cast<int>(std::floor(UV.x() * side));
-      int idxV = static_cast<int>(std::floor(UV.y() * side));
-      // 奇偶校验
-      if((idxU + idxV) % 2 == 0) return {0.5f}; 
-      return {1.0f};
-    }
-
-    [[nodiscard]] LinearColor sample(Vec2f UV, FilterMode filter_mode) const noexcept {
+    [[nodiscard]] LinearColor sample(const Vec2f& UV, FilterMode filter_mode) const noexcept {
       // Repeat 平铺模式，取小数部分：1.1 -> 0.1, 1.0 -> 0.0; U, V 能取到的范围是 0 ~ 0.999...
-      UV.x() -= std::floor(UV.x()); 
-      UV.y() -= std::floor(UV.y());
+      f32 u = UV.x() - std::floor(UV.x());
+      f32 v = UV.y() - std::floor(UV.y());
 
       // 在材质两个轴上分别减 0.5，以将各像素的中心对齐到网格线交点
       // 比如 px = 4.2，则有 3.5 < 4.2 < 4.5. 减去 0.5 则区间重映射为 3.0 < 3.7 < 4.0
-      f32 px = UV.x() * static_cast<f32>(width_)  - 0.5f;
-      f32 py = UV.y() * static_cast<f32>(height_) - 0.5f;
-      
+      f32 px = u * static_cast<f32>(width_)  - 0.5f;
+      f32 py = v * static_cast<f32>(height_) - 0.5f;
+
       auto getPixel = [&](int x, int y) -> LinearColor {
         x = std::clamp(x, 0, width_  - 1);
         y = std::clamp(y, 0, height_ - 1);
@@ -59,21 +48,21 @@ namespace Medium {
       int x0 = static_cast<int>(std::floor(px));
       int y0 = static_cast<int>(std::floor(py));
 
-      f32 u = px - static_cast<f32>(x0); // 距离左边界的偏移
-      f32 v = py - static_cast<f32>(y0); // 距离下边界的偏移
+      f32 t1 = px - static_cast<f32>(x0); // 距离左边界的偏移
+      f32 t2 = py - static_cast<f32>(y0); // 距离下边界的偏移
 
       // 获得四个角的像素颜色
-      LinearColor bl = getPixel(x0, y0);
+      LinearColor bl = getPixel(x0,     y0);
       LinearColor br = getPixel(x0 + 1, y0);
-      LinearColor tl = getPixel(x0, y0 + 1);
+      LinearColor tl = getPixel(x0,     y0 + 1);
       LinearColor tr = getPixel(x0 + 1, y0 + 1);
 
       // 水平混合
-      LinearColor bottom = bl + (br - bl) * u;
-      LinearColor top    = tl + (tr - tl) * u;
+      LinearColor bottom = bl + (br - bl) * t1;
+      LinearColor top    = tl + (tr - tl) * t1;
 
       // 垂直混合
-      return bottom + (top - bottom) * v;
+      return bottom + (top - bottom) * t2;
     }
 
     [[nodiscard]] int width()  const noexcept { return width_; }

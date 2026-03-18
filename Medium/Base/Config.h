@@ -12,11 +12,11 @@ namespace Medium::AppConstants {
   
   inline std::string WindowTitle = "Medium Canvas";
   
-  inline u32 ViewportWidth  = 1440;
-  inline u32 ViewportHeight = 900;
+  inline u32 ScreenWidth  = 1440;
+  inline u32 ScreenHeight = 900;
   
-  inline f32 getScreenRatio() {
-    return static_cast<f32>(ViewportWidth) / static_cast<f32>(ViewportHeight);
+  inline f32 screenRation() {
+    return static_cast<f32>(ScreenWidth) / static_cast<f32>(ScreenHeight);
   }
   
 } // namespace Medium::AppConstants
@@ -26,5 +26,7 @@ namespace Medium::RenderConstants {
   inline LinearColor FrameBufferClearColor = LinearColor::White();
 
   inline constexpr f32 DepthClearValue = 0.0f;
+  
+  inline constexpr size_t ShadowMapResDefault = 4096;
   
 } // namespace Medium::RenderConstants

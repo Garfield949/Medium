@@ -47,26 +47,6 @@ namespace Medium::Geometry {
 
 namespace Medium::Geometry {
 
-  /// @brief 屏幕空间重心坐标函数
-  /// @details    A, B, C 为三角形屏幕坐标，P 为当前要判断的像素点
-  /// @return     返回 A, B, C 对应重心坐标
-  inline Vec3f barycentric(const Vec4f &A, const Vec4f &B, const Vec4f &C, f32 px, f32 py) noexcept {
-    Vec3f v_x(C.x() - A.x(), B.x() - A.x(), A.x() - px);
-    Vec3f v_y(C.y() - A.y(), B.y() - A.y(), A.y() - py);
-
-    // 注意：上方构造 v_x 和 v_y 的顺序决定了 beta 在 u.y，gamma 在 u.x
-    Vec3f u = v_x.cross(v_y);
-
-    // 若 u.z 绝对值太小，说明三角形退化，面积为 0
-    // u.z 即三角面片有符号面积的二倍，想更激进剔除不可见的微小三角形，这个浮点数判零的阈值还可调得更大（太大会导致丢失很多细微三角形）
-    // 返回值带负分量，让后续逻辑剔除
-    if (std::abs(u.z()) < Math::KINDA_SMALL_NUMBER) return {-1, 1, 1};
-
-    // 若 P 在三角形外面，则返回值至少有一个分量是负数
-    // 返回 alpha, beta, gamma
-    return {1.f - (u.x() + u.y()) / u.z(), u.y() / u.z(), u.x() / u.z()};
-  }
-
   /// @brief 浮点向量叉积；
   /// @param v1   向量 1;
   /// @param v2   向量 2;
