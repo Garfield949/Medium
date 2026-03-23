@@ -6,10 +6,33 @@
 ///
 #pragma once
 
+#include <filesystem>
+
+#include "Scene/Node.h"
+
 namespace Medium {
 
-  class Scene {
+  class Camera;
+  class DirectionalLight;
 
+  class Scene {
+    friend struct SceneLoader;
+  public:
+    [[nodiscard]] 
+    static std::unique_ptr<Scene> loadFromLua(const std::filesystem::path& lua_path);
+
+    [[nodiscard]] const Node& root() noexcept { return root_; }
+    [[nodiscard]] const Camera* mainCam() const noexcept { return main_camera_; }
+    [[nodiscard]] const DirectionalLight* mainLight() const noexcept { return main_light_; }
+  
+  private:
+    Scene() = default;
+
+    Node root_ = {"Scene Root"};
+
+    Camera* main_camera_ = nullptr;
+    
+    DirectionalLight* main_light_  = nullptr;
   };
 
 } // Medium

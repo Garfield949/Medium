@@ -29,11 +29,6 @@ namespace Medium {
     updateDirtyFlags();
   }
 
-  void Transform::setRotation(const Quatf& rotation) noexcept {
-    rotation_local_ = rotation.normalized();
-    updateDirtyFlags();
-  }
-
   // 由于 target 是世界坐标，故先算出所绑定 Node 在世界空间的姿态，再转为局部旋转，最后保存为底层四元数。
   // 注意数学奇点（非万向节死锁）：1. forward 为零时等价于看向自己，会导致归一化除零错误；
   //                          2. 当 forward 与 up_ref 重合时等价于垂直向上看，right 叉积结果将为 (0,0,0)，归一化会发生除零。
@@ -73,7 +68,7 @@ namespace Medium {
     updateDirtyFlags();
   }
 
-  void Transform::translate(const Vec3f& delta, Space space) noexcept {
+  void Transform::translate(const Vec3f& delta) noexcept {
     position_local_ += delta;
     updateDirtyFlags();
   }
@@ -96,7 +91,7 @@ namespace Medium {
     updateDirtyFlags();
   }
 
-  const Mat4f& Transform::localMatrix() noexcept {
+  const Mat4f& Transform::localMatrix() const noexcept {
     if(dirty_local_) {
       updateLocalMatrix();
       dirty_local_ = false;
@@ -104,17 +99,17 @@ namespace Medium {
     return matrix_local_;
   }
 
-  Vec3f Transform::worldPosition() noexcept {
+  Vec3f Transform::worldPosition() const noexcept {
     return worldMatrix().topRightCorner<3, 1>();
   }
 
-  Quatf Transform::worldRotation() noexcept {
+  Quatf Transform::worldRotation() const noexcept {
     if(const auto ptr = belong_to_->parent_)
       return ptr->transform.worldRotation() * rotation_local_;
     return rotation_local_;
   }
 
-  const Mat4f& Transform::worldMatrix() noexcept {
+  const Mat4f& Transform::worldMatrix() const noexcept {
     if(dirty_world_) {
       updateWorldMatrix();
       dirty_world_ = false;
@@ -122,7 +117,7 @@ namespace Medium {
     return matrix_world_;
   }
 
-  Mat4f Transform::worldMatrixInverse() noexcept {
+  Mat4f Transform::worldMatrixInverse() const noexcept {
     const auto& mat_world = worldMatrix();
     // ---------- (TRS)^-1 = S^-1 R^-1 T^-1
     // 由于只支持非均匀缩放，故只需算某个轴的模长即可得到缩放。
@@ -149,15 +144,15 @@ namespace Medium {
     return matrix_world_inv;
   }
 
-  Vec3f Transform::forward() noexcept {
+  Vec3f Transform::forward() const noexcept {
     return worldMatrix().col(2).head<3>().normalized();
   }
 
-  Vec3f Transform::up() noexcept {
+  Vec3f Transform::up() const noexcept {
     return worldMatrix().col(1).head<3>().normalized();
   }
 
-  Vec3f Transform::right() noexcept {
+  Vec3f Transform::right() const noexcept {
     return worldMatrix().col(0).head<3>().normalized();
   }
 
@@ -171,7 +166,7 @@ namespace Medium {
   }
 
   // 填充左上角 3 x 3 旋转 + 缩放部分、右上角平移部分
-  void Transform::updateLocalMatrix() noexcept {
+  void Transform::updateLocalMatrix() const noexcept {
     Mat3f R = rotation_local_.toRotationMatrix();
     matrix_local_.setIdentity();
     matrix_local_.col(0).head<3>() = R.col(0) * scale_local_;
@@ -180,7 +175,7 @@ namespace Medium {
     matrix_local_.topRightCorner<3, 1>() = position_local_;
   }
 
-  void Transform::updateWorldMatrix() noexcept {
+  void Transform::updateWorldMatrix() const noexcept {
     if(const auto ptr = belong_to_->parent_)
       matrix_world_ = ptr->transform.worldMatrix() * localMatrix();
     else

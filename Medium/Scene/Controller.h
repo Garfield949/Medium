@@ -14,15 +14,21 @@ namespace Medium {
 
   class Controller {
   public:
-    Controller(Node* attach_to, Input* input) noexcept;
+    explicit Controller() = default;
+
+    void bind(const Node* attach_to, const Input* input) noexcept {
+      attach_to_ = const_cast<Node*>(attach_to);
+      input_     = input;
+    }
 
     void update(f32 dt) noexcept;
+
   private:
     f32 move_speed_ = 1.5f;
     f32 mouse_sensitivity_ = 0.2f;
 
-    Node* attach_to_     = nullptr;
-    Input* input_ = nullptr;
+    Node* attach_to_ = nullptr;
+    const Input* input_ = nullptr;
   };
 
 } // namespace Medium

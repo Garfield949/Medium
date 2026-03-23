@@ -6,7 +6,7 @@
 #pragma once
 
 #include "Base/Color.h"
-#include "Base/Config.h"
+#include "App/Config.h"
 
 #include <fmt/base.h>
 
@@ -20,9 +20,11 @@ namespace Medium {
   class RenderTarget {
   public:
     // 构造函数
-    explicit RenderTarget(u32 width, u32 height, RenderPass type)
-      : w_(width), 
-        h_(height), 
+    explicit RenderTarget(u32 width  = AppConstants::ScreenWidth,
+                          u32 height = AppConstants::ScreenHeight,
+                          RenderPass type = RenderPass::Full)
+      : w_(width),
+        h_(height),
         pass_type_(type),
         depth_buf_(w_ * h_, RenderConstants::DepthClearValue)
     {
@@ -31,7 +33,7 @@ namespace Medium {
     }
 
     // 刷新像素与深度缓冲
-    void clearColor(const LinearColor& linear) noexcept {
+    void clearColor(const LinearColor& linear = RenderConstants::FrameBufferClearColor) noexcept {
       std::fill(color_buf_.begin(), color_buf_.end(), linear.toColor(ColorSpace::SRGB).data);
     }
 
@@ -61,15 +63,15 @@ namespace Medium {
       depth_buf_[index] = new_dep;
     }
 
-    [[nodiscard]] f32 sampleDepth(const Vec2f& uv) const noexcept {
+    [[nodiscard]] f32 sampleDepth(Vec2f uv) const noexcept {
       f32 u = std::clamp(uv.x(), 0.0f, 1.0f);
       f32 v = std::clamp(uv.y(), 0.0f, 1.0f);
 
       f32 px = u * static_cast<f32>(w_) - 0.5f;
       f32 py = v * static_cast<f32>(h_) - 0.5f;
 
-      int x = std::clamp(static_cast<int>(px + 0.5f), 0, static_cast<int>(w_ - 1));
-      int y = std::clamp(static_cast<int>(py + 0.5f), 0, static_cast<int>(h_ - 1));
+      size_t x = std::clamp(std::lround(px), 0l, static_cast<long>(w_ - 1));
+      size_t y = std::clamp(std::lround(py), 0l, static_cast<long>(h_ - 1));
 
       return depth_buf_[getBufferIndex(x, y)];
     }

@@ -10,14 +10,15 @@
 #include "Resources/Forwards.h"
 
 namespace Medium {
+  
+  class RenderQueue;
 
   class MeshInstance : public Node {
   public:
     explicit MeshInstance(std::string name, MeshPtr mesh)
       : Node(std::move(name)), mesh_(std::move(mesh)) {}
-
-    void render(const RenderContext& context) override;
-
+    
+    void commitCommand(RenderQueue& queue, const Frustum& frustum) const override;
   private:
     MeshPtr mesh_;
   };

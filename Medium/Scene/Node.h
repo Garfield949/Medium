@@ -6,21 +6,33 @@
 ///
 #pragma once
 
+#include "Geometry/Frustum.h"
 #include "Transform.h"
 
 namespace Medium {
 
-  struct RenderContext;
+  class RenderQueue;
+  class Frustum;
 
   class Node {
     friend class Transform;
   public:
-    explicit Node(std::string name = "Node");
+    Node(std::string name = "Node");
+
+    Node(Node&&) noexcept = default;
+    Node& operator=(Node&& other) noexcept = default;
+
     virtual ~Node() = default;
 
     virtual void update(f32 dt);
+    
+    virtual void commitCommand(RenderQueue& queue, const Frustum& frustum) const;
 
-    virtual void render(const RenderContext& context);
+    void setName(std::string name) { name_ = std::move(name); }
+    
+    void setParent(Node* parent) { parent_ = parent; }
+
+    [[nodiscard]] const std::string& name() const noexcept { return name_; }
 
     template<typename T>
     T* attachChild(std::unique_ptr<T>&& child) {
@@ -35,12 +47,6 @@ namespace Medium {
 
       return ptr;
     }
-
-    void setName(std::string name) { name_ = std::move(name); }
-    
-    void setParent(Node* parent) { parent_ = parent; }
-
-    [[nodiscard]] const std::string& name() const noexcept { return name_; }
 
     Transform transform;
 

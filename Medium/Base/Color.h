@@ -6,7 +6,7 @@
 
 #include "Base/Math.h"
 #include "Base/Util.h"
-#include "Types.h"
+#include "Base/Types.h"
 
 namespace Medium {
 
@@ -33,9 +33,9 @@ namespace Medium {
     std::array<u8, GammaEncodeResolution + 1> lut{};
     for (size_t i = 0; i <= GammaEncodeResolution; i++) {
       if (f32 linear = static_cast<f32>(i) / static_cast<f32>(GammaEncodeResolution); linear <= 0.0031308f)
-        lut[i] = static_cast<u8>(linear * 12.92f * 255.0f + 0.5f);
+        lut[i] = static_cast<u8>(std::lround(linear * 12.92f * 255.0f));
       else
-        lut[i] = static_cast<u8>((1.055f * std::powf(linear, 0.4166667f) - 0.055f) * 255.0f + 0.5f);
+        lut[i] = static_cast<u8>(std::lround((1.055f * std::powf(linear, 0.4166667f) - 0.055f) * 255.0f));
     }
     return lut;
   }();
@@ -212,7 +212,7 @@ namespace Medium {
     LinearColor tmp = this->clamped();
     if(space == ColorSpace::SRGB) {
       auto IndexLUT = [&](f32 linear) -> size_t {
-        return linear * static_cast<f32>(GammaEncodeResolution) + 0.5f;
+        return std::lround(linear * static_cast<f32>(GammaEncodeResolution));
       };
       return {
         GammaEncodingLUT[IndexLUT(tmp.R)],

@@ -50,8 +50,8 @@ namespace Medium::Math {
 
     using namespace Eigen;
     Quatf rot = AngleAxisf(y_rad, Vec3f::UnitY())
-          * AngleAxisf(x_rad, Vec3f::UnitX())
-          * AngleAxisf(z_rad, Vec3f::UnitZ());
+              * AngleAxisf(x_rad, Vec3f::UnitX())
+              * AngleAxisf(z_rad, Vec3f::UnitZ());
 
     return rot;
   }

@@ -1,5 +1,5 @@
 ///
-/// @file   RenderContext.h
+/// @file   RenderContext.h"
 /// @author Garfield949
 /// @date   2026/2/13 16:45
 /// @brief  
@@ -13,13 +13,18 @@ namespace Medium {
   class RenderTarget;
   class Camera;
   class DirectionalLight;
-
-  struct RenderContext {
-    RenderTarget     *buffer      = nullptr;
-    Camera           *main_camera = nullptr;
-    VariantShader    *shader      = nullptr;
-    DirectionalLight *light       = nullptr;
-    RenderTarget     *shadow_map  = nullptr;
+  
+  struct FrameContext {
+    const DirectionalLight* main_light = nullptr;
+    RenderTarget* shadow_map = nullptr;
+  };
+  
+  struct PassContext {
+    RenderTarget*  buffer = nullptr;
+    const Camera*  camera = nullptr;
+    VariantShader* shader = nullptr;
+    
+    FrameContext*  ctx_frame   = nullptr;
   };
 
 } // namespace Medium

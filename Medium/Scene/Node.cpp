@@ -6,20 +6,17 @@
 ///
 #include "Node.h"
 
-#include <utility>
-
 namespace Medium {
 
   Node::Node(std::string name) : transform(this),
-                   name_(std::move(name)),
-                   parent_(nullptr) {}
+                                 name_(std::move(name)),
+                                 parent_(nullptr) {}
 
   void Node::update(f32 dt) {}
-
-  // 默认行为：只递归渲染子节点
-  void Node::render(const RenderContext &context) {
+  
+  void Node::commitCommand(RenderQueue& queue, const Frustum& frustum) const {
     for(auto& child : children_) {
-      child->render(context);
+      child->commitCommand(queue, frustum);
     }
   }
 

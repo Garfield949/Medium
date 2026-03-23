@@ -13,7 +13,7 @@
 
 namespace Medium {
 
-  struct RenderContext;
+  struct PassContext;
 
   struct ShadowShader {
     struct Uniform {
@@ -23,7 +23,7 @@ namespace Medium {
     
     Uniform uniforms;
     
-    void bind(const RenderContext& context, const Mat4f& world, const Material* mat) noexcept;
+    void bind(const PassContext& context, const Mat4f& world, const Material* mat) noexcept;
 
     Vec4f vertex(const Vertex& vert, Varying& varying) noexcept {
       varying.uv    = vert.uv;

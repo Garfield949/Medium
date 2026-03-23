@@ -27,6 +27,6 @@ namespace Medium::RenderConstants {
 
   inline constexpr f32 DepthClearValue = 0.0f;
   
-  inline constexpr size_t ShadowMapResDefault = 4096;
+  inline constexpr size_t ShadowMapResDefault = 2048;
   
 } // namespace Medium::RenderConstants

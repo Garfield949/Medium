@@ -4,21 +4,18 @@
 ///
 #pragma once
 
-#include "Base/Timer.h"
-#include "Base/Input.h"
-#include "Base/Controller.h"
+#include "Platform/Timer.h"
+#include "Platform/Profiler.h"
+#include "Platform/Input.h"
+#include "Scene/Scene.h"
+#include "Scene/Controller.h"
 #include "Pipeline/RenderTarget.h"
-#include "Scene/Node.h"
-#include "Scene/Light/DirectionalLight.h"
-#include <memory>
 
 // 该前向声明不能放在 namespace Medium 里，否则编译器会将类型识别为 Medium::mfb_window，
 // 但 MiniFB 是在全局作用域声明的，即 ::mfb_window.
 struct mfb_window;
 
 namespace Medium {
-
-  class Camera;
 
   class App {
   public:
@@ -33,19 +30,20 @@ namespace Medium {
 
   private:
     void on_update(f32 dt);
+
     void on_render();
 
-    mfb_window *mfb_window_ = nullptr;
-    Timer timer_;
-    Input input_;
-    std::unique_ptr<Controller> controller_ = nullptr;
+    mfb_window* mfb_window_ = nullptr;
 
-    std::unique_ptr<Node>         scene_root_;
-    std::unique_ptr<RenderTarget> main_buffer_ = nullptr;
-    Camera*                       main_camera_ = nullptr;
+    Timer        timer_;
+    Input        input_;
+    Profiler     profiler_;
+    Controller   controller_;
+    RenderTarget frame_buffer_;
 
-    std::unique_ptr<DirectionalLight> main_light_ = nullptr;
-    std::unique_ptr<RenderTarget>     shadow_map_  = nullptr;
+    std::unique_ptr<Scene> active_scene_ = nullptr;
+
+    std::unique_ptr<RenderTarget> shadow_map_  = nullptr;
   };
 
 } // Medium

@@ -4,13 +4,10 @@
 ///
 #include "Controller.h"
 
+#include "Platform/Input.h"
 #include "Scene/Node.h"
-#include "Input.h"
 
 namespace Medium {
-
-  Controller::Controller(Node* attach_to, Input* input) noexcept
-    : attach_to_(attach_to), input_(input) {}
 
   void Controller::update(f32 dt) noexcept {
     assert(attach_to_ && input_);

@@ -6,7 +6,7 @@
 ///
 #pragma once
 
-#include "Types.h"
+#include "Base/Types.h"
 
 namespace Medium::Util {
 

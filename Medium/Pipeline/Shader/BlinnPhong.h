@@ -4,6 +4,7 @@
 ///
 #pragma once
 
+#include "Resources/Texture.h"
 #include "fmt/base.h"
 
 #include "Base/Types.h"
@@ -14,7 +15,7 @@
 
 namespace Medium {
   
-  struct RenderContext;
+  struct PassContext;
 
   struct BlinnPhongShader {
     struct Uniform {
@@ -30,7 +31,7 @@ namespace Medium {
     
     Uniform uniforms;
     
-    void bind(const RenderContext& context, const Mat4f& world, const Material* mat) noexcept;
+    void bind(const PassContext& context, const Mat4f& world, const Material* mat) noexcept;
 
     Vec4f vertex(const Vertex& vert, Varying& varying) noexcept {
       Vec4f pos_clip  = uniforms.wvp * vert.pos.homogeneous();
@@ -85,7 +86,7 @@ namespace Medium {
         // 此时 TBN 同时具备从 tangent -> object 和 object -> world 的变换
         Mat3f TBN = (Mat3f() << T, B, n_interp).finished();
 
-        norm_color = mat->norm_slot->sample(uv_interp, FilterMode::Bilinear);
+        norm_color = mat->norm_slot->sample(uv_interp, Texture::FilterMode::Bilinear);
 
         // 将 [0, 1] 的 LinearColor 映射到 [-1, 1]] 的坐标空间
         Vec3f normal_tangent = {norm_color.R * 2.0f - 1.0f, norm_color.G * 2.0f - 1.0f, norm_color.B * 2.0f - 1.0f};
@@ -112,9 +113,9 @@ namespace Medium {
 
         if(uv_shadow.x() >= 0.0f && uv_shadow.x() <= 1.0f && uv_shadow.y() >= 0.0f && uv_shadow.y() <= 1.0f) {
           f32 z_map = uniforms.shadow_map->sampleDepth(uv_shadow);
-          f32 z_cur = light_clip.z();
+          f32 z_cur = light_ndc.z();
           f32 bias = std::max(0.005f * (1.0f - n_interp.dot(uniforms.light_dir)), 0.001f);
-          if(z_cur < z_map - bias) shadow_visibility = 0.2f;
+          if(z_cur < z_map - bias) shadow_visibility = 0.3f;
         }
       }
       

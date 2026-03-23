@@ -6,40 +6,30 @@
 ///
 #include "MeshInstance.h"
 
-#include "Base/Meta.h"
-#include "Pipeline/Pipeline.h"
-#include "Pipeline/RenderContext.h"
-#include "Pipeline/Shader/ShadowShader.h"
+#include "Pipeline/RenderCommand.h"
+#include "Pipeline/RenderQueue.h"
 #include "Resources/Mesh.h"
+#include "Geometry/Frustum.h"
 
 namespace Medium {
-
-  void MeshInstance::render(const RenderContext& context) {
-
-    Mat4f world = this->transform.worldMatrix();
+  
+  void MeshInstance::commitCommand(RenderQueue& queue, const Frustum& frustum) const {
+    const Mat4f& mat_wld = transform.worldMatrix();
     
-    std::visit(overloads {
-      
-      [&](BlinnPhongShader& s) {
-        for (const auto& submesh : mesh_->sub_meshes) {
-          int mat_idx = submesh.material_index;
-          s.bind(context, world, mesh_->materials[mat_idx].get());
-          // 各 SubMesh 一次 Draw Call.
-          Pipeline::draw(*(this->mesh_), submesh, context.shader, context.buffer);
-        }
-      },
-      [&](ShadowShader& s) {
-        for (const auto& submesh : mesh_->sub_meshes) {
-          int mat_idx = submesh.material_index;
-          s.bind(context, world, mesh_->materials[mat_idx].get());
-          // 各 SubMesh 一次 Draw Call.
-          Pipeline::draw(*(this->mesh_), submesh, context.shader, context.buffer);
-        }
+    if(frustum.intersects(mesh_->bbox.toWorldAABB(mat_wld))) {
+      for(const auto& sub_mesh : mesh_->sub_meshes) {
+        if(!frustum.intersects(sub_mesh.bbox.toWorldAABB(mat_wld)))
+          continue;
+        queue.collectCommands({
+          mesh_.get(), 
+          &sub_mesh,
+          mesh_->materials[sub_mesh.material_index].get(),
+          &mat_wld,
+        });
       }
-      
-    }, *context.shader);
-
-    Node::render(context);
+    }
+    
+    Node::commitCommand(queue, frustum);
   }
 
 } // namespace Medium

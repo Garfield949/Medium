@@ -24,12 +24,12 @@ namespace Medium {
   }
 
   // 实现 Camera 成员函数 viewMatrix
-  Mat4f Camera::viewMatrix() noexcept {
+  Mat4f Camera::viewMatrix() const noexcept {
     return transform.worldMatrixInverse();
   }
 
   // 相关参数更新再维护投影矩阵
-  const Mat4f& Camera::projMatrix() noexcept {
+  const Mat4f& Camera::projMatrix() const noexcept {
     if(dirty_proj_matrix_) {
       updateMatProj();
       dirty_proj_matrix_ = false;
@@ -37,13 +37,13 @@ namespace Medium {
     return matrix_projection_;
   }
   
-  Mat4f Camera::matrixVP() noexcept {
+  Mat4f Camera::vpMatrix() const noexcept {
     return projMatrix() * viewMatrix();
   }
 
   // 左手系
-  void Camera::updateMatProj() noexcept {
-    if(mode_ == ProjectionMode::Persp) {
+  void Camera::updateMatProj() const noexcept {
+    if(proj_type_ == Projection::Persp) {
       const f32 zoomy = 1.0f / tanf(Math::deg_to_rad(fov_y_ / 2.0f));
       const f32 zoomx = zoomy / aspect_ratio_;
       // 翻转 Z, Reversed-Z

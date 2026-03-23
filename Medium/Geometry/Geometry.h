@@ -1,50 +1,10 @@
 ///
 /// @file Geometry.h
-/// @brief 放置通用的几何、计算相关的类型与函数
+/// @brief 放置通用的几何、计算相关函数
 ///
 #pragma once
 
-#include "Base/Subpixel.h"
-#include "Math.h"
-
-namespace Medium::Geometry {
-
-  /// @struct BBox2D
-  /// @brief 屏幕空间包围盒类型
-  struct BBox2D {
-    // 使用 int 是因为非法 BBOX 可能会有负值
-    Vec2i min; // 左下角
-    Vec2i max; // 右上角
-
-    BBox2D() = default;
-
-    /// @brief BBox2D 成员函数，判断包围盒是否有效
-    [[nodiscard]] constexpr bool valid() const noexcept {
-      return min.x() <= max.x() && min.y() <= max.y();
-    }
-    
-    static BBox2D fromSubpixelTri(const std::array<Vec2i, 3>& tri_subpixel, u32 width_viewport, u32 height_viewport) {
-      BBox2D bbox;
-      
-      i32 x_min = std::min({tri_subpixel[0].x(), tri_subpixel[1].x(), tri_subpixel[2].x()});
-      i32 x_max = std::max({tri_subpixel[0].x(), tri_subpixel[1].x(), tri_subpixel[2].x()});
-      i32 y_min = std::min({tri_subpixel[0].y(), tri_subpixel[1].y(), tri_subpixel[2].y()});
-      i32 y_max = std::max({tri_subpixel[0].y(), tri_subpixel[1].y(), tri_subpixel[2].y()});
-      
-      // 包围盒范围从 Subpixel 转到 Pixel 空间。进行安全的取整策略：宁可多框一些像素，避免漏掉边缘像素；
-      // 1. Floor   行为：单纯右移。使得在 [160, 176) 范围内取整结果为 10；
-      // 2. Ceiling 行为：加一个偏置再右移。这里加 15，使得在 (160, 176] 范围内取整结果为 11；
-      bbox.min.x() = std::max(0, x_min >> Subpixel::Bits);
-      bbox.min.y() = std::max(0, y_min >> Subpixel::Bits);
-      bbox.max.x() = std::min(static_cast<int>(width_viewport  - 1), (x_max + Subpixel::Mask) >> Subpixel::Bits);
-      bbox.max.y() = std::min(static_cast<int>(height_viewport - 1), (y_max + Subpixel::Mask) >> Subpixel::Bits);
-      
-      return bbox;
-    }
-  }; // struct BBox2D
-
-} // namespace Medium
-
+#include "Base/Types.h"
 namespace Medium::Geometry {
 
   /// @brief 浮点向量叉积；
@@ -53,13 +13,13 @@ namespace Medium::Geometry {
   /// @details    1. 计算 v1 x v2. 若 v2 在 v1 的 “右边（顺时针）”，左手系下四指从 v1 弯曲到 v2，则大拇指朝外；
   ///                而在左手系中，大拇指朝屏幕外说明结果是负值；
   ///             2. 2D 叉积其实就是 3D 叉积 (x1,y1,0) 与 (x2,y2,0) 叉积所得向量 (0,0,x1y2-x2y1) 的 z 值。
-  inline f32 cross2D(const Vec2f& v1, const Vec2f& v2) noexcept {
+  inline f32 cross2D(Vec2f v1, Vec2f v2) noexcept {
     return v1.x() * v2.y() - v2.x() * v1.y();
   }
 
   /// @brief 整型向量叉积；
   /// @details    两个 i32 相乘有溢出的风险，返回 i64 更安全。
-  inline i64 cross2D(const Vec2i& v1, const Vec2i& v2) noexcept {
+  inline i64 cross2D(Vec2i v1, Vec2i v2) noexcept {
     return static_cast<i64>(v1.x()) * v2.y() - static_cast<i64>(v2.x()) * v1.y();
   }
 
@@ -73,7 +33,7 @@ namespace Medium::Geometry {
   }
 
   /// @brief 边函数计算
-  inline i64 edgeEquation(const Vec2i& edge_start, const Vec2i& edge_end, const Vec2i& test_point) {
+  inline i64 edgeEquation(Vec2i edge_start, Vec2i edge_end, Vec2i test_point) {
     Vec2i V = test_point - edge_start;
     Vec2i E = edge_end   - edge_start;
     return cross2D(V, E);

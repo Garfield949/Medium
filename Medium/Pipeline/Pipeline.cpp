@@ -8,18 +8,40 @@
 
 #include <fmt/base.h>
 
-#include "Base/Geometry.h"
 #include "Base/Types.h"
+#include "Geometry/AABB.h"
+#include "Geometry/Geometry.h"
+#include "Geometry/Subpixel.h"
 #include "Resources/Mesh.h"
 #include "Pipeline/Clip.h"
 #include "Pipeline/RenderTarget.h"
 #include "Pipeline/Shader/ShaderType.h"
+#include "Pipeline/RenderContext.h"
+#include "Base/Meta.h"
 
 namespace Medium::Pipeline {
+  
+  void executeQueue(const PassContext& ctx, const std::vector<RenderCommand>& cmds) {
+    std::visit(overloads {   
+      [&](BlinnPhongShader& s) {
+        for(const auto & cmd : cmds) {
+          s.bind(ctx, *cmd.matrix_world, cmd.material);
+          draw(*cmd.mesh, *cmd.submesh, ctx.shader, ctx.buffer);
+        }
+      },
+      [&](ShadowShader& s) {
+        for(const auto & cmd : cmds) {
+          s.bind(ctx, *cmd.matrix_world, cmd.material);
+          draw(*cmd.mesh, *cmd.submesh, ctx.shader, ctx.buffer);
+        }
+      }
+    }, *ctx.shader);
+    
+  }
 
   void draw(const Mesh &mesh, const SubMesh &sub_mesh, VariantShader *shader, RenderTarget *buffer) {
 
-    std::visit([&](auto& concrete_shader) { // SubMesh 层面做 dispatch
+    std::visit([&](auto& active_shader) { // SubMesh 层面做 dispatch
 
       for(size_t i = 0; i < sub_mesh.triangleCount(); i ++) {
         size_t tri_idx = sub_mesh.index_offset + (i * 3);
@@ -28,7 +50,7 @@ namespace Medium::Pipeline {
         ClipPolygon clip_poly;
         for(int j = 0; j < 3; j++)
           clip_poly.verts[clip_poly.num_verts++].pos = 
-            concrete_shader.vertex(mesh.vertices[mesh.indices[tri_idx + j]], clip_poly.verts[j].varying);
+            active_shader.vertex(mesh.vertices[mesh.indices[tri_idx + j]], clip_poly.verts[j].varying);
         
         if(!clip(clip_poly)) continue;
           
@@ -42,9 +64,9 @@ namespace Medium::Pipeline {
         }
         
         // 扇形划分：n 个顶点的凸多边形可分出 n - 2 个三角形
-        for(int i = 0; i + 1 < clip_poly.num_verts; ++i) {
+        for(int k = 1; k + 1 < clip_poly.num_verts; ++k) {
           std::array<Vec4f, 3> triangle = {
-            clip_poly.verts[0].pos, clip_poly.verts[i].pos, clip_poly.verts[i + 1].pos
+            clip_poly.verts[0].pos, clip_poly.verts[k].pos, clip_poly.verts[k + 1].pos
           };
           // 背面剔除 Back-face Culling. NDC 空间和屏幕空间的剔除效果一致，所以在视口变换前先做剔除，免得白做一次视口变换；
           // 有向面积为正说明三角形是逆时针的，这在左手系中是背对相机的；
@@ -55,7 +77,7 @@ namespace Medium::Pipeline {
             NDCToScreen(coord, buffer->width(), buffer->height());
             
           std::array<Varying, 3> varyings {
-            clip_poly.verts[0].varying, clip_poly.verts[i].varying, clip_poly.verts[i + 1].varying
+            clip_poly.verts[0].varying, clip_poly.verts[k].varying, clip_poly.verts[k + 1].varying
           };
             
           // 将屏幕坐标送进光栅器。
@@ -89,7 +111,7 @@ namespace Medium::Pipeline {
       v_depth[i]       = tri_screen[i].z();
     }
 
-    BBox2D bbox = BBox2D::fromSubpixelTri(tri_fixed, buffer->width(), buffer->height());
+    ScreenAABB bbox = ScreenAABB::fromSubpixelTri(tri_fixed, buffer->width(), buffer->height());
     if(!bbox.valid()) return; // 若三角形完全在屏幕外，直接丢弃
 
     // 中间量语义化
@@ -127,7 +149,7 @@ namespace Medium::Pipeline {
     E20_row += bias20;
 
     // 三角形层面做 dispatch
-    std::visit([&](auto& concrete_shader) {
+    std::visit([&](auto& active_shader) {
       // 边函数增量更新
       for(i32 y = bbox.min.y(); y <= bbox.max.y(); y++) {
         // 当前像素的 Equation 值，注意同样要采用 i64.
@@ -152,9 +174,8 @@ namespace Medium::Pipeline {
             u32 index = buffer->getBufferIndex(x, y);
             if(buffer->depthTest(index, z_interp)) {
               LinearColor pixel_color;
-
-              bool discard = concrete_shader.fragment(varyings, weights, pixel_color);
-
+              // Alpha test
+              bool discard = active_shader.fragment(varyings, weights, pixel_color);
               if(!discard) {
                 buffer->writeDepth(index, z_interp);
                 buffer->setColor(index, pixel_color);

@@ -6,6 +6,7 @@
 
 #include "Forwards.h"
 #include "Vertex.h"
+#include "Geometry/AABB.h"
 
 namespace Medium {
 
@@ -13,9 +14,12 @@ namespace Medium {
     [[nodiscard]] size_t triangleCount() const noexcept {
       return index_count / 3;
     }
+
     size_t index_offset    = 0;
     size_t index_count     = 0;
     int    material_index  = 0;
+
+    AABB3D bbox;
   };
 
   /// @class Mesh
@@ -25,6 +29,10 @@ namespace Medium {
     friend class AssetCache;
   public:
     ~Mesh() = default;
+
+    void calcNormals()  noexcept;
+    void calcTangents() noexcept;
+    void calcAABBs()    noexcept;
     
     std::string name;
 
@@ -34,10 +42,9 @@ namespace Medium {
     std::vector<Vertex> vertices; // 去重后的顶点数据
     std::vector<size_t> indices;  // 索引，存的是对应顶点在 vertices 里的下标
 
+    AABB3D bbox;
   private:
     Mesh() = default;
-    void calcNormals();
-    void calcTangents();
   };
 
 } // namespace

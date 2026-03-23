@@ -12,12 +12,18 @@ TODO
 
 - Shader 动态绑定 : Done
 
-- 阴影贴图
+- 阴影贴图 : Done
+
+- RenderQueue, RenderCommand
+
+- 将渲染分为多pass
+
+- 完成 Scene 类型: Done
+
+- 将 App 的私有成员改为值而非指针
 
 - Alpha 预乘
 
 - Mipmap
 
 - 环境光遮蔽
-
-- 将渲染分为多pass

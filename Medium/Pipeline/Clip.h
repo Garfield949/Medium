@@ -7,10 +7,12 @@
 #pragma once
 
 #include "Base/Types.h"
-#include "Pipeline/Shader/BlinnPhong.h"
+#include "Base/Math.h"
+#include "Pipeline/Shader/Varying.h"
 
 namespace Medium {
-  
+
+  // 定义裁剪空间的视椎平面
   enum class ClipPlane: u8 {
     Left   = 1 << 0, 
     Right  = 1 << 1, 
@@ -84,10 +86,10 @@ namespace Medium {
   
   [[nodiscard]] inline f32 calcSignedDistance(const Vec4f& v, ClipPlane plane) noexcept {
     switch(plane) {
-      case ClipPlane::Left:   return v.x() + v.w();
+      case ClipPlane::Left:   return v.w() + v.x();
       case ClipPlane::Right:  return v.w() - v.x();
       case ClipPlane::Top:    return v.w() - v.y();
-      case ClipPlane::Bottom: return v.y() + v.w();
+      case ClipPlane::Bottom: return v.w() + v.y();
       case ClipPlane::Near:   return v.w() - v.z();
       case ClipPlane::Far:    return v.z();
       default: return 0.0f;

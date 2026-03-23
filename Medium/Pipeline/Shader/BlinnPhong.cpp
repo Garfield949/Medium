@@ -12,15 +12,18 @@
 
 namespace Medium {
   
-  void BlinnPhongShader::bind(const RenderContext& context, const Mat4f& world, const Material* mat) noexcept {
+  void BlinnPhongShader::bind(const PassContext& ctx, const Mat4f& world, const Material* mat) noexcept {
+    const Camera* camera = ctx.camera;
+    FrameContext* ctx_frame = ctx.ctx_frame;
+    
     uniforms.world      = world;
-    uniforms.wvp        = context.main_camera->matrixVP() * world;
-    uniforms.camera_pos = context.main_camera->transform.worldPosition();
+    uniforms.wvp        = camera->vpMatrix() * world;
+    uniforms.camera_pos = camera->transform.worldPosition();
     uniforms.material   = mat;
 
-    uniforms.shadow_map = context.shadow_map;
-    uniforms.wvp_light  = context.light->matrixVP();
-    uniforms.light_dir  = -context.light->transform.forward();
+    uniforms.shadow_map = ctx_frame->shadow_map;
+    uniforms.wvp_light  = ctx_frame->main_light->vpMatrix();
+    uniforms.light_dir  = -(ctx_frame->main_light->transform.forward());
   }
   
 } // namespace Medium

@@ -6,12 +6,14 @@
 ///
 #pragma once
 
+#include "Pipeline/RenderCommand.h"
 #include "Pipeline/Shader/ShaderType.h"
 
 namespace Medium {
   class  RenderTarget;
   class  Mesh;
   struct SubMesh;
+  struct PassContext;
 }
 
 namespace Medium::Pipeline {
@@ -22,6 +24,8 @@ namespace Medium::Pipeline {
     coord.x() = 0.5f * static_cast<f32>(sc_width)  * (coord.x() + 1.0f);
     coord.y() = 0.5f * static_cast<f32>(sc_height) * (coord.y() + 1.0f);
   }
+  
+  void executeQueue(const PassContext& ctx, const std::vector<RenderCommand>& cmds);
 
   void draw(const Mesh&    mesh,
             const SubMesh& sub_mesh,

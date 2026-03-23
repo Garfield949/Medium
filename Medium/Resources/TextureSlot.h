@@ -22,11 +22,11 @@ namespace Medium {
     return soild_color;
   }
   
-  inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv) {
+  inline LinearColor sampleSlot(const TextureSlot& slot, Vec2f uv) {
       // 0 对应 TexturePtr, 1 对应 LinearColor
       if (slot.index() == 0) {
           const auto& map = std::get<0>(slot);
-          return map->sample(uv, FilterMode::Nearest);
+          return map->sample(uv, Texture::FilterMode::Nearest);
       }
       return std::get<1>(slot);
   }

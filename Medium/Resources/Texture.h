@@ -11,16 +11,16 @@
 
 namespace Medium {
 
-  enum class FilterMode {
-    Nearest, Bilinear
-  };
-
   class Texture {
     friend class AssetCache;
   public:
+    enum class FilterMode {
+      Nearest, Bilinear
+    };
+    
     ~Texture() = default;
 
-    [[nodiscard]] LinearColor sample(const Vec2f& UV, FilterMode filter_mode) const noexcept {
+    [[nodiscard]] LinearColor sample(Vec2f UV, FilterMode filter_mode) const noexcept {
       // Repeat 平铺模式，取小数部分：1.1 -> 0.1, 1.0 -> 0.0; U, V 能取到的范围是 0 ~ 0.999...
       f32 u = UV.x() - std::floor(UV.x());
       f32 v = UV.y() - std::floor(UV.y());
@@ -39,8 +39,8 @@ namespace Medium {
       };
 
       if(filter_mode == FilterMode::Nearest) {
-        int x = static_cast<int>(px + 0.5f);
-        int y = static_cast<int>(py + 0.5f);
+        int x = static_cast<int>(std::lround(px));
+        int y = static_cast<int>(std::lround(py));
         return getPixel(x, y);
       }
 
@@ -71,17 +71,17 @@ namespace Medium {
   private:
     Texture() = default;
 
+    int width_   = 0;
+    int height_  = 0;
+    int channels = 0;
+    
+    ColorSpace color_space_ = ColorSpace::SRGB;
+    
     struct StbImageDeleter { // 自定义删除器
       void operator()(unsigned char *data) const {
         if(data) free(data);
       }
     };
-
-    ColorSpace color_space_ = ColorSpace::SRGB;
-
-    int width_   = 0;
-    int height_  = 0;
-    int channels = 0;
 
     std::unique_ptr<unsigned char, StbImageDeleter> data_ = nullptr;
   };

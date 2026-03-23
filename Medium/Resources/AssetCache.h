@@ -28,13 +28,13 @@ namespace Medium {
     }
 
     // 加载 Wavefront OBJ 模型文件
-    MeshPtr loadObj (const std::filesystem::path& obj_path);
+    MeshPtr loadFromObj (const std::filesystem::path& path_obj);
 
   private:
     AssetCache() = default;
 
     void parseMTL(const MeshPtr &mesh, const std::vector<tinyobj::material_t>& tiny_materials,
-                  const std::filesystem::path& obj_path);
+                  const std::filesystem::path& path_obj);
 
     TexturePtr loadTexture (const std::filesystem::path& filepath, ColorSpace& space);
 
