@@ -6,6 +6,8 @@
 ///
 #pragma once
 
+#include <utility>
+
 #include "Base/Color.h"
 #include "Resources/Forwards.h"
 #include "Resources/TextureSlot.h"
@@ -28,13 +30,13 @@ namespace Medium {
     // 0 = 无光照，直接输出 Kd；
     // 1 = 漫反射；
     // 2 = 漫反射 + 高光；
-    int illum = 0;
+    i32 illum = 0;
   };
 
   class Material {
     friend class AssetCache;
   public:
-    Material(const std::string& mat_name = "Default") : name(mat_name) {}
+    Material(std::string mat_name = "Default") : name(std::move(mat_name)) {}
     
     static std::shared_ptr<Material> Default() {
       return std::make_shared<Material>();

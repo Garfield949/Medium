@@ -2,7 +2,7 @@
 /// @file   RenderStat.h
 /// @author Garfield949
 /// @date   2026/3/22 20:38
-/// @brief  
+/// @brief  该文件定义 Profiler 所需的每帧渲染开销状态 
 ///
 #pragma once
 

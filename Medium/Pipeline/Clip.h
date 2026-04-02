@@ -6,9 +6,8 @@
 ///
 #pragma once
 
-#include "Base/Types.h"
 #include "Base/Math.h"
-#include "Pipeline/Shader/Varying.h"
+#include "Pipeline/Shader/Common.h"
 
 namespace Medium {
 
@@ -36,7 +35,6 @@ namespace Medium {
   /// @brief 裁剪过程中，三角形的某边若越过了裁剪面，则需在相交处生成新顶点。该顶点的 Clip Space 坐标
   ///        及 varying 由线性插值得到。
   struct ClipVertex {
-    ClipVertex() = default;
     // 1/w 在 clip space 里是非线性的，不能直接插值。这里先对 pos 进行插值，再取 1/w
     // Note: 不对插值过程中的 normal 和 tangent 进行归一化，因为 fragment 阶段会归一化
     // TODO: 让 Varying 自己负责插值
@@ -55,7 +53,7 @@ namespace Medium {
         }
       };
     }
-    Vec4f   pos;
+    Vec4f pos;
     Varying varying;
   };
   
@@ -64,7 +62,7 @@ namespace Medium {
   inline constexpr size_t MaxClipVertsNum = 9;
   struct ClipPolygon {
     std::array<ClipVertex, MaxClipVertsNum> verts{};
-    u16 num_verts = 0;
+    size_t num_verts = 0;
   };
   
   inline ClipPlane calcOutcode(const Vec4f& v) noexcept {
@@ -100,7 +98,7 @@ namespace Medium {
     ClipPolygon poly_out;
     
     // 遍历输入多边形的所有边，由 head -> tail 定义
-    for(int i = 0; i < poly_in.num_verts; ++i) {
+    for(size_t i = 0; i < poly_in.num_verts; ++i) {
       // 当 i = num_verts - 1, (i + 1) % num_verts = 0，尾首完成闭环
       const ClipVertex* v_head = &poly_in.verts[i];
       const ClipVertex* v_tail = &poly_in.verts[(i + 1) % poly_in.num_verts];

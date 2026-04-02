@@ -6,27 +6,31 @@
 ///
 #pragma once
 
-#include "Base/Color.h"
+#include <filesystem>
 
-namespace Medium::AppConstants {
-  
-  inline std::string WindowTitle = "Medium Canvas";
-  
-  inline u32 ScreenWidth  = 1440;
-  inline u32 ScreenHeight = 900;
-  
-  inline f32 screenRation() {
-    return static_cast<f32>(ScreenWidth) / static_cast<f32>(ScreenHeight);
-  }
-  
-} // namespace Medium::AppConstants
+#include "Base/Types.h"
 
-namespace Medium::RenderConstants {
+namespace Medium {
   
-  inline LinearColor FrameBufferClearColor = LinearColor::White();
+  struct WindowCfg {
+    std::string title;
+    u32 width;
+    u32 height;
 
-  inline constexpr f32 DepthClearValue = 0.0f;
+    [[nodiscard]] f32 aspectRatio() const {
+      return static_cast<f32>(width) / static_cast<f32>(height);
+    }
+  };
   
-  inline constexpr size_t ShadowMapResDefault = 2048;
+  struct RenderCfg {
+    u32 shadow_map_res;
+  };
   
-} // namespace Medium::RenderConstants
+  struct AppCfg {
+    WindowCfg window{};
+    RenderCfg render{};
+  };
+  
+  [[nodiscard]] AppCfg loadAppConfig(const std::filesystem::path& toml_dir);
+  
+} // namespace Medium

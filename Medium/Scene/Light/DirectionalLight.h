@@ -18,7 +18,7 @@ namespace Medium {
   public:
     explicit DirectionalLight(std::string name) : Light{std::move(name)} {
       ortho_camera_ =
-      attachChild(std::make_unique<Camera>("Ortho Camera", Projection::Ortho));
+      attachChild(std::make_unique<Camera>("Ortho Camera", Camera::Mode::Ortho));
     }
 
     void setOrthoParams(f32 near, f32 far, f32 width, f32 height) const noexcept {
@@ -29,13 +29,15 @@ namespace Medium {
       return ortho_camera_->vpMatrix();
     }
 
-    [[nodiscard]] Frustum frustum() const noexcept {
-      return ortho_camera_->frustum();
+    [[nodiscard]] Mat4f viewMatrix() const noexcept {
+      return ortho_camera_->viewMatrix();
     }
 
     [[nodiscard]] const Camera* attachedCamera() const noexcept {
       return ortho_camera_;
     }
+
+    Vec3f dir;
 
   private:
     Camera* ortho_camera_ = nullptr;

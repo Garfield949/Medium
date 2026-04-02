@@ -96,6 +96,11 @@ namespace Medium::Math {
     return a * (1.0f - t) + b * t;
   }
 
+  template<typename T>
+  constexpr bool between(T val, T min, T max) noexcept {
+    return val >= min && val <= max;
+  }
+
 } // namespace Medium::Math
 
 

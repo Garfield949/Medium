@@ -11,7 +11,7 @@
 namespace Medium::Util {
 
   inline u8 quantizeToU8(f32 value) {
-    return static_cast<u8>(value * 255.0f + 0.5f);
+    return static_cast<u8>(std::lround(value * 255.0f));
   }
 
 } // namespace Medium

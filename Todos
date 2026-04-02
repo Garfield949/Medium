@@ -14,13 +14,15 @@ TODO
 
 - 阴影贴图 : Done
 
-- RenderQueue, RenderCommand
+- 完成 Scene 类型: Done
+
+- 将 App 的私有成员改为值而非指针 : Done
+
+- RenderQueue, RenderCommand : Done
 
 - 将渲染分为多pass
 
-- 完成 Scene 类型: Done
-
-- 将 App 的私有成员改为值而非指针
+- 包围盒线框debug
 
 - Alpha 预乘
 

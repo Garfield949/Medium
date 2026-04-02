@@ -4,7 +4,8 @@
 ///
 #pragma once
 
-#include "Base/Types.h"
+#include "Geometry/Sphere.h"
+
 namespace Medium::Geometry {
 
   /// @brief 浮点向量叉积；
@@ -13,13 +14,13 @@ namespace Medium::Geometry {
   /// @details    1. 计算 v1 x v2. 若 v2 在 v1 的 “右边（顺时针）”，左手系下四指从 v1 弯曲到 v2，则大拇指朝外；
   ///                而在左手系中，大拇指朝屏幕外说明结果是负值；
   ///             2. 2D 叉积其实就是 3D 叉积 (x1,y1,0) 与 (x2,y2,0) 叉积所得向量 (0,0,x1y2-x2y1) 的 z 值。
-  inline f32 cross2D(Vec2f v1, Vec2f v2) noexcept {
+  inline f32 cross2D(const Vec2f& v1, const Vec2f& v2) noexcept {
     return v1.x() * v2.y() - v2.x() * v1.y();
   }
 
   /// @brief 整型向量叉积；
   /// @details    两个 i32 相乘有溢出的风险，返回 i64 更安全。
-  inline i64 cross2D(Vec2i v1, Vec2i v2) noexcept {
+  inline i64 cross2D(const Vec2i& v1, const Vec2i& v2) noexcept {
     return static_cast<i64>(v1.x()) * v2.y() - static_cast<i64>(v2.x()) * v1.y();
   }
 
@@ -33,7 +34,7 @@ namespace Medium::Geometry {
   }
 
   /// @brief 边函数计算
-  inline i64 edgeEquation(Vec2i edge_start, Vec2i edge_end, Vec2i test_point) {
+  inline i64 edgeEquation(const Vec2i& edge_start, const Vec2i& edge_end, const Vec2i& test_point) {
     Vec2i V = test_point - edge_start;
     Vec2i E = edge_end   - edge_start;
     return cross2D(V, E);
@@ -51,5 +52,23 @@ namespace Medium::Geometry {
     bool is_top_left = (dy == 0 && dx > 0) || dy > 0;
     return is_top_left ? 0 : -1;
   };
+
+  /// @brief 计算给定视椎的外接球
+  /// @param corners 接收视椎的角点
+  /// @return 返回值 Vec2f 的 x 为球心坐标，y 为球半径
+  /// @details 计算的是视椎的几何中心，并非精确的最小外接球心；优点是计算非常快，缺点是算出的球不够紧凑，在
+  ///          near 端会有较大的冗余。
+  inline Sphere frustumCircumSphere(const std::array<Vec3f, 8>& corners) noexcept {
+    Vec3f center = Vec3f::Zero();
+    for(const auto& v : corners)
+      center += v;
+    center /= 8.0f;
+
+    f32 max_dist_sq = 0.0f;
+    for(const auto& v : corners)
+      max_dist_sq = std::max(max_dist_sq, (v - center).squaredNorm());
+
+    return {center, std::sqrt(max_dist_sq)};
+  }
 
 } // namespace Medium

@@ -1,10 +1,10 @@
 ///
-/// @file   ShadowShader.cpp
+/// @file   DepthShader.cpp
 /// @author Garfield949
 /// @date   2026/3/17 16:38
 /// @brief  
 ///
-#include "ShadowShader.h"
+#include "DepthShader.h"
 
 #include "Pipeline/RenderContext.h"
 #include "Scene/Light/DirectionalLight.h"
@@ -13,8 +13,8 @@
 
 namespace Medium {
   
-  void ShadowShader::bind(const PassContext& context, const Mat4f& world, const Material* mat) noexcept {
-    uniforms.wvp_light = context.ctx_frame->main_light->vpMatrix() * world;
+  void DepthShader::bind(const PassCtx& ctx, const Mat4f& world, const Material* mat) noexcept {
+    uniforms.wvp_light = ctx.frame_ctx->main_light->vpMatrix() * world;
     uniforms.material  = mat;
   }
 

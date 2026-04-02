@@ -11,7 +11,7 @@ namespace Medium {
   class Node;
 
   enum class Space {
-    Self, Parent, World
+    Self, World
   };
 
   /// @class Transform
@@ -31,22 +31,23 @@ namespace Medium {
     // ---------- Modifiers: 增量修改
     /// @brief 平移
     /// @param delta            分量 x,y,z 分别对应父空间轴上的位移
-    void translate(const Vec3f& delta) noexcept;
+    /// @param space            指定参考系。Space::Self 为局部系，Space::World 为世界系。
+    void translate(const Vec3f& delta, Space space = Space::Self) noexcept;
 
     /// @brief 复合轴旋转
     /// @param euler_degrees    欧拉角度数。分量 x,y,z 对应 Pitch,Yaw/Heading,Roll/Bank.
-    /// @param space            指定参考系。Space::Local 为局部系，Space::World 为世界系。
+    /// @param space            指定参考系。Space::Self 为局部系，Space::World 为世界系。
     void rotate(const Vec3f& euler_degrees, Space space = Space::Self) noexcept;
 
     /// @brief 绕指定轴旋转
     /// @param axis             指定轴。
     /// @param euler_degree     指定旋转度数。
-    /// @param space            指定参考系。Space::Local 为局部系，Space::World 为世界系。
+    /// @param space            指定参考系。Space::Self 为局部系，Space::World 为世界系。
     void rotate(const Vec3f& axis, f32 euler_degree, Space space = Space::Self) noexcept;
 
     // ---------- Getters: 获取状态
-    [[nodiscard]] const Vec3f& position() const noexcept { return position_local_; }
-    [[nodiscard]] const Quatf& rotation() const noexcept { return rotation_local_; }
+    [[nodiscard]] const Vec3f& position() const noexcept { return pos_local_; }
+    [[nodiscard]] const Quatf& rotation() const noexcept { return rot_local_; }
     [[nodiscard]] f32          scale()    const noexcept { return scale_local_; }
 
     [[nodiscard]] Vec3f worldPosition() const noexcept;
@@ -68,9 +69,9 @@ namespace Medium {
     Node *belong_to_; // 附属节点指针，用于遍历其子节点
 
     // 父节点空间下的 TRS 数据
-    Vec3f position_local_ = Vec3f::Zero();
-    Quatf rotation_local_ = Quatf::Identity();
-    f32   scale_local_    = 1.0f;
+    Vec3f pos_local_   = Vec3f::Zero();
+    Quatf rot_local_   = Quatf::Identity();
+    f32   scale_local_ = 1.0f;
 
     // Transform 的矩阵缓存
     mutable Mat4f matrix_local_ = Mat4f::Identity(); // 局部矩阵

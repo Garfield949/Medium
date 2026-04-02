@@ -13,11 +13,21 @@ namespace Medium {
 
   class Light : public Node{
   public:
-    explicit Light(std::string&& name);
+    static constexpr NodeType Type = NodeType::Light;
 
-    void setColor(const LinearColor& color) noexcept;
-    void setIntensity(f32 intensity)        noexcept;
-    void castShadows(bool enable)           noexcept;
+    explicit Light(std::string name) : Node{std::move(name), Type} {}
+
+    void setColor(const LinearColor& color) noexcept {
+      this->color_ = color;
+    }
+
+    void setIntensity(f32 intensity) noexcept {
+      this->intensity_ = intensity;
+    }
+
+    void castShadows(bool enable) noexcept {
+      this->cast_shadows = enable;
+    }
 
   protected:
     LinearColor color_ = LinearColor::White();

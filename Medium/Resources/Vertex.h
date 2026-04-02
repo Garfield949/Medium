@@ -15,7 +15,7 @@ namespace Medium {
   struct Vertex {
     Vertex() = default;
     
-    Vertex(const Vec3f& position, const Vec3f& normal, Vec2f tex_coord)
+    Vertex(const Vec3f& position, const Vec3f& normal, const Vec2f& tex_coord)
       : pos{position}, normal{normal}, uv{tex_coord} {} 
     
     Vec3f pos     = Vec3f::Zero(); // 位置

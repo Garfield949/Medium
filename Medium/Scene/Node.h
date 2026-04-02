@@ -6,40 +6,59 @@
 ///
 #pragma once
 
-#include "Geometry/Frustum.h"
 #include "Transform.h"
 
 namespace Medium {
 
   class RenderQueue;
-  class Frustum;
+  struct ViewCtx;
+  
+  enum class NodeType { Vanilla, Mesh, Light, Camera };
 
   class Node {
     friend class Transform;
   public:
-    Node(std::string name = "Node");
+    NodeType  node_type;
+    Transform transform;
 
-    Node(Node&&) noexcept = default;
-    Node& operator=(Node&& other) noexcept = default;
+    Node(std::string name = "Node", NodeType type = NodeType::Vanilla)
+      : transform{this}, name_{std::move(name)}, node_type{type} {}
 
     virtual ~Node() = default;
-
-    virtual void update(f32 dt);
     
-    virtual void commitCommand(RenderQueue& queue, const Frustum& frustum) const;
+    virtual void commitCommand(RenderQueue& queue, const ViewCtx& view_ctx) const {
+      for(auto& child : children_) {
+        child->commitCommand(queue, view_ctx);
+      }
+    }
 
     void setName(std::string name) { name_ = std::move(name); }
-    
-    void setParent(Node* parent) { parent_ = parent; }
 
     [[nodiscard]] const std::string& name() const noexcept { return name_; }
 
-    template<typename T>
-    T* attachChild(std::unique_ptr<T>&& child) {
-      static_assert(std::is_base_of<Node, T>::value, "T must derive from Node");
+    /// @brief 静态方法，试图将传入的 Node* 静态转型为指定的 NodeT*
+    template<typename NodeT>
+    static NodeT* cast_to(Node* node) {
+      if(node->node_type == NodeT::Type)
+        return static_cast<NodeT*>(node);
+      return nullptr;
+    }
+
+    /// @brief 遍历子节点，DFS
+    template<typename Callable>
+    void traverse(Callable&& f) {
+      f(this);
+      for(auto& child : children_) {
+        child->traverse(std::forward<Callable>(f));
+      }
+    }
+
+    template<typename NodeT>
+    NodeT* attachChild(std::unique_ptr<NodeT>&& child) {
+      static_assert(std::is_base_of<Node, NodeT>::value, "NodeT must derive from Node");
       assert(child && "Cannot attach a null child.");
 
-      T *ptr = child.get();
+      NodeT *ptr = child.get();
 
       child->parent_ = this;
       child->transform.updateDirtyFlags();
@@ -48,11 +67,9 @@ namespace Medium {
       return ptr;
     }
 
-    Transform transform;
-
   protected:
     std::string name_;
-    Node* parent_;
+    Node* parent_ = nullptr;
     std::vector<std::unique_ptr<Node>> children_;
   };
 

@@ -14,7 +14,7 @@ namespace Medium {
   }
 
   void Transform::setPosition(const Vec3f& pos) noexcept {
-    position_local_ = pos;
+    pos_local_ = pos;
     updateDirtyFlags();
   }
 
@@ -24,8 +24,8 @@ namespace Medium {
   }
 
   void Transform::setRotation(const Vec3f& euler_deg) noexcept {
-    rotation_local_ = Math::eulerToQuatf(euler_deg);
-    rotation_local_.normalize();
+    rot_local_ = Math::eulerToQuatf(euler_deg);
+    rot_local_.normalize();
     updateDirtyFlags();
   }
 
@@ -60,24 +60,31 @@ namespace Medium {
     // 将世界姿态转为局部姿态
     // R_world = parent_R_world * R_local -> R_local = parent_R_world_inv * R_world
     if(const auto ptr = belong_to_->parent_) {
-      rotation_local_ = ptr->transform.worldRotation().inverse() * R_world;
+      rot_local_ = ptr->transform.worldRotation().inverse() * R_world;
     } else {
-      rotation_local_ = rotation_world;
+      rot_local_ = rotation_world;
     }
 
     updateDirtyFlags();
   }
 
-  void Transform::translate(const Vec3f& delta) noexcept {
-    position_local_ += delta;
+  void Transform::translate(const Vec3f& delta, Space space) noexcept {
+    if(space == Space::Self) {
+      pos_local_ += rot_local_ * delta;
+    } else if(const auto ptr = belong_to_->parent_) {
+      pos_local_ +=
+        ptr->transform.worldMatrixInverse().topLeftCorner<3, 3>() * delta;
+    } else {
+      pos_local_ += delta;
+    }
     updateDirtyFlags();
   }
 
   void Transform::rotate(const Vec3f& euler_degrees, Space space) noexcept {
     Quatf delta = Math::eulerToQuatf(euler_degrees);
 
-    rotation_local_ = (space == Space::Self) ? (rotation_local_ * delta) : (delta * rotation_local_);
-    rotation_local_.normalize();
+    rot_local_ = (space == Space::Self) ? (rot_local_ * delta) : (delta * rot_local_);
+    rot_local_.normalize();
 
     updateDirtyFlags();
   }
@@ -85,8 +92,8 @@ namespace Medium {
   void Transform::rotate(const Vec3f& axis, f32 euler_degree, Space space) noexcept {
     Quatf delta{Eigen::AngleAxisf(Math::deg_to_rad(euler_degree), axis)};
 
-    rotation_local_ = (space == Space::Self) ? (rotation_local_ * delta) : (delta * rotation_local_);
-    rotation_local_.normalize();
+    rot_local_ = (space == Space::Self) ? (rot_local_ * delta) : (delta * rot_local_);
+    rot_local_.normalize();
 
     updateDirtyFlags();
   }
@@ -105,8 +112,8 @@ namespace Medium {
 
   Quatf Transform::worldRotation() const noexcept {
     if(const auto ptr = belong_to_->parent_)
-      return ptr->transform.worldRotation() * rotation_local_;
-    return rotation_local_;
+      return ptr->transform.worldRotation() * rot_local_;
+    return rot_local_;
   }
 
   const Mat4f& Transform::worldMatrix() const noexcept {
@@ -120,7 +127,7 @@ namespace Medium {
   Mat4f Transform::worldMatrixInverse() const noexcept {
     const auto& mat_world = worldMatrix();
     // ---------- (TRS)^-1 = S^-1 R^-1 T^-1
-    // 由于只支持非均匀缩放，故只需算某个轴的模长即可得到缩放。
+    // 由于只支持均匀缩放，故只需算某个轴的模长即可得到缩放。
     f32 S = mat_world.col(0).head<3>().norm();
     // 缩放的逆 (S^-1)
     // 即缩放的倒数。若缩放值接近于零则直接赋值为零，避免除零。
@@ -167,12 +174,12 @@ namespace Medium {
 
   // 填充左上角 3 x 3 旋转 + 缩放部分、右上角平移部分
   void Transform::updateLocalMatrix() const noexcept {
-    Mat3f R = rotation_local_.toRotationMatrix();
+    Mat3f R = rot_local_.toRotationMatrix();
     matrix_local_.setIdentity();
     matrix_local_.col(0).head<3>() = R.col(0) * scale_local_;
     matrix_local_.col(1).head<3>() = R.col(1) * scale_local_;
     matrix_local_.col(2).head<3>() = R.col(2) * scale_local_;
-    matrix_local_.topRightCorner<3, 1>() = position_local_;
+    matrix_local_.topRightCorner<3, 1>() = pos_local_;
   }
 
   void Transform::updateWorldMatrix() const noexcept {

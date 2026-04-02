@@ -19,11 +19,11 @@ namespace Medium {
     friend struct SceneLoader;
   public:
     [[nodiscard]] 
-    static std::unique_ptr<Scene> loadFromLua(const std::filesystem::path& lua_path);
+    static std::unique_ptr<Scene> loadFromLua(const std::filesystem::path& lua_path, f32 aspect_ratio);
 
-    [[nodiscard]] const Node& root() noexcept { return root_; }
-    [[nodiscard]] const Camera* mainCam() const noexcept { return main_camera_; }
-    [[nodiscard]] const DirectionalLight* mainLight() const noexcept { return main_light_; }
+    [[nodiscard]] Node* root() noexcept { return &root_; }
+    [[nodiscard]] Camera* mainCam() const noexcept { return main_camera_; }
+    [[nodiscard]] DirectionalLight* mainLight() const noexcept { return main_light_; }
   
   private:
     Scene() = default;

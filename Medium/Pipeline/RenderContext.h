@@ -2,29 +2,51 @@
 /// @file   RenderContext.h"
 /// @author Garfield949
 /// @date   2026/2/13 16:45
-/// @brief  
+/// @brief  该文件定义管线流动涉及的上下文类型
 ///
 #pragma once
 
-#include "Pipeline/Shader/ShaderType.h"
+#include "Base/Types.h"
+#include "Scene/Camera.h"
+#include "Pipeline/Shader/Shader.h"
 
 namespace Medium {
 
   class RenderTarget;
-  class Camera;
   class DirectionalLight;
   
-  struct FrameContext {
+  /// @struct FrameCtx
+  /// @brief 一帧所需的上下文
+  struct FrameCtx {
     const DirectionalLight* main_light = nullptr;
     RenderTarget* shadow_map = nullptr;
   };
+
+  /// @struct ViewCtx
+  /// @brief 相机视图相关的上下文
+  struct ViewCtx {
+    explicit ViewCtx(const Camera* cam)
+      : view{cam->viewMatrix()},
+        proj{cam->projMatrix()},
+        vp{proj * view},
+        frustum{cam->frustum()},
+        cam_pos{cam->transform.worldPosition()} {}
+
+    Mat4f view;
+    Mat4f proj;
+    Mat4f vp;
+    Frustum frustum;
+    Vec3f cam_pos;
+  };
   
-  struct PassContext {
-    RenderTarget*  buffer = nullptr;
-    const Camera*  camera = nullptr;
-    VariantShader* shader = nullptr;
-    
-    FrameContext*  ctx_frame   = nullptr;
+  /// @struct PassCtx
+  /// @brief 单 Pass 所需的上下文
+  struct PassCtx {
+    const FrameCtx* frame_ctx;
+    const ViewCtx*  view_ctx;
+
+    RenderTarget*  buffer;
+    VariantShader* shader;
   };
 
 } // namespace Medium

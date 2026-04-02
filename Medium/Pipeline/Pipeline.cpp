@@ -9,64 +9,72 @@
 #include <fmt/base.h>
 
 #include "Base/Types.h"
+
+#include "Resources/Mesh.h"
+
 #include "Geometry/AABB.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/Subpixel.h"
-#include "Resources/Mesh.h"
+
 #include "Pipeline/Clip.h"
 #include "Pipeline/RenderTarget.h"
-#include "Pipeline/Shader/ShaderType.h"
+#include "Pipeline/Shader/Shader.h"
 #include "Pipeline/RenderContext.h"
-#include "Base/Meta.h"
+
+namespace {
+  using namespace Medium;
+  /// @brief   视口变换
+  /// @details 接收一个 NDC 坐标，将其 x,y 分量映射到 [0,width] [0,height]
+  void NDCToScreen(Vec4f& coord, u32 sc_width, u32 sc_height) {
+    coord.x() = 0.5f * static_cast<f32>(sc_width)  * (coord.x() + 1.0f);
+    coord.y() = 0.5f * static_cast<f32>(sc_height) * (coord.y() + 1.0f);
+  }
+}
 
 namespace Medium::Pipeline {
-  
-  void executeQueue(const PassContext& ctx, const std::vector<RenderCommand>& cmds) {
-    std::visit(overloads {   
-      [&](BlinnPhongShader& s) {
-        for(const auto & cmd : cmds) {
-          s.bind(ctx, *cmd.matrix_world, cmd.material);
-          draw(*cmd.mesh, *cmd.submesh, ctx.shader, ctx.buffer);
-        }
-      },
-      [&](ShadowShader& s) {
-        for(const auto & cmd : cmds) {
-          s.bind(ctx, *cmd.matrix_world, cmd.material);
-          draw(*cmd.mesh, *cmd.submesh, ctx.shader, ctx.buffer);
-        }
+
+  void executeQueue(const PassCtx& ctx, const std::vector<RenderCommand>& cmds) {
+    std::visit([&](auto& active_shader) {
+      for(const auto & cmd : cmds) {
+        active_shader.bind(ctx, *cmd.matrix_world, cmd.material);
+        draw(*cmd.mesh, *cmd.submesh, ctx.shader, ctx.buffer);
       }
     }, *ctx.shader);
-    
   }
 
-  void draw(const Mesh &mesh, const SubMesh &sub_mesh, VariantShader *shader, RenderTarget *buffer) {
+  void draw(const Mesh &mesh, const SubMesh &sub_mesh, VariantShader* shader, RenderTarget* buffer) {
+    std::visit([&](auto& active_shader) { // SubMesh 层级做 dispatch
 
-    std::visit([&](auto& active_shader) { // SubMesh 层面做 dispatch
-
-      for(size_t i = 0; i < sub_mesh.triangleCount(); i ++) {
+      for(size_t i = 0; i < sub_mesh.triangleCnt(); ++i) {
+        // Mesh 每 3 个紧邻的顶点索引为一个三角形
         size_t tri_idx = sub_mesh.index_offset + (i * 3);
-        
+
         // 将当前三角形作为裁剪输入，运行顶点着色器 World Space -> Clip Space，并获取待插值的 varying
         ClipPolygon clip_poly;
-        for(int j = 0; j < 3; j++)
-          clip_poly.verts[clip_poly.num_verts++].pos = 
-            active_shader.vertex(mesh.vertices[mesh.indices[tri_idx + j]], clip_poly.verts[j].varying);
-        
-        if(!clip(clip_poly)) continue;
+        for(size_t j = 0; j < 3; ++j, ++clip_poly.num_verts) {
+          size_t vert_idx = mesh.indices[tri_idx + j];
           
+          VSOut vs_out = active_shader.vertex(mesh.vertices[vert_idx]);
+          
+          clip_poly.verts[j].pos     = vs_out.pos_clip;
+          clip_poly.verts[j].varying = vs_out.varying;
+        }
+
+        if(!clip(clip_poly)) continue;
+
         // 透视除法 Clip Space -> NDC. x,y -> [-1,1], reversed-z -> [0,1]
-        for(auto & vert : clip_poly.verts) {
-          Vec4f& pos = vert.pos;
+        for(size_t k = 0; k < clip_poly.num_verts; ++k) {
+          Vec4f& pos = clip_poly.verts[k].pos;
           f32 w_inv = 1.0f / pos.w();
           pos.x() *= w_inv;
           pos.y() *= w_inv;
           pos.z() *= w_inv;
         }
-        
+
         // 扇形划分：n 个顶点的凸多边形可分出 n - 2 个三角形
-        for(int k = 1; k + 1 < clip_poly.num_verts; ++k) {
+        for(size_t l = 1; l + 1 < clip_poly.num_verts; ++l) {
           std::array<Vec4f, 3> triangle = {
-            clip_poly.verts[0].pos, clip_poly.verts[k].pos, clip_poly.verts[k + 1].pos
+            clip_poly.verts[0].pos, clip_poly.verts[l].pos, clip_poly.verts[l + 1].pos
           };
           // 背面剔除 Back-face Culling. NDC 空间和屏幕空间的剔除效果一致，所以在视口变换前先做剔除，免得白做一次视口变换；
           // 有向面积为正说明三角形是逆时针的，这在左手系中是背对相机的；
@@ -75,18 +83,17 @@ namespace Medium::Pipeline {
           // 视口变换 NDC -> Screen Space; 顶点的 x,y 由 [-1.0,1.0] 映射到 [0.0, width], [0.0, height].
           for(auto & coord : triangle)
             NDCToScreen(coord, buffer->width(), buffer->height());
-            
+
           std::array<Varying, 3> varyings {
-            clip_poly.verts[0].varying, clip_poly.verts[k].varying, clip_poly.verts[k + 1].varying
+            clip_poly.verts[0].varying, clip_poly.verts[l].varying, clip_poly.verts[l + 1].varying
           };
-            
+
           // 将屏幕坐标送进光栅器。
           rasterize(triangle, varyings, shader, buffer);
         }
       }
       
-    }, *shader);
-
+    }, *shader); // std::visit
   } // draw
 
   // 边函数法，Edge Equation.
@@ -95,17 +102,17 @@ namespace Medium::Pipeline {
   //        = Ax + By + C.
   // 故当 E(x+1,y) 有 Delta E = A = y1-y0；当 E(x,y+1) 有 Delta E = B = -(x1-x0) = x0-x1.
   // 注：当应用了次像素，边函数就变为了 E(x*scale, y*scale) = (A*scale)x + (B*scale)y + C.
-  void rasterize(const std::array<Vec4f, 3>&   tri_screen, 
-                 const std::array<Varying, 3>& varyings, 
-                 VariantShader*                shader, 
-                 RenderTarget*                 buffer)
-  {  
+  void rasterize(const std::array<Vec4f, 3>&   tri_screen,
+                 const std::array<Varying, 3>& varyings,
+                 VariantShader* shader,
+                 RenderTarget*  buffer)
+  {
     using namespace Geometry;
 
     std::array<Vec2i, 3> tri_fixed; // 将传入三角形的浮点屏幕坐标提升为次像素定点数；
     std::array<f32  , 3> v_depth{}; // 保存三角形顶尖的深度值 Zndc.
 
-    for(int i = 0; i < 3; ++i) {
+    for(i32 i = 0; i < 3; ++i) {
       tri_fixed[i].x() = Subpixel::fromFloat(tri_screen[i].x());
       tri_fixed[i].y() = Subpixel::fromFloat(tri_screen[i].y());
       v_depth[i]       = tri_screen[i].z();
@@ -169,16 +176,16 @@ namespace Medium::Pipeline {
 
             // Zndc 已是 A+B/z 的形式，在屏幕空间是线性的，无需透视矫正插值。
             f32 z_interp = Math::interpolate(v_depth[0], v_depth[1], v_depth[2], weights);
-            
+
             // Early-Z
-            u32 index = buffer->getBufferIndex(x, y);
+            u32 index = buffer->getBufIdx(x, y);
             if(buffer->depthTest(index, z_interp)) {
-              LinearColor pixel_color;
+              LinearColor frag_color;
               // Alpha test
-              bool discard = active_shader.fragment(varyings, weights, pixel_color);
+              bool discard = active_shader.fragment(varyings, weights, frag_color);
               if(!discard) {
                 buffer->writeDepth(index, z_interp);
-                buffer->setColor(index, pixel_color);
+                buffer->setColor(index, frag_color);
               }
             }
           }
