@@ -22,7 +22,10 @@ namespace Medium {
     static std::unique_ptr<Scene> loadFromLua(const std::filesystem::path& lua_path, f32 aspect_ratio);
 
     [[nodiscard]] Node* root() noexcept { return &root_; }
+    [[nodiscard]] const Node* root() const noexcept { return &root_; }
+    
     [[nodiscard]] Camera* mainCam() const noexcept { return main_camera_; }
+    
     [[nodiscard]] DirectionalLight* mainLight() const noexcept { return main_light_; }
   
   private:

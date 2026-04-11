@@ -6,7 +6,7 @@
 ///
 #pragma once
 
-#include "Base/Math.h"
+#include "Base/Math/Math.h"
 #include "Base/Color.h"
 
 namespace Medium {

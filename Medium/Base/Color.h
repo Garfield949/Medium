@@ -6,7 +6,7 @@
 
 #include <fmt/base.h>
 
-#include "Base/Math.h"
+#include "Base/Math/Math.h"
 #include "Base/Util.h"
 
 namespace Medium {

@@ -4,14 +4,13 @@
 ///
 #include "Transform.h"
 
-#include "Base/Math.h"
+#include "Base/Math/Math.h"
+#include "Base/Math/RotationMatrix.h"
 #include "Scene/Node.h"
 
 namespace Medium {
 
-  Transform::Transform(Node* belong_to) noexcept : belong_to_(belong_to) {
-    assert(belong_to != nullptr);
-  }
+  Transform::Transform(Node* belong_to) noexcept : belong_to_(belong_to) {}
 
   void Transform::setPosition(const Vec3f& pos) noexcept {
     pos_local_ = pos;
@@ -30,39 +29,21 @@ namespace Medium {
   }
 
   // 由于 target 是世界坐标，故先算出所绑定 Node 在世界空间的姿态，再转为局部旋转，最后保存为底层四元数。
-  // 注意数学奇点（非万向节死锁）：1. forward 为零时等价于看向自己，会导致归一化除零错误；
+  // 注意数学奇点（非万向节死锁）：1. forward 为零时等价于看向自己，makeFromForward 会返回一个单位矩阵；
   //                          2. 当 forward 与 up_ref 重合时等价于垂直向上看，right 叉积结果将为 (0,0,0)，归一化会发生除零。
-  void Transform::lookAt(const Vec3f& target, const Vec3f& up_ref) noexcept {
-    Vec3f pos_world = worldMatrix().topRightCorner<3, 1>();
-    Vec3f forward_world = (target - pos_world);
+  void Transform::lookAt(const Vec3f& target_world, const Vec3f& up_ref) noexcept {
+    Vec3f forward_world = target_world - worldPosition();
 
-    // 奇点一：看向自己则什么也不做，返回。
-    if(forward_world.isZero()) return;
-    forward_world.normalize();
+    Mat3f rot_world = RotationMatrix::makeFromForward(forward_world, up_ref);
 
-    // 奇点二：测试 forward_world 与 up_ref 的重合程度，否则参考轴用世界 X 轴替代,这样计算出来的 right_world 会是世界 +Z 方
-    // 向，视角会发生跳变，但至少保证不会崩溃；使用了 std::fabs，也囊括了垂直向下看的情况。
-    Vec3f up_ref_fix = up_ref;
-    if(Math::isNearlyOne(std::fabs(up_ref.dot(forward_world))))
-      up_ref_fix = Vec3f::UnitX(); // 回退方案 Fallback.
-
-    Vec3f right_world = up_ref_fix.cross(forward_world).normalized();
-    Vec3f up_world = forward_world.cross(right_world);
-
-    // 列填为对象的物体轴在世界空间的坐标（旋转）
-    Mat3f rotation_world;
-    rotation_world.col(0) = right_world;
-    rotation_world.col(1) = up_world;
-    rotation_world.col(2) = forward_world;
-
-    Quatf R_world{rotation_world};
+    Quatf R_world{rot_world};
 
     // 将世界姿态转为局部姿态
     // R_world = parent_R_world * R_local -> R_local = parent_R_world_inv * R_world
     if(const auto ptr = belong_to_->parent_) {
       rot_local_ = ptr->transform.worldRotation().inverse() * R_world;
     } else {
-      rot_local_ = rotation_world;
+      rot_local_ = R_world;
     }
 
     updateDirtyFlags();

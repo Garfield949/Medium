@@ -8,18 +8,16 @@
 
 #include <fmt/base.h>
 
-#include "Base/Types.h"
-
+#include "Resources/Forwards.h"
 #include "Resources/Mesh.h"
 
-#include "Geometry/AABB.h"
 #include "Geometry/Geometry.h"
 #include "Geometry/Subpixel.h"
 
 #include "Pipeline/Clip.h"
 #include "Pipeline/RenderTarget.h"
-#include "Pipeline/Shader/Shader.h"
 #include "Pipeline/RenderContext.h"
+#include "Pipeline/Shader/Shader.h"
 
 namespace {
   using namespace Medium;
@@ -33,7 +31,7 @@ namespace {
 
 namespace Medium::Pipeline {
 
-  void executeQueue(const PassCtx& ctx, const std::vector<RenderCommand>& cmds) {
+  void executeCommands(const std::vector<RenderCommand>& cmds, const PassCtx& ctx) {
     std::visit([&](auto& active_shader) {
       for(const auto & cmd : cmds) {
         active_shader.bind(ctx, *cmd.matrix_world, cmd.material);
@@ -110,7 +108,7 @@ namespace Medium::Pipeline {
     using namespace Geometry;
 
     std::array<Vec2i, 3> tri_fixed; // 将传入三角形的浮点屏幕坐标提升为次像素定点数；
-    std::array<f32  , 3> v_depth{}; // 保存三角形顶尖的深度值 Zndc.
+    std::array<f32  , 3> v_depth{}; // 保存三角形顶点的深度值 Zndc.
 
     for(i32 i = 0; i < 3; ++i) {
       tri_fixed[i].x() = Subpixel::fromFloat(tri_screen[i].x());

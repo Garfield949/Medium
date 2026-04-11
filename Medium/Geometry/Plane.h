@@ -8,7 +8,7 @@
 
 #include <utility>
 
-#include "Base/Math.h"
+#include "Base/Math/Math.h"
 #include "Base/Types.h"
 
 namespace Medium {

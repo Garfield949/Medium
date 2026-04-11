@@ -6,7 +6,6 @@
 ///
 #include "BlinnShader.h"
 
-#include "Scene/Camera.h"
 #include "Pipeline/RenderContext.h"
 #include "Scene/Light/DirectionalLight.h"
 

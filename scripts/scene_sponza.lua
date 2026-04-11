@@ -1,12 +1,12 @@
 local camera = {
-    fov = 75,
+    fov = 80,
     near = 0.1,
     position = {0.0, 1.0, 0.0},
     rotation = {0.0, 90.0, 0.0},
 }
 
 local light = {
-    direction = {-0.01, -0.1, 0.0}
+    direction = {-0.02, -0.2, 0.0}
 }
 
 local model = {

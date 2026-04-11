@@ -9,8 +9,6 @@
 #include "Pipeline/RenderCommand.h"
 #include "Pipeline/Shader/Shader.h"
 
-#include "Geometry/AABB.h"
-
 namespace Medium {
   class  RenderTarget;
   class  Mesh;
@@ -20,7 +18,8 @@ namespace Medium {
 
 namespace Medium::Pipeline {
 
-  void executeQueue(const PassCtx& ctx, const std::vector<RenderCommand>& cmds);
+  void executeCommands(const std::vector<RenderCommand>& cmds, 
+                       const PassCtx& ctx);
 
   void draw(const Mesh&    mesh,
             const SubMesh& sub_mesh,

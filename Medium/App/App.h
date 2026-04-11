@@ -4,6 +4,8 @@
 ///
 #pragma once
 
+#include "App/Config.h"
+
 #include "Platform/Timer.h"
 #include "Platform/Profiler.h"
 #include "Platform/Input.h"
@@ -36,9 +38,11 @@ namespace Medium {
     void on_update(f32 dt);
 
     void on_render();
+    
+    AppCfg app_config_;
 
     mfb_window*   mfb_window_ = nullptr;
-    Timer         timer_;
+    Timer         frame_timer_;
     Input         input_;
     Profiler      profiler_;
     FPSController controller_;

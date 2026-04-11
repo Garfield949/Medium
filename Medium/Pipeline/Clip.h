@@ -6,7 +6,7 @@
 ///
 #pragma once
 
-#include "Base/Math.h"
+#include "Base/Math/Math.h"
 #include "Pipeline/Shader/Common.h"
 
 namespace Medium {

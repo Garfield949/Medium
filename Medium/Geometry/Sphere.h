@@ -11,6 +11,10 @@
 namespace Medium {
 
   struct Sphere {
+    enum class Approach {
+      Fast, Exact
+    };
+    
     Vec3f center{0};
       f32 radius{0};
   };

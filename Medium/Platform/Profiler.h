@@ -47,7 +47,7 @@ namespace Medium {
       f32 frame_time_avg_ms  = (1.0f / fps_avg_s) * 1000.0f;
       u32 draw_calls_avg_fps = draw_calls_acc_ / frame_cnt_acc_;
 
-      fmt::print("\rFPS: {:.3f} | Frame: {:.3f} ms | DrawCalls: {}      ",
+      fmt::print("\rFPS: {:.3f} | Frame Time: {:.3f} ms | DrawCalls: {}      ",
         fps_avg_s, frame_time_avg_ms, draw_calls_avg_fps);
       std::fflush(stdout);
     }

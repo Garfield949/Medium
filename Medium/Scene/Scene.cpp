@@ -9,7 +9,6 @@
 #include <fmt/base.h>
 #include <sol/sol.hpp>
 
-#include "App/Config.h"
 #include "Scene/Node.h"
 #include "Scene/Camera.h"
 #include "Scene/Light/DirectionalLight.h"
@@ -27,7 +26,7 @@ namespace Medium {
       Vec3f  pos  = Eigen::Map<Vec3f>(lua_cam["position"].get<std::vector<f32>>().data());
       Vec3f  rot  = Eigen::Map<Vec3f>(lua_cam["rotation"].get<std::vector<f32>>().data());
 
-      scene->main_camera_ = scene->root_.attachChild(make_unique<Camera>("Main Camera", Camera::Mode::Persp));
+      scene->main_camera_ = scene->root_.attachChild(make_unique<Camera>("Main Camera", Camera::Mode::Perspective));
       scene->main_camera_->setPerspParams(fov, near, aspect_ratio);
       scene->main_camera_->transform.setPosition(pos);
       scene->main_camera_->transform.setRotation(rot);
@@ -39,6 +38,7 @@ namespace Medium {
 
       scene->main_light_ = scene->root_.attachChild(make_unique<DirectionalLight>("Main Light"));
       scene->main_light_->dir = direction.normalized();
+      scene->main_light_->transform.lookAt(scene->main_light_->dir);
     }
     static bool setupModels(const sol::table& lua_scene, Scene* scene) {
       using namespace std;

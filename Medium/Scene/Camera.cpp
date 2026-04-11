@@ -3,7 +3,7 @@
 ///
 #include "Camera.h"
 
-#include "Base/Math.h"
+#include "Base/Math/Math.h"
 #include "Base/Types.h"
 
 namespace Medium {
@@ -29,7 +29,6 @@ namespace Medium {
     dirty_proj_matrix_ = true;
   }
 
-  // 实现 Camera 成员函数 viewMatrix
   Mat4f Camera::viewMatrix() const noexcept {
     return transform.worldMatrixInverse();
   }
@@ -56,6 +55,53 @@ namespace Medium {
     }};
   }
 
+  // 设 n = near, f = far, a = aspect_ratio.
+  // 1. 考察 near 面：高度半长 y = n * tan(fov_y/2), 宽度半长 x = y * a. 则关于对角线半长 dn 有
+  //    (dn)^2 = (1+a^2)(n^2)(tan(fov_y/2))^2. 令 k = (1+a^2)(tan(fov_y/2))^2, 则可推算出：
+  //    (dn)^2 = k * n^2. 同理对于 far 面有 (df)^2 = k * f^2.
+  // 2. 根据外接球定义，球心 C 到 8 个角点的半径 R 相等；同时易知球心 C 一定在 Z 轴上，故只需设其 z 值
+  //    为 z_c. 根据勾股定理，有等式：R^2 = (dn)^2 + (z_c - n)^2 = (df)^2 + (f - z_c)^2.
+  //    化简得 z_c = (k+1)(f+n)/2, 进一步代入 R^2 即可求出外接球半径。
+  Sphere Camera::slicedFrustumCircumSphereLocal(f32 slice_far) const noexcept {
+    const f32 n = near_, f = slice_far, a = aspect_ratio_;
+    const f32 t = std::tanf(Math::deg_to_rad(fov_y_ * 0.5f));
+    const f32 k = (1 + a * a) * t * t;
+    // 需考虑一种特殊情况：球心 C 超出了 far 平面。这会导致外接球半径过大，产生不属于视椎体的大量空域，浪费
+    // 阴影贴图精度。于是令 z_c <= far, 化简得 k <= (f-n)/(f+n)，得到一个上限值 limit = (f-n)/(f+n).
+    // 接下来考虑两种会导致 C 超出 far 的情形：
+    // - fov 恒定，far 无限接近 near. 此时 z_c -> (k+1)n, 且 limit -> 0. 而当 fov > 0 时，k 恒大于
+    // 0, 即 k 恒大于 limit. 换句话说球心 C 一定超出了 far;
+    // - near 和 far 恒定，fov 无限接近 180°. 此时 tan(fov_y/2) -> ∞, 导致球心 C 飞到 +Z 无穷远处。
+    // 面对 z_c > f, 即 k > limit 的情况，采取的策略为将 z_c 钳制在 f，即球心在 far 平面中心，确保得到
+    // 一个半径最小的合法包围球（不再是外接球，只有 far 的 4 个角点在球面上），以最大限度利用阴影贴图精度。
+    const f32 limit = (f - n) / (f + n);
+
+    const f32 z_c = k <= limit ? (k + 1) * (f + n) * 0.5f : f;
+
+    const f32 r_near_squared = n * n * k + (z_c - n) * (z_c - n);
+    const f32 r_far_squared  = f * f * k + (f - z_c) * (f - z_c);
+
+    // 当出现浮点误差 & 球心超出 far 的情况时，r_near_squared 不再等于 r_far_squared，此时自动取其中最
+    // 大者以确保包围球能完美罩住所有角点。
+    f32 radius = std::sqrt(std::max(r_near_squared, r_far_squared));
+
+    return {{0, 0, z_c}, radius};
+  }
+
+  // TODO: 目前这个方法仅适用于透视相机
+  Sphere Camera::slicedFrustumCircumSphereWorld(const f32 slice_far) const noexcept {
+    Sphere sphere_local = slicedFrustumCircumSphereLocal(slice_far);
+
+    const Mat4f& mat_world = transform.worldMatrix();
+    // 注：当前 Transform 只支持均匀缩放，故可采用此快捷变换。
+    Vec3f center_world = sphere_local.center.z() * mat_world.col(2).head<3>()
+                       + mat_world.col(3).head<3>();
+    // 注：transform.scale() 返回的是局部缩放，若相机处于非最外层层级会出问题。
+    const f32 world_scale = transform.worldMatrix().col(0).head<3>().norm();
+
+    return {center_world, sphere_local.radius * world_scale};
+  }
+
   // 相关参数更新再维护投影矩阵
   const Mat4f& Camera::projMatrix() const noexcept {
     if(dirty_proj_matrix_) {
@@ -71,7 +117,7 @@ namespace Medium {
 
   // 左手系
   void Camera::updateMatProj() const noexcept {
-    if(mode_ == Mode::Persp) {
+    if(mode_ == Mode::Perspective) {
       const f32 zoomy = 1.0f / tanf(Math::deg_to_rad(fov_y_ / 2.0f));
       const f32 zoomx = zoomy / aspect_ratio_;
       // 翻转 Z, Reversed-Z

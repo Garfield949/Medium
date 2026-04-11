@@ -6,6 +6,7 @@
 
 #include "Base/Types.h"
 #include "Geometry/Frustum.h"
+#include "Geometry/Sphere.h"
 #include "Scene/Node.h"
 
 namespace Medium {
@@ -18,11 +19,11 @@ namespace Medium {
     static constexpr NodeType Type = NodeType::Camera;
 
     enum class Mode { 
-      Persp, Ortho 
+      Perspective, Orthographic
     };
 
-    explicit Camera(std::string name, Mode mode)
-      : Node{std::move(name), Type}, mode_{mode} {}
+    explicit Camera(std::string name, Mode type)
+      : Node{std::move(name), Type}, mode_{type} {}
 
     /// @brief 当构造为一个透视相机时，传入相应参数
     void setPerspParams(f32 fov, f32 near, f32 aspect_ratio) noexcept;
@@ -43,6 +44,13 @@ namespace Medium {
     ///             依然采用初始化相机时传入的值；先算出 near 和 slice_far 的右上角点，再一一镜像即可得到
     ///             所有 8 个角点。
     [[nodiscard]] std::array<Vec3f, 8> slicedFrustumCorners(f32 slice_far) const noexcept;
+
+    /// @brief 构造相机局部空间视椎外接球。
+    /// @details 直接由解析解构造，速度较快。
+    [[nodiscard]] Sphere slicedFrustumCircumSphereLocal(f32 slice_far) const noexcept;
+
+    /// @brief 构造相机视椎的外接球，球心转换到世界坐标。
+    [[nodiscard]] Sphere slicedFrustumCircumSphereWorld(f32 slice_far) const noexcept;
 
     [[nodiscard]] const Mat4f& projMatrix() const noexcept;
     [[nodiscard]] Mat4f viewMatrix()        const noexcept;

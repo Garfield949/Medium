@@ -8,7 +8,7 @@
 
 #include "Scene/Node.h"
 #include "Geometry/AABB.h"
-#include "Resources/Mesh.h"
+#include "Resources/Forwards.h"
 
 namespace Medium {
   
@@ -16,16 +16,14 @@ namespace Medium {
 
   class MeshNode : public Node {
   public:
-    static constexpr NodeType Type = NodeType::Mesh;
+    static constexpr NodeType Type = NodeType::MeshInstance;
 
     explicit MeshNode(std::string name, MeshPtr mesh)
       : Node{std::move(name), Type}, mesh_{std::move(mesh)} {}
 
-    AABB3D aabb() const noexcept {
-      return mesh_->aabb;
-    }
+    const AABB3D aabb() const noexcept;
     
-    void commitCommand(RenderQueue& queue, const ViewCtx& view_ctx) const override;
+    const MeshPtr& mesh() const noexcept;
 
   private:
     MeshPtr mesh_;

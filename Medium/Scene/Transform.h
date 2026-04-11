@@ -26,7 +26,7 @@ namespace Medium {
     void setPosition(const Vec3f& pos)       noexcept; // 设置位置
     void setScale(f32 scale)                 noexcept; // 设置均匀缩放
     void setRotation(const Vec3f& euler_deg) noexcept; // 设置旋转，传入欧拉角度数 Pitch, Heading, Bank
-    void lookAt(const Vec3f& target, const Vec3f& up_ref = Vec3f::UnitY()) noexcept; // 给定面向目标，更新绑定对象的旋转姿态
+    void lookAt(const Vec3f& target_world, const Vec3f& up_ref = Vec3f::UnitY()) noexcept; // 给定面向目标，更新绑定对象的旋转姿态
 
     // ---------- Modifiers: 增量修改
     /// @brief 平移

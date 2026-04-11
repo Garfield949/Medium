@@ -18,7 +18,7 @@ namespace Medium {
   public:
     explicit DirectionalLight(std::string name) : Light{std::move(name)} {
       ortho_camera_ =
-      attachChild(std::make_unique<Camera>("Ortho Camera", Camera::Mode::Ortho));
+      attachChild(std::make_unique<Camera>("Orthographic Camera", Camera::Mode::Orthographic));
     }
 
     void setOrthoParams(f32 near, f32 far, f32 width, f32 height) const noexcept {

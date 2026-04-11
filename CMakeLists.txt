@@ -27,7 +27,12 @@ file(GLOB_RECURSE SOURCES "Medium/*.cpp" "Medium/*.h" "Medium/*.inl" "Medium/*.h
 add_executable(${PROJECT_NAME} ${SOURCES}
         Medium/Pipeline/Shader/Shader.h
         Medium/Geometry/Sphere.h
-        Medium/App/Config.cpp)
+        Medium/App/Config.cpp
+        Medium/Pipeline/RenderQueue.cpp
+        Medium/Pipeline/ShadowMap.h
+        Medium/Pipeline/ShadowMap.cpp
+        Medium/Base/Math/RotationMatrix.cpp
+        Medium/Base/Math/RotationMatrix.h)
 
 # 为 Medium 单独强制要求编译器启用 C++17（对 Eigen 的对齐和现代特性更好）
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)

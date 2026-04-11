@@ -3,14 +3,14 @@
 /// @brief
 ///
 #include "App.h"
-#include "App/Config.h"
 
 #include <iostream>
 #include <MiniFB.h>
 #include <fmt/base.h>
 
+#include "Base/Types.h"
+#include "Geometry/AABB.h"
 #include "Geometry/Geometry.h"
-#include "Geometry/Sphere.h"
 
 #include "Pipeline/RenderTarget.h"
 #include "Pipeline/Shader/BlinnShader.h"
@@ -21,6 +21,7 @@
 #include "Scene/Light/DirectionalLight.h"
 
 #include "Pipeline/Pipeline.h"
+#include "Pipeline/ShadowMap.h"
 #include "Pipeline/RenderContext.h"
 #include "Pipeline/RenderQueue.h"
 #include "Pipeline/Shader/Shader.h"
@@ -28,10 +29,10 @@
 namespace Medium {
 
   bool App::init() {
-    const AppCfg app_config = loadAppConfig(std::filesystem::path(PROJECT_ROOT_DIR)/"config");
+    app_config_ = loadAppConfig(std::filesystem::path(PROJECT_ROOT_DIR)/"config");
 
-    const WindowCfg& cfg_window = app_config.window;
-    const RenderCfg& cfg_render = app_config.render;
+    const WindowCfg& cfg_window = app_config_.window;
+    const RenderCfg& cfg_render = app_config_.render;
 
     mfb_window_ = mfb_open_ex(cfg_window.title.c_str(),
                               cfg_window.width,
@@ -65,7 +66,7 @@ namespace Medium {
 
   void App::loop() {
     do {
-      const f32 dt = timer_.tick();
+      const f32 dt = frame_timer_.tick();
 
       on_update(dt);
       
@@ -85,7 +86,6 @@ namespace Medium {
 
   void App::on_render() {
     RenderStat render_stat{};
-    RenderQueue render_queue;
     VariantShader active_shader;
 
     FrameCtx frame_ctx {
@@ -101,20 +101,16 @@ namespace Medium {
     //     bbox_scene.merge(mesh_node->aabb());
     //   }
     // });
+    
+    DirectionalShadowFitDesc desc{
+      active_scene_->mainCam(),
+      active_scene_->mainLight(),
+      app_config_.render.shadow_map_res,
+      30.0f
+    };
 
-    auto c_local = active_scene_->mainCam()->slicedFrustumCorners(30.0f);
-
-    std::array<Vec3f, 8> frustum_corners_world;
-    for(int i = 0; i < 8; ++i)
-      frustum_corners_world[i] = (active_scene_->mainCam()->transform.worldMatrix() * c_local[i].homogeneous()).head<3>();
-
-    Sphere sphere = Geometry::frustumCircumSphere(frustum_corners_world);
-
-    Vec3f light_pos = sphere.center - active_scene_->mainLight()->dir * (sphere.radius + 0.1f);
-
-    active_scene_->mainLight()->transform.setPosition(light_pos);
-    active_scene_->mainLight()->transform.lookAt(sphere.center);
-    active_scene_->mainLight()->setOrthoParams(0.1f, 2 * sphere.radius + 0.1f, 2 * sphere.radius, 2 * sphere.radius);
+    const auto fit = ShadowMap::directionalShadowFit(desc);
+    ShadowMap::applyDirectionalShadowFit(active_scene_->mainLight(), fit);
 
     shadow_map_->clearDepthBuf();
 
@@ -122,22 +118,18 @@ namespace Medium {
 
     ViewCtx view_ctx_shadow { active_scene_->mainLight()->attachedCamera() };
 
-    PassCtx ctx_shadow_pass {
+    PassCtx pass_ctx_shadow {
       &frame_ctx,
       &view_ctx_shadow,
       shadow_map_.get(),
       &active_shader,
     };
 
-    active_scene_->root()->commitCommand(render_queue, view_ctx_shadow);
+    RenderQueue shadow_caster_q{RenderQueue::Type::Shadow};
+    shadow_caster_q.build(active_scene_->root(), view_ctx_shadow);
+    shadow_caster_q.sort();
 
-    render_queue.sort();
-
-    render_stat.draw_calls += render_queue.opaqueQueue().size();
-
-    Pipeline::executeQueue(ctx_shadow_pass, render_queue.opaqueQueue());
-
-    render_queue.clear();
+    Pipeline::executeCommands(shadow_caster_q.commands(), pass_ctx_shadow);
 
     // ---------- Main Pass ----------
     frame_buf_->clearColorBuf();
@@ -147,24 +139,24 @@ namespace Medium {
 
     ViewCtx view_ctx_main{ active_scene_->mainCam() };
 
-    PassCtx main_pass_ctx {
+    PassCtx pass_ctx_opaque {
       &frame_ctx,
       &view_ctx_main,
       frame_buf_.get(),
       &active_shader,
     };
-
-    active_scene_->root()->commitCommand(render_queue, view_ctx_main);
-
-    render_queue.sort();
-
-    render_stat.draw_calls += render_queue.opaqueQueue().size();
     
-    Pipeline::executeQueue(main_pass_ctx, render_queue.opaqueQueue());
+    RenderQueue opaque_q{RenderQueue::Type::Opaque};
+    opaque_q.build(active_scene_->root(), view_ctx_main);
+    opaque_q.sort();
+
+    Pipeline::executeCommands(opaque_q.commands(), pass_ctx_opaque);
     
     // ---------- Post Process ----------
     frame_buf_->toneMap();
 
+    render_stat.draw_calls += opaque_q.commands().size();
+    
     profiler_.collectStats(render_stat);
 
     // mfb_update_state 为用于 mfb_update_ex 返回值的枚举:
@@ -180,10 +172,14 @@ namespace Medium {
   }
   
   void App::on_window_resize() {
-    f32 width_new  = static_cast<f32>(mfb_get_window_width(mfb_window_));
-    f32 height_new = static_cast<f32>(mfb_get_window_height(mfb_window_));
+    const u32 width_new  = mfb_get_window_width(mfb_window_);
+    const u32 height_new = mfb_get_window_height(mfb_window_);
     
-    active_scene_->mainCam()->setAspectRatio(width_new / height_new);
+    if(width_new == 0 || height_new == 0) return;
+    
+    active_scene_->mainCam()->setAspectRatio(
+      static_cast<f32>(width_new) / static_cast<f32>(height_new));
+    
     frame_buf_->resize(width_new, height_new);
   }
 
