@@ -1,7 +1,0 @@
-[window]
-title = "Medium Canvas"
-width = 1440
-height = 900
-
-[render]
-shadow_map_res = 2048
