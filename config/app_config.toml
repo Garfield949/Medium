@@ -1,0 +1,8 @@
+[window]
+title = "Medium Canvas"
+width = 1440
+height = 900
+
+[render.shadow]
+resolution = 2048
+csm_level = 1
