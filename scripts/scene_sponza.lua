@@ -6,7 +6,7 @@ local camera = {
 }
 
 local light = {
-    direction = {-0.02, -0.2, 0.0}
+    direction = {-0.05, -0.3, 0.0}
 }
 
 local model = {

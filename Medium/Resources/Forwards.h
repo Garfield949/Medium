@@ -10,12 +10,12 @@
 
 namespace Medium {
 
-  class Mesh;
-  class Texture;
-  class Material;
+class Mesh;
+class Texture;
+class Material;
 
-  using MaterialPtr = std::shared_ptr<Material>;
-  using TexturePtr  = std::shared_ptr<Texture>;
-  using MeshPtr     = std::shared_ptr<Mesh>;
+using MaterialPtr = std::shared_ptr<Material>;
+using TexturePtr  = std::shared_ptr<Texture>;
+using MeshPtr     = std::shared_ptr<Mesh>;
 
 } // namespace Medium

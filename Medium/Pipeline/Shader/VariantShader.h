@@ -1,8 +1,8 @@
 ///
-/// @file   Shader.h
+/// @file   VariantShader.h
 /// @author Garfield949
 /// @date   2026/3/28 14:20
-/// @brief  
+/// @brief  注册 Shader 类型，以实现动态分发
 ///
 #pragma once
 
@@ -13,6 +13,6 @@
 
 namespace Medium {
 
-  using VariantShader = std::variant<BlinnShader, DepthShader>;
+using VariantShader = std::variant<BlinnShader, DepthShader>;
 
 } // namespace Medium

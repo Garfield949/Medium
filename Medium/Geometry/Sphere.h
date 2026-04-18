@@ -2,7 +2,7 @@
 /// @file   Sphere.h
 /// @author Garfield949
 /// @date   2026/3/31 15:00
-/// @brief  
+/// @brief
 ///
 #pragma once
 
@@ -10,13 +10,13 @@
 
 namespace Medium {
 
-  struct Sphere {
-    enum class Approach {
-      Fast, Exact
-    };
-    
-    Vec3f center{0};
-      f32 radius{0};
+struct Sphere {
+  enum class Approach {
+    Fast, Exact
   };
+
+  Vec3f center{0};
+    f32 radius{0};
+};
 
 } // namespace Medium

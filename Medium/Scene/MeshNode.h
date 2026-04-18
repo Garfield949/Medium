@@ -12,21 +12,21 @@
 
 namespace Medium {
   
-  class RenderQueue;
+class RenderQueue;
 
-  class MeshNode : public Node {
-  public:
-    static constexpr NodeType Type = NodeType::MeshInstance;
+class MeshNode : public Node {
+public:
+  static constexpr NodeType Type = NodeType::MeshInstance;
 
-    explicit MeshNode(std::string name, MeshPtr mesh)
-      : Node{std::move(name), Type}, mesh_{std::move(mesh)} {}
+  explicit MeshNode(std::string name, MeshPtr mesh)
+    : Node{std::move(name), Type}, mesh_{std::move(mesh)} {}
 
-    const AABB3D aabb() const noexcept;
-    
-    const MeshPtr& mesh() const noexcept;
+  const AABB3D aabb() const noexcept;
+  
+  const MeshPtr& mesh() const noexcept;
 
-  private:
-    MeshPtr mesh_;
-  };
+private:
+  MeshPtr mesh_;
+};
 
 } // namespace Medium

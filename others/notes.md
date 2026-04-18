@@ -9,3 +9,6 @@ C++ 特性：
 - 若类型 A 重载了 += 运算符，那么 A1 += A2; 这样的语句会被翻译为 A1.operator+=(A2);
   重载函数的返回值 A& 是为了实现链式运算，比如：
   A a1, a2, a3; a1 += a2 += a3; 被翻译为 a1.operator+=(a2.operator+=(a3)); 内层返回 a2 的引用。
+
+- 命名空间别名：namespace fs = std::filesystem; 注意不能写为 using fs = std::filesystem; std::filesystem 并不是一个具
+  体类型；

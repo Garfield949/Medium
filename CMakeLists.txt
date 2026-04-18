@@ -8,7 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # 取消构建 minifb 自带实例，CACHE 关键字将该变量缓存在 CMakeCache.txt
 set(MINIFB_BUILD_EXAMPLES FALSE CACHE BOOL "" FORCE)
 # macOS 下启用 Metal
-set(USE_METAL_API ON CACHE BOOL "" FORCE)
+set(MINIFB_USE_METAL_API ON CACHE BOOL "" FORCE)
 # EXCLUDE_FROM_ALL 默认排除构建 minifb，但会自动构建被 Medium 引入的部分
 add_subdirectory(external/minifb EXCLUDE_FROM_ALL)
 
@@ -21,25 +21,25 @@ list(REMOVE_ITEM LUA_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/external/lua/lua.c"
 add_library(lua_static STATIC ${LUA_SOURCES})
 
 # 递归获取 Medium 目录下所有的源文件
-file(GLOB_RECURSE SOURCES "Medium/*.cpp" "Medium/*.h" "Medium/*.inl" "Medium/*.hpp")
+file(GLOB_RECURSE SOURCES "Medium/*.cpp" "Medium/*.h" "Medium/*.hpp")
 
 # 生成可执行文件
-add_executable(${PROJECT_NAME} ${SOURCES}
-        Medium/Pipeline/Shader/Shader.h
-        Medium/Geometry/Sphere.h
-        Medium/App/Config.cpp
-        Medium/Pipeline/RenderQueue.cpp
-        Medium/Pipeline/ShadowMap.h
-        Medium/Pipeline/ShadowMap.cpp
-        Medium/Base/Math/RotationMatrix.cpp
-        Medium/Base/Math/RotationMatrix.h)
+add_executable(${PROJECT_NAME} ${SOURCES})
 
-# 为 Medium 单独强制要求编译器启用 C++17（对 Eigen 的对齐和现代特性更好）
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    CXX_STANDARD 20          # 指定项目使用 C++20
+    CXX_STANDARD_REQUIRED ON # 若编译器较旧不支持，不允许静默降级，编译直接报错
+    CXX_EXTENSIONS OFF       # 不允许开启编译器扩展
+)
+
+target_compile_options(${PROJECT_NAME} PRIVATE
+    -Wall            # Warning All, 开启大部分编译器警告
+    -Wextra          # 检查更细致的语法问题
+    -pedantic-errors # 强制遵守 ISO C++ 标准
+)
 
 # 设置包含目录
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external)
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/lua)
 
 # 将项目目录加入全局包含路径
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Medium)

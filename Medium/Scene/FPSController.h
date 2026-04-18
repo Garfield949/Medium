@@ -8,28 +8,27 @@
 
 namespace Medium {
 
-  // 前向声明
-  class Node;
-  class Input;
+class Node;
+class Input;
 
-  class FPSController {
-  public:
-    explicit FPSController() = default;
+class FPSController {
+public:
+  explicit FPSController() = default;
 
-    void bind(Node* host, const Input* input) noexcept {
-      assert(host && input);
-      host_  = host;
-      input_ = input;
-    }
+  void bind(Node* host, const Input* input) noexcept {
+    assert(host && input);
+    host_  = host;
+    input_ = input;
+  }
 
-    void update(f32 dt) const noexcept;
+  void update(f32 dt) const noexcept;
 
-  private:
-    f32 move_speed_ = 1.5f;
-    f32 mouse_sensitivity_ = 0.2f;
+private:
+  f32 move_speed_ = 1.5f;
+  f32 mouse_sensitivity_ = 0.2f;
 
-    Node* host_ = nullptr;
-    const Input* input_ = nullptr;
-  };
+  Node* host_ = nullptr;
+  const Input* input_ = nullptr;
+};
 
 } // namespace Medium

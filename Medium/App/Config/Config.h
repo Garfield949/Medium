@@ -12,38 +12,38 @@
 
 namespace Medium {
   
-  struct WindowCfg {
-    std::string title{Config::kDefaultWindowTitle};
-    u32 width  = Config::kDefaultWindowWidth;
-    u32 height = Config::kDefaultWindowHeight;
+struct WindowCfg {
+  std::string title{Config::kDefaultWindowTitle};
+  u32 width  = Config::kDefaultWindowWidth;
+  u32 height = Config::kDefaultWindowHeight;
 
-    [[nodiscard]] f32 aspectRatio() const {
-      return static_cast<f32>(width) / static_cast<f32>(height);
-    }
-  };
+  [[nodiscard]] f32 aspectRatio() const {
+    return static_cast<f32>(width) / static_cast<f32>(height);
+  }
+};
+
+struct ShadowCfg {
+  u32 shadow_map_res = Config::kDefaultShadowRes;
+  u32 csm_level = Config::kDefaultCSMLevel;
+};
+
+struct RenderCfg {
+  ShadowCfg shadow{};
+};
+
+struct AppCfg {
+  static AppCfg loadFromToml(const std::filesystem::path& config_dir);
+
+  [[nodiscard]] std::string toTomlString() const noexcept;
   
-  struct ShadowCfg {
-    u32 shadow_map_res = Config::kDefaultShadowRes;
-    u32 csm_level = Config::kDefaultCSMLevel;
-  };
-  
-  struct RenderCfg {
-    ShadowCfg shadow{};
-  };
-  
-  struct AppCfg {
-    static AppCfg loadFromToml(const std::filesystem::path& config_dir);
+  [[nodiscard]] AppCfg sanitized() const noexcept;
 
-    [[nodiscard]] std::string toTomlString() const noexcept;
-    
-    [[nodiscard]] AppCfg sanitized() const noexcept;
+  void saveToTomlFile() const;
 
-    void saveToTomlFile() const;
+  WindowCfg window{};
+  RenderCfg render{};
 
-    WindowCfg window{};
-    RenderCfg render{};
-
-    std::filesystem::path related_toml_path;
-  };
+  std::filesystem::path related_toml_path;
+};
   
 } // namespace Medium

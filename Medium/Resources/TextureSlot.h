@@ -14,21 +14,21 @@
 
 namespace Medium {
   
-  using TextureSlot = std::variant<TexturePtr, LinearColor>;
+using TextureSlot = std::variant<TexturePtr, LinearColor>;
 
-  // loadTex 返回一个右值，所以直接移动
-  inline TextureSlot makeSlot(TexturePtr map, const LinearColor& soild_color) {
-    if(map) return std::move(map);
-    return soild_color;
-  }
-  
-  inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv) {
-      // 0 对应 TexturePtr, 1 对应 LinearColor
-      if (slot.index() == 0) {
-          const auto& map = std::get<0>(slot);
-          return map->sample(uv, Texture::FilterMode::Nearest);
-      }
-      return std::get<1>(slot);
-  }
+// loadTex 返回一个右值，所以直接移动
+inline TextureSlot makeSlot(TexturePtr map, const LinearColor& soild_color) {
+  if(map) return std::move(map);
+  return soild_color;
+}
+
+inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv) {
+    // 0 对应 TexturePtr, 1 对应 LinearColor
+    if (slot.index() == 0) {
+        const auto& map = std::get<0>(slot);
+        return map->sample(uv, Texture::FilterMode::Bilinear);
+    }
+    return std::get<1>(slot);
+}
   
 }

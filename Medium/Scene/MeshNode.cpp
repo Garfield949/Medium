@@ -10,12 +10,12 @@
 
 namespace Medium {
   
-  const AABB3D MeshNode::aabb() const noexcept {
-    return mesh_->aabb;
-  }
-  
-  const MeshPtr& MeshNode::mesh() const noexcept {
-    return mesh_;
-  }
+const AABB3D MeshNode::aabb() const noexcept {
+  return mesh_->aabb;
+}
+
+const MeshPtr& MeshNode::mesh() const noexcept {
+  return mesh_;
+}
 
 } // namespace Medium

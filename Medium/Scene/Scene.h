@@ -12,30 +12,31 @@
 
 namespace Medium {
 
-  class Camera;
-  class DirectionalLight;
+class Camera;
+class DirectionalLight;
 
-  class Scene {
-    friend struct SceneLoader;
-  public:
-    [[nodiscard]] 
-    static std::unique_ptr<Scene> loadFromLua(const std::filesystem::path& lua_path, f32 aspect_ratio);
+class Scene {
+  /// @brief 构建场景时，为了方便需访问 Scene 实例的私有成员，故将 SceneLoader 作为友元。
+  friend struct SceneLoader;
+public:
+  [[nodiscard]] 
+  static std::unique_ptr<Scene> loadFromLua(const std::filesystem::path& lua_path, f32 aspect_ratio);
 
-    [[nodiscard]] Node* root() noexcept { return &root_; }
-    [[nodiscard]] const Node* root() const noexcept { return &root_; }
-    
-    [[nodiscard]] Camera* mainCam() const noexcept { return main_camera_; }
-    
-    [[nodiscard]] DirectionalLight* mainLight() const noexcept { return main_light_; }
+  [[nodiscard]] Node* root() noexcept { return &root_; }
+  [[nodiscard]] const Node* root() const noexcept { return &root_; }
   
-  private:
-    Scene() = default;
+  [[nodiscard]] Camera* mainCam() const noexcept { return main_camera_; }
+  
+  [[nodiscard]] DirectionalLight* mainLight() const noexcept { return main_light_; }
 
-    Node root_ = {"Scene Root"};
+private:
+  Scene() = default;
 
-    Camera* main_camera_ = nullptr;
-    
-    DirectionalLight* main_light_  = nullptr;
-  };
+  Node root_ = {"Scene Root"};
+
+  Camera* main_camera_ = nullptr;
+  
+  DirectionalLight* main_light_  = nullptr;
+};
 
 } // Medium

@@ -10,12 +10,12 @@
 
 namespace Medium {
 
-  struct RenderStat {
-    u32 draw_calls = 0;
+struct RenderStat {
+  u32 draw_calls = 0;
 
-    void clear() noexcept {
-      draw_calls = 0;
-    }
-  };
+  void clear() noexcept {
+    draw_calls = 0;
+  }
+};
 
 } // namespace Medium
