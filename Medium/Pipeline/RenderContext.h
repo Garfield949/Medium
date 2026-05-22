@@ -21,7 +21,7 @@ struct FrameCtx {
   const DirectionalLight* main_light = nullptr;
   RenderTarget* shadow_map = nullptr;
 
-  f32 dir_shadow_texel_size_ws = 0.0f;
+  f32 dir_light_shadow_texel_size_ws = 0.0f;
 };
 
 /// @struct ViewCtx

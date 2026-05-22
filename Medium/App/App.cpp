@@ -2,34 +2,37 @@
 /// @file App.cpp
 /// @brief
 ///
-#include "App.h"
-
 #include <MiniFB.h>
 
-#include "App/Config/Config.h"
+#include "App.h"
 
+#include "App/Config/Config.h"
 #include "Scene/Scene.h"
 #include "Scene/MeshNode.h"
-#include "Scene/Light/DirectionalLight.h"
-
 #include "Pipeline/Pipeline.h"
-#include "Pipeline/Shadow/DirectionalViewFit.h"
 #include "Pipeline/RenderContext.h"
 #include "Pipeline/RenderQueue.h"
 #include "Pipeline/Shader/VariantShader.h"
 
 namespace fs = std::filesystem;
 
+App::App() {
+  app_config_ = AppCfg::loadFromToml(fs::path(PROJECT_ROOT_DIR) / Config::kConfigDirName);
+
+  const WindowCfg& cfg_window = app_config_.window;
+  frame_buf_ = std::make_unique<RenderTarget>(cfg_window.width, cfg_window.height);
+}
+
 bool App::init() {
-  loadAppCfg();
-  
   if(!createWindow()) return false;
   
   if(!loadScene()) return false;
   
   setupTools();
 
-  createRenderTargets();
+  shadow_renderer_.init(active_scene_->mainCam(),
+                        active_scene_->mainLight(),
+                        app_config_.render.shadow.shadow_map_res);
 
   return true;
 }
@@ -44,9 +47,9 @@ void App::loop() {
 
     onRender();
 
-    // mfb_wait_sync 强制等待垂直同步
-    // 若句柄因错误被置空，mfb_wait_sync 返回 false
   } while(mfb_wait_sync(mfb_window_));
+  // mfb_wait_sync 强制等待垂直同步
+  // 若句柄因错误被置空，mfb_wait_sync 返回 false
 }
 
 void App::onUpdate(const f32 dt) {
@@ -57,56 +60,18 @@ void App::onUpdate(const f32 dt) {
 
 void App::onRender() {
   RenderStat render_stat{};
-  VariantShader active_shader;
 
   FrameCtx frame_ctx {
     .main_light = active_scene_->mainLight(),
-    .shadow_map = shadow_map_.get()
+    .shadow_map = shadow_renderer_.shadowMap()
   };
 
   // ---------- Shadow Pass ----------
-  active_shader = DepthShader{};
-  
-  // AABB3D bbox_scene;
-  // active_scene_->root()->traverse([&](Node* node) {
-  //   if(const MeshNode* mesh_node = Node::cast_to<MeshNode>(node)) {
-  //     bbox_scene.merge(mesh_node->aabb());
-  //   }
-  // });
-
-  // 构造计算方向光视椎拟合的参数
-  DirectionalViewFitDesc desc{
-    .camera = active_scene_->mainCam(),
-    .light  = active_scene_->mainLight(),
-    .shadow_res = app_config_.render.shadow.shadow_map_res,
-    .slice_far = 30.0f
-  };
-
-  // 获取方向光视椎拟合结果并重建方向光空间
-  const auto view_fit = ShadowMap::calcDirectionalViewFit(desc);
-  ShadowMap::applyDirectionalViewFit(active_scene_->mainLight(), view_fit);
-
-  frame_ctx.dir_shadow_texel_size_ws = view_fit.dir_shadow_texel_size_ws;
-
-  shadow_map_->clearDepthBuf();
-
-  ViewCtx view_ctx_shadow { active_scene_->mainLight()->attachedCamera() };
-
-  PassCtx pass_ctx_shadow {
-    .frame_ctx = &frame_ctx,
-    .view_ctx = &view_ctx_shadow,
-    .buffer = shadow_map_.get(),
-    .shader = &active_shader,
-  };
-
-  RenderQueue shadow_caster_queue{RenderQueue::Type::Shadow};
-  shadow_caster_queue.build(active_scene_->root(), view_ctx_shadow);
-  shadow_caster_queue.sort();
-
-  Pipeline::executeCommands(shadow_caster_queue.commands(), pass_ctx_shadow);
+  shadow_renderer_.render(active_scene_->meshNodes(), active_scene_->worldAABB());
+  frame_ctx.dir_light_shadow_texel_size_ws = shadow_renderer_.shadowTexelSizeWorld();
 
   // ---------- Main Pass ----------
-  active_shader = BlinnShader{};
+  VariantShader active_shader = BlinnShader{};
   
   frame_buf_->clearColorBuf();
   frame_buf_->clearDepthBuf();
@@ -115,13 +80,13 @@ void App::onRender() {
 
   PassCtx pass_ctx_opaque {
     .frame_ctx = &frame_ctx,
-    .view_ctx = &view_ctx_main,
-    .buffer = frame_buf_.get(),
-    .shader = &active_shader,
+    .view_ctx  = &view_ctx_main,
+    .buffer    = frame_buf_.get(),
+    .shader    = &active_shader,
   };
   
   RenderQueue opaque_queue{RenderQueue::Type::Opaque};
-  opaque_queue.build(active_scene_->root(), view_ctx_main);
+  opaque_queue.build(active_scene_->meshNodes(), view_ctx_main);
   opaque_queue.sort();
 
   Pipeline::executeCommands(opaque_queue.commands(), pass_ctx_opaque);
@@ -138,16 +103,11 @@ void App::onRender() {
   // 3. STATE_INVALID_WINDOW 窗口句柄无效；
   // 4. STATE_INTERNAL_ERROR minifb 内部错误；
   mfb_update_state state = mfb_update_ex(mfb_window_,
-                                          frame_buf_->colorBuf(),
-                                          frame_buf_->width(),
-                                          frame_buf_->height());
+                                         frame_buf_->colorBuf(),
+                                         frame_buf_->width(),
+                                         frame_buf_->height());
   // 更新异常，则主动断开对窗口句柄的持有
   if (state != MFB_STATE_OK) mfb_window_ = nullptr;
-}
-
-void App::loadAppCfg() {
-  app_config_ = 
-    AppCfg::loadFromToml(fs::path(PROJECT_ROOT_DIR) / Config::kConfigDirName);
 }
 
 bool App::createWindow() {
@@ -170,29 +130,21 @@ bool App::loadScene() {
   const WindowCfg& cfg_window = app_config_.window;
   
   auto lua_path = fs::path(PROJECT_ROOT_DIR) / "scripts"
-    / "scene_snake.lua";
+    / "scene_sponza.lua";
   
-  std::unique_ptr<Scene> scene = Scene::loadFromLua(lua_path, cfg_window.aspectRatio());
-  
-  if(!scene) {
+  active_scene_ = Scene::loadFromLua(lua_path, cfg_window.aspectRatio());
+
+  if(!active_scene_) {
     fmt::print(stderr, "App - Initialize Failed\n");
     return false;
   }
-  
-  active_scene_ = std::move(scene);
+
   return true;
 }
 
 void App::setupTools() noexcept {
   controller_.bind(active_scene_->mainCam(), &input_);
   profiler_.setReportInterval(1.0f);
-}
-
-void App::createRenderTargets() noexcept {
-  const WindowCfg& cfg_window = app_config_.window;
-  const RenderCfg& cfg_render = app_config_.render;
-  frame_buf_  = std::make_unique<RenderTarget>(cfg_window.width, cfg_window.height);
-  shadow_map_ = std::make_unique<RenderTarget>(cfg_render.shadow.shadow_map_res, RenderTarget::Mode::DepthOnly);
 }
 
 void App::onWindowResize() const {

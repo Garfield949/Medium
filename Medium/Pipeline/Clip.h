@@ -139,7 +139,7 @@ inline constexpr std::array<ClipPlane, 6> ClipPlanes = {
   // 依次被六个面裁剪，若某次被裁到只剩不到三个顶点，说明三角形不在视椎体内部:
   // 1. 只有一个顶点：多边形只有一个顶点落在裁剪面上，其它顶点都在视椎外部；
   // 2. 只有两个顶点：多边形有一条边落在裁剪面上，其它顶点在视椎外部。
-  for(const auto & plane : ClipPlanes) {
+  for(const auto& plane: ClipPlanes) {
     if((union_code & plane) == ClipPlane::None) continue;
     tri = clipByPlane(tri, plane);
     if(tri.num_verts < 3) return false;

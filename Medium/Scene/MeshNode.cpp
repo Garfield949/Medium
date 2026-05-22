@@ -10,8 +10,14 @@
 
 namespace Medium {
   
-const AABB3D MeshNode::aabb() const noexcept {
-  return mesh_->aabb;
+AABB3D MeshNode::localAABB() const noexcept {
+  return mesh_->aabb_local;
+}
+
+AABB3D MeshNode::worldAABB() const noexcept {
+  return mesh_->aabb_local.toWorldAABB(
+    this->transform.worldMatrix()
+  );
 }
 
 const MeshPtr& MeshNode::mesh() const noexcept {

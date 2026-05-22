@@ -7,7 +7,7 @@
 #include <fmt/base.h>
 
 #include "Base/Color.h"
-#include "Base/Types.h"
+#include "Base/Math/Math.h"
 #include "Resources/Vertex.h"
 #include "Resources/Material.h"
 #include "Pipeline/RenderTarget.h"
@@ -27,7 +27,7 @@ struct BlinnShader {
 
     Mat4f wvp_light;
     Vec3f light_dir;
-    f32   dir_shadow_texel_size_ws;
+    f32   dir_light_shadow_texel_size_ws;
     const RenderTarget* shadow_map = nullptr;
   };
   Uniform uniforms;
@@ -50,8 +50,8 @@ struct BlinnShader {
   }
 
   [[nodiscard]] bool fragment(const std::array<Varying, 3>& varyings,
-              const Vec3f& weights,
-              LinearColor& frag_color) const noexcept
+                              const Vec3f& weights,
+                              LinearColor& frag_color) const noexcept
   {
     Vec3f w_invs{varyings[0].w_inv, varyings[1].w_inv, varyings[2].w_inv};
 
@@ -63,9 +63,10 @@ struct BlinnShader {
     const Material* mat = uniforms.material;
 
     // Alpha Test
+    // TODO: 将 alpha_cutoff 设为一个材质参数或者一个全局常量
     if(mat->enable_diss) {
       f32 d = sampleSlot(mat->diss_slot, frag_uv).R;
-      f32 alpha_cutoff = 0.1f; // 透明度阈值
+      f32 alpha_cutoff = 0.5f; // 透明度阈值
       if(d < alpha_cutoff) return true;
     }
 
@@ -80,7 +81,7 @@ struct BlinnShader {
       // 重建当前 frag 的光空间深度
       if(nl > 0.0f) {
         Vec3f frag_pos_biased = frag_pos +
-          normalBias(frag_n, nl, uniforms.dir_shadow_texel_size_ws);
+          calcNormalBias(frag_n, nl, uniforms.dir_light_shadow_texel_size_ws);
 
         // 当前 frag 变换到光 clip 空间
         Vec4f frag_clip_ls = uniforms.wvp_light * frag_pos_biased.homogeneous();
@@ -91,11 +92,14 @@ struct BlinnShader {
         // [-1,1] 的 NDC 坐标映射到 [0,1] 作为阴影采样 uv
         Vec2f uv{(frag_ndc_ls.x() + 1) * 0.5f, (frag_ndc_ls.y() + 1) * 0.5f};
 
+        // 不在光视椎 near -> far 范围内的 frag 不参与 shadow compare;
         // uv 任意分量超出 [0,1] 说明不在光视椎长宽范围内，不参与 shadow compare.
-        if(Math::between(uv.x(), 0.0f, 1.0f) && Math::between(uv.y(), 0.0f, 1.0f)) {
-          f32 depth_from_map = uniforms.shadow_map->sampleDepth(uv);
+        if(Math::isBetween(frag_ndc_ls.z(), 0.0f, 1.0f) && 
+           Math::isBetween(uv.x(), 0.0f, 1.0f) && 
+           Math::isBetween(uv.y(), 0.0f, 1.0f)) 
+        {
           f32 depth_frag = frag_ndc_ls.z();
-          if(depth_frag < depth_from_map) shadow = 0.3f;
+          shadow = sampleShadowPCF(uniforms.shadow_map, uv, depth_frag);
         }
       } else {
         // 背部不受光自然处于阴影中

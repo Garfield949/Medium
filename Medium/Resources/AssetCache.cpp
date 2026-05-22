@@ -109,7 +109,7 @@ void parseSubMeshesFromShapes(MeshPtr& mesh_new, const attrib_t& attrib, const s
     FacesByMatMap faces_by_mat = getFacesByMatIDMap(shape);
 
     // 将单 shape 中材质相同的面组装为一个 SubMesh.
-    for(const auto & [mat_id, face_indices] : faces_by_mat) {
+    for(const auto& [mat_id, face_indices]: faces_by_mat) {
       SubMesh sub_mesh;
       sub_mesh.index_offset   = mesh_new->indices.size();
       sub_mesh.index_count    = face_indices.size();
@@ -142,7 +142,7 @@ void meshPostProcess(MeshPtr& mesh_new, bool no_normals) {
     mesh_new->calcNormals();
   }
   // 只要有任何一个 SubMesh 的材质启用了法线贴图，就计算整个网格的顶点切线
-  for(const auto& mat : mesh_new->materials)
+  for(const auto& mat: mesh_new->materials)
     if(mat->enable_norm) {
       mesh_new->calcTangents();
       break;
@@ -206,7 +206,7 @@ MeshPtr AssetCache::loadFromObj(const fs::path& obj_path) {
 
   // 顶点、索引数组空间预计算。
   size_t total_indices = 0;
-  for(const auto& shape : shapes)
+  for(const auto& shape: shapes)
     total_indices += shape.mesh.indices.size();
 
   // Mesh 的构造函数为私有，第三方模板函数 std::make_shared 无法访问
@@ -233,7 +233,7 @@ void AssetCache::parseMTL(const MeshPtr& mesh_new,
   // Mesh 的材质数组第一个位置放置默认材质（绿色纯色）
   mesh_new->materials.push_back(Material::Default());
 
-  for(const auto & mat_t : tiny_materials) {
+  for(const auto& mat_t: tiny_materials) {
     // 材质缓存查询，key 为 obj 路径 + 材质名称
     if(auto it = material_cache_.find(obj_path.generic_string() + mat_t.name); it != material_cache_.end()) {
       if(auto mat_cached = it->second.lock()) {

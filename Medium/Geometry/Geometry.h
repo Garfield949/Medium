@@ -80,12 +80,12 @@ inline i32 topLeftBias(i32 dx, i32 dy) noexcept {
 ///          near 端会有较大的冗余。
 inline Sphere frustumCircumSphere(const std::array<Vec3f, 8>& corners) noexcept {
   Vec3f center = Vec3f::Zero();
-  for(const auto& v : corners)
+  for(const auto& v: corners)
     center += v;
   center /= 8.0f;
 
   f32 max_dist_sq = 0.0f;
-  for(const auto& v : corners)
+  for(const auto& v: corners)
     max_dist_sq = std::max(max_dist_sq, (v - center).squaredNorm());
 
   return {center, std::sqrt(max_dist_sq)};

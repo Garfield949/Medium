@@ -20,8 +20,7 @@ public:
 
   // 构造函数
   explicit RenderTarget(u32 width, u32 height, Mode mode = Mode::Normal)
-    : mode_{mode}
-  {
+    : mode_{mode} {
     resize(width, height);
   }
 

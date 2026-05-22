@@ -1,6 +1,8 @@
 ///
-/// @file Transform.h
-/// @brief 变换组件，左手系 + 列向量惯例。
+/// @file   Transform.h
+/// @author Garfield949
+/// @date   2026/1/20 12:22
+/// @brief  变换组件，左手系 + 列向量惯例。
 ///
 #pragma once
 

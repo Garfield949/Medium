@@ -2,7 +2,7 @@ local camera = {
     fov = 80,
     near = 0.1,
     position = {0.0, 1.0, 0.0},
-    rotation = {0.0, 90.0, 0.0},
+    rotation = {0.0, -90.0, 0.0},
 }
 
 local light = {

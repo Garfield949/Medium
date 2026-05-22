@@ -65,6 +65,7 @@ struct AABB3D {
   }
 
   /// @brief 返回包围盒的 8 个角点
+  /// @note 注意，角点是轴对齐的
   [[nodiscard]] std::array<Vec3f, 8> corners() const noexcept {
     f32 min_x = min.x(), min_y = min.y(), min_z = min.z();
     f32 max_x = max.x(), max_y = max.y(), max_z = max.z();

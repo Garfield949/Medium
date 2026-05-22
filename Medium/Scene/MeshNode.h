@@ -21,7 +21,9 @@ public:
   explicit MeshNode(std::string name, MeshPtr mesh)
     : Node{std::move(name), Type}, mesh_{std::move(mesh)} {}
 
-  const AABB3D aabb() const noexcept;
+  AABB3D localAABB() const noexcept;
+
+  AABB3D worldAABB() const noexcept;
   
   const MeshPtr& mesh() const noexcept;
 

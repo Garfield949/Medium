@@ -24,7 +24,7 @@ class AssetCache {
 public:
   ~AssetCache() = default;
 
-  static AssetCache& Instance() {
+  static AssetCache& instance() {
     static AssetCache cache;
     return cache;
   }

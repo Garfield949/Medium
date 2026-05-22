@@ -19,7 +19,7 @@
 
 namespace {
 
-// TODO: 错误处理
+// TODO: 鲁棒性处理（不过只要场景脚本写对也没啥大问题）。
 using namespace Medium;
 Vec3f readVec3f(const luabridge::LuaRef& tbl, std::string_view key) {
   luabridge::LuaRef v = tbl[key];
@@ -86,13 +86,14 @@ struct SceneLoader {
 
     auto obj_path = filesystem::path(PROJECT_ROOT_DIR) / path;
 
-    MeshPtr mesh = AssetCache::Instance().loadFromObj(obj_path);
+    MeshPtr mesh = AssetCache::instance().loadFromObj(obj_path);
     if(!mesh) return false;
 
     auto model = scene->root_.attachChild(make_unique<MeshNode>(name, mesh));
     model->transform.setPosition(pos);
     model->transform.setRotation(rot);
     model->transform.setScale(scale);
+    scene->mesh_nodes_.push_back(model);
 
     return true;
   }
@@ -114,11 +115,21 @@ std::unique_ptr<Scene> Scene::loadFromLua(const std::filesystem::path& lua_path,
   
   SceneLoader::setupCamera(tbl_scene, scene.get(), aspect_ratio);
   SceneLoader::setupLight (tbl_scene, scene.get());
-  if(!SceneLoader::setupModels(tbl_scene, scene.get())) {
+  if(!SceneLoader::setupModels(tbl_scene, scene.get()))
     return nullptr;
-  }
 
   return scene;
+}
+
+AABB3D Scene::worldAABB() const noexcept {
+  AABB3D bbox_world;
+  // 注：由于该方法是 const 的，故形参得为 const.
+  root_.traverse([&](const Node* node) {
+    if(const auto* mesh_node = Node::cast_to<MeshNode>(node)) {
+      bbox_world.merge(mesh_node->worldAABB());
+    }
+  });
+  return bbox_world;
 }
 
 } // namespace Medium

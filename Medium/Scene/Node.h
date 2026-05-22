@@ -50,7 +50,7 @@ public:
   template<typename Callable>
   void traverse(Callable&& f) {
     f(this);
-    for(auto& child : children_) {
+    for(auto& child: children_) {
       child->traverse(f);
     }
   }
@@ -59,7 +59,7 @@ public:
   template<typename Callable>
   void traverse(Callable&& f) const {
     f(this);
-    for(const auto& child : children_) {
+    for(const auto& child: children_) {
       child->traverse(f);
     }
   }

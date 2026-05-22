@@ -29,7 +29,7 @@ public:
     frustum.planes[4] = Plane{row3 - row2};
     frustum.planes[5] = Plane{row2};
 
-    for(auto & plane : frustum.planes)
+    for(auto& plane: frustum.planes)
       plane.normalize();
 
     return frustum;
@@ -39,7 +39,7 @@ public:
   /// @details    六个裁剪面分别分割了两个半空间，每个平面的正面（法向）均指向视椎内。只要包围盒
   ///             完全在其中某个裁剪面的背面，那么它就一定不在视椎内部。
   [[nodiscard]] bool intersects(const AABB3D& bbox) const noexcept {
-    for(const auto & plane : planes) {
+    for(const auto& plane: planes) {
       const Vec3f& n = plane.normal();
       Vec3f p_vert = bbox.min;
       // 修正为在平面法向上距离最大的点

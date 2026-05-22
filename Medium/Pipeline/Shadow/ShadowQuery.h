@@ -36,10 +36,12 @@ namespace Medium {
 //            明显大于 depth_from_map，从而高效率地解决自阴影。
 // - 次要影响：改善 Peter Panning: 由前述可知道，简单的 Depth Bias 是直接在 z 值上应用一个巨大的 bias，不可避免地导致彼
 //   得潘现象；相比单纯堆叠 Depth Bias，normal bias 往往能以更小的偏置解决自阴影，因此通常更不容易产生严重的 Peter Panning.
-inline Vec3f normalBias(const Vec3f& frag_n,
+// - 补充：其实 Depth Bias 也是一种几何修改技术，只不过仅修改 frag 在光空间内的 z 使其抬升。
+inline Vec3f calcNormalBias(const Vec3f& frag_n,
                         const f32    nl,
-                        const f32    dir_shadow_texel_size_ws)
+                        const f32    texel_size_ws)
 {
+  // 点积设置一个安全值，防止除零
   const f32 safe_nl = std::max(nl, 0.05f);
   // - Shadow map 的一个纹素投影到世界空间物体表面时，会有深度 aliasing 现象：
   //   1) 若光线与表面垂直，则 aliasing 程度最轻；
@@ -49,17 +51,38 @@ inline Vec3f normalBias(const Vec3f& frag_n,
   //   1) 有 nl = cosθ，所以 tanθ = sinθ / cosθ = sqrt(1 - nl^2) / nl;
   //   2) tanθ 的性质：光线与表面垂直时，其值为 0; 光线与表面趋于平行时，slope 趋于无穷（设置 safe_nl 的原因），该性质符
   //      合 Normal Bias 的要求 --- 即 aliasing 程度越高，当前 frag 的法向几何位移应越大。
-  const f32 slope = std::sqrt(1 - safe_nl * safe_nl) / safe_nl;
+  const f32 sin2 = std::max(0.0f, 1 - safe_nl * safe_nl);
+  const f32 slope = std::min(std::sqrt(sin2) / safe_nl, 3.0f);
   // - 法向位移距离。纹素大小起到自适应调节：Shadow Map 分辨率越小，每 texel 覆盖世界范围越大，aliasing 会加重，bias 会
   //   自动调整变大。
-  const f32 bias = slope * dir_shadow_texel_size_ws;
+  const f32 bias = slope * texel_size_ws;
 
   return bias * frag_n;
 }
 
 /// @brief 百分比遮挡过滤 PCF, Percentage Closer Filtering
-inline f32 sampleShadowPCF(RenderTarget* buffer) {
-  
+inline f32 sampleShadowPCF(const RenderTarget* shadow_map,
+                           const Vec2f& uv,
+                           const f32 depth_frag)
+{
+  const f32 texel_size = 1.0f / static_cast<f32>(shadow_map->width());
+
+  f32 visibility = 0.0f;
+  // 3x3 采样
+  for(int x = -1; x <= 1; ++x) {
+    for(int y = -1; y <= 1; ++y) {
+      const Vec2f offset = Vec2f(x, y) * texel_size;
+      f32 depth_from_map = shadow_map->sampleDepth(uv + offset);
+      // 用一个极小常量 bias 修补深度数值误差
+      const f32 depth_bias = 0.0003f;
+      if(depth_frag + depth_bias > depth_from_map)
+        visibility += 1.0f;
+    }
+  }
+  visibility /= 9.0f; // 取平均值
+
+  // 将 visibility 从 [0, 1] 映射到 [0.3, 1.0]
+  return 0.3f + (visibility * 0.9f);
 }
   
 } // namespace Medium

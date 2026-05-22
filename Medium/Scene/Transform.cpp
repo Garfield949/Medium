@@ -1,6 +1,8 @@
 ///
-/// @file Transform.cpp
-/// @brief
+/// @file   Transform.cpp
+/// @author Garfield949
+/// @date   2026/1/20 12:22
+/// @brief  变换组件，左手系 + 列向量惯例。
 ///
 #include "Transform.h"
 
@@ -148,7 +150,7 @@ void Transform::updateDirtyFlags() noexcept {
   dirty_local_ = true;
   if(!dirty_world_) { // 若已经是脏的，那么子孙结点在之前肯定也已被赋予脏位了，递归剪枝
     dirty_world_ = true;
-    for(auto & child : belong_to_->children_) // 牵一发动全身
+    for(auto& child: belong_to_->children_) // 牵一发动全身
       child->transform.updateDirtyFlags();
   }
 }

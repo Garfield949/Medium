@@ -12,28 +12,26 @@
 
 namespace Medium {
 
-void RenderQueue::build(const Node* scene_root, const ViewCtx& view_ctx) {
-  scene_root->traverse([&](const Node* node) {
-    if(const auto* mesh_node = Node::cast_to<MeshNode>(node)) {
-      const MeshPtr& mesh    = mesh_node->mesh();
-      const Mat4f&   world   = mesh_node->transform.worldMatrix();
-      const Frustum& frustum = view_ctx.frustum;
-      
-      if(frustum.intersects(mesh_node->aabb().toWorldAABB(world))) {
-        for(const auto& sub_mesh : mesh->sub_meshes) {
-          AABB3D bbox_world = sub_mesh.bbox.toWorldAABB(world);
-          if(!frustum.intersects(bbox_world)) continue;
-          cmds_.emplace_back(
-            mesh.get(),
-            &sub_mesh,
-            mesh->materials[sub_mesh.material_index].get(),
-            &world,
-            (view_ctx.view * bbox_world.center().homogeneous()).z()
-          );
-        }
+void RenderQueue::build(std::span<const MeshNode* const> mesh_nodes, const ViewCtx& view_ctx) {
+  for(auto mesh_node: mesh_nodes) {
+    const MeshPtr& mesh    = mesh_node->mesh();
+    const Mat4f&   world   = mesh_node->transform.worldMatrix();
+    const Frustum& frustum = view_ctx.frustum;
+
+    if(frustum.intersects(mesh_node->localAABB().toWorldAABB(world))) {
+      for(const auto& sub_mesh: mesh->sub_meshes) {
+        AABB3D bbox_world = sub_mesh.bbox.toWorldAABB(world);
+        if(!frustum.intersects(bbox_world)) continue;
+        cmds_.emplace_back(
+          mesh.get(),
+          &sub_mesh,
+          mesh->materials[sub_mesh.material_index].get(),
+          &world,
+          (view_ctx.view * bbox_world.center().homogeneous()).z()
+        );
       }
     }
-  });
+  }
 }
 
 void RenderQueue::sort() {
@@ -45,12 +43,14 @@ void RenderQueue::sort() {
 }
 
 void RenderQueue::sortShadow() {
+  // TODO: 配置一个合理的 sort key.
   std::sort(cmds_.begin(), cmds_.end(), [](const RenderCommand& a, const RenderCommand& b) {
     return a.sort_key < b.sort_key;
   });
 }
 
 void RenderQueue::sortOpaque() {
+  // TODO: 配置一个合理的 sort key.
   std::sort(cmds_.begin(), cmds_.end(), [](const RenderCommand& a, const RenderCommand& b) {
     return a.sort_key > b.sort_key;
   });

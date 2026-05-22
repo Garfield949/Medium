@@ -42,7 +42,7 @@ public:
   std::vector<Vertex> vertices; // 去重后的顶点数据
   std::vector<u32>    indices;  // 索引，存的是对应顶点在 vertices 里的下标
 
-  AABB3D aabb;
+  AABB3D aabb_local;
 private:
   Mesh() = default;
 };

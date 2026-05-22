@@ -7,13 +7,16 @@
 #pragma once
 
 #include <filesystem>
+#include <span>
 
 #include "Scene/Node.h"
+#include "Geometry/AABB.h"
 
 namespace Medium {
 
 class Camera;
 class DirectionalLight;
+class MeshNode;
 
 class Scene {
   /// @brief 构建场景时，为了方便需访问 Scene 实例的私有成员，故将 SceneLoader 作为友元。
@@ -29,6 +32,14 @@ public:
   
   [[nodiscard]] DirectionalLight* mainLight() const noexcept { return main_light_; }
 
+  // 注：该方法的 const 修饰符，隐含了返回类型 const std::vector<const MeshNode*> : 即既无法改变数组中
+  // MeshNode* 指向的内容，也禁止改变 MeshNode* 本身（指向别的地址）。故 span 的模板参数必须为一个同时为
+  // 顶层和低层 const 的指针。
+  [[nodiscard]] std::span<const MeshNode* const> meshNodes() const noexcept { return mesh_nodes_; }
+
+  /// @brief 返回场景的世界空间包围盒。
+  [[nodiscard]] AABB3D worldAABB() const noexcept;
+
 private:
   Scene() = default;
 
@@ -36,7 +47,9 @@ private:
 
   Camera* main_camera_ = nullptr;
   
-  DirectionalLight* main_light_  = nullptr;
+  DirectionalLight* main_light_ = nullptr;
+
+  std::vector<MeshNode*> mesh_nodes_;
 };
 
-} // Medium
+} // namespace Medium

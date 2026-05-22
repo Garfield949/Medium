@@ -43,7 +43,10 @@ public:
   /// @details    由于采用无限远平面，所以返回一个视椎切片：即接收一个 slice_far 作为切片的远平面，near
   ///             依然采用初始化相机时传入的值；先算出 near 和 slice_far 的右上角点，再一一镜像即可得到
   ///             所有 8 个角点。
-  [[nodiscard]] std::array<Vec3f, 8> slicedFrustumCorners(f32 slice_far) const noexcept;
+  [[nodiscard]] std::array<Vec3f, 8> slicedFrustumCornersLocal(f32 slice_far) const noexcept;
+
+  /// @brief 返回相机视椎切片的八个世界空间角点。
+  [[nodiscard]] std::array<Vec3f, 8> slicedFrustumCornersWorld(f32 slice_far) const noexcept;
 
   /// @brief 构造相机局部空间视椎外接球。
   /// @details 直接由解析解构造，速度较快。

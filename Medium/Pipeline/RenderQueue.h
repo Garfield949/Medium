@@ -6,11 +6,13 @@
 ///
 #pragma once
 
+#include <span>
+
 #include "RenderCommand.h"
 
 namespace Medium {
-  
-class Node;
+
+class MeshNode;
 struct ViewCtx;
 
 /// @class RenderQueue
@@ -23,9 +25,9 @@ public:
     Transparent,
   };
 
-  RenderQueue(Type type) : type_{type} {}
+  explicit RenderQueue(Type type) : type_{type} {}
   
-  void build(const Node* scene_root, const ViewCtx& view_ctx);
+  void build(std::span<const MeshNode* const> mesh_nodes, const ViewCtx& view_ctx);
 
   void sort();
   

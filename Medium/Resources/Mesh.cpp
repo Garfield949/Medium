@@ -20,7 +20,7 @@ void Mesh::calcNormals() noexcept {
     for(size_t j = 0; j < 3; ++j)
       vertices[indices[f + j]].normal += face_normal;
   }
-  for(auto & vertex : vertices) vertex.normal.normalize();
+  for(auto& vertex: vertices) vertex.normal.normalize();
 }
 
 // 依据 3D Math Primer 的推导实现
@@ -82,11 +82,11 @@ void Mesh::calcTangents() noexcept {
 void Mesh::calcAABBs() noexcept {
   // 在整个 Mesh 上算 AABB
   // TODO: 先算 SubMesh 的 AABB，再 merge 为整体的 AABB
-  for(const auto & v : vertices) {
-    aabb.addPoint(v.pos);
+  for(const auto& v: vertices) {
+    aabb_local.addPoint(v.pos);
   }
   // 在 SubMesh 层级算 AABB
-  for(auto & sub_mesh : sub_meshes) {
+  for(auto& sub_mesh: sub_meshes) {
     size_t offset = sub_mesh.index_offset;
     size_t count  = sub_mesh.index_count;
     for(size_t i = offset; i < offset + count; ++i) {

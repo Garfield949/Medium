@@ -34,15 +34,19 @@ struct DepthShader {
   }
 
   [[nodiscard]] bool fragment(const std::array<Varying, 3>& varyings,
-                const Vec3f& weights,
-                LinearColor&) const noexcept
+                              const Vec3f& weights,
+                              LinearColor&) const noexcept
   {
     Vec2f frag_uv = Math::interpolate(varyings[0].uv, varyings[1].uv, varyings[2].uv, weights);
 
     const Material* mat = uniforms.material;
 
-    if(mat->enable_diss && sampleSlot(mat->diss_slot, frag_uv).R < 0.5f)
-      return true;
+    // Alpha Test
+    if(mat->enable_diss) {
+      f32 d = sampleSlot(mat->diss_slot, frag_uv).R;
+      f32 alpha_cutoff = 0.5f; // 透明度阈值
+      if(d < alpha_cutoff) return true;
+    }
 
     return false;
   }

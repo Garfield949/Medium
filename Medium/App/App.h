@@ -11,6 +11,7 @@
 #include "Scene/Scene.h"
 #include "Scene/FPSController.h"
 #include "Pipeline/RenderTarget.h"
+#include "Pipeline/Shadow/ShadowManager.h"
 
 using namespace Medium;
 
@@ -20,8 +21,7 @@ struct mfb_window;
 
 class App {
 public:
-  App() = default;
-  ~App() = default;
+  App();
 
   // 资源加载
   [[nodiscard]] bool init();
@@ -32,16 +32,12 @@ public:
   void quit();
 
 private:
-  void loadAppCfg();
   bool createWindow();
   bool loadScene();
   void setupTools() noexcept;
-  void createRenderTargets() noexcept;
 
   void onWindowResize() const;
-
   void onUpdate(f32 dt);
-
   void onRender();
   
   AppCfg app_config_;
@@ -52,7 +48,8 @@ private:
   Profiler      profiler_;
   FPSController controller_;
 
-  std::unique_ptr<RenderTarget> frame_buf_  = nullptr;
-  std::unique_ptr<RenderTarget> shadow_map_ = nullptr;
+  std::unique_ptr<RenderTarget> frame_buf_    = nullptr;
   std::unique_ptr<Scene>        active_scene_ = nullptr;
+
+  ShadowManager shadow_renderer_;
 };

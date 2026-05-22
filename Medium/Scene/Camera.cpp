@@ -33,7 +33,7 @@ Mat4f Camera::viewMatrix() const noexcept {
   return transform.worldMatrixInverse();
 }
 
-std::array<Vec3f, 8> Camera::slicedFrustumCorners(f32 slice_far) const noexcept {
+std::array<Vec3f, 8> Camera::slicedFrustumCornersLocal(f32 slice_far) const noexcept {
   f32 tan_half_fov_y = std::tanf(Math::deg_to_rad(fov_y_ * 0.5f));
 
   f32 near_y = tan_half_fov_y * near_;
@@ -53,6 +53,18 @@ std::array<Vec3f, 8> Camera::slicedFrustumCorners(f32 slice_far) const noexcept 
     {-far_x,  far_y, slice_far}, {far_x,  far_y, slice_far},
     {-far_x, -far_y, slice_far}, {far_x, -far_y, slice_far}
   }};
+}
+
+std::array<Vec3f, 8> Camera::slicedFrustumCornersWorld(f32 slice_far) const noexcept {
+  auto corners_local = slicedFrustumCornersLocal(slice_far);
+
+  const Mat4f& mat_world = this->transform.worldMatrix();
+
+  std::array<Vec3f, 8> corners_world;
+  for(int i = 0; i < 8; i++)
+    corners_world[i] = (mat_world * corners_local[i].homogeneous()).head<3>();
+
+  return corners_world;
 }
 
 // 设 n = near, f = far, a = aspect_ratio.
@@ -97,7 +109,7 @@ Sphere Camera::slicedFrustumCircumSphereWorld(const f32 slice_far) const noexcep
   Vec3f center_world = sphere_local.center.z() * mat_world.col(2).head<3>()
                       + mat_world.col(3).head<3>();
   // 注：transform.scale() 返回的是局部缩放，若相机处于非最外层层级会出问题。
-  const f32 world_scale = transform.worldMatrix().col(0).head<3>().norm();
+  const f32 world_scale = mat_world.col(0).head<3>().norm();
 
   return {center_world, sphere_local.radius * world_scale};
 }

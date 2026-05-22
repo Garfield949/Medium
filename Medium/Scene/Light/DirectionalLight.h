@@ -13,6 +13,7 @@
 namespace Medium {
 
 class Camera;
+struct DirectionalViewFit;
 
 class DirectionalLight : public Light {
 public:
@@ -36,6 +37,8 @@ public:
   [[nodiscard]] const Camera* attachedCamera() const noexcept {
     return ortho_camera_;
   }
+
+  void applyViewFit(const DirectionalViewFit& fit);
 
   Vec3f dir;
 

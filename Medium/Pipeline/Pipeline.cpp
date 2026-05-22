@@ -33,7 +33,7 @@ namespace Medium::Pipeline {
 
 void executeCommands(const std::vector<RenderCommand>& cmds, const PassCtx& ctx) {
   std::visit([&](auto& active_shader) {
-    for(const auto & cmd : cmds) {
+    for(const auto& cmd: cmds) {
       active_shader.bind(ctx, *cmd.matrix_world, cmd.material);
       draw(*cmd.mesh, *cmd.submesh, ctx.shader, ctx.buffer);
     }
@@ -74,12 +74,13 @@ void draw(const Mesh &mesh, const SubMesh &sub_mesh, VariantShader* shader, Rend
         std::array<Vec4f, 3> triangle = {
           clip_poly.verts[0].pos, clip_poly.verts[l].pos, clip_poly.verts[l + 1].pos
         };
+        // TODO: 此处的 culling 或许能变成可配置的 -- 背面、正面、不剔除；
         // 背面剔除 Back-face Culling. NDC 空间和屏幕空间的剔除效果一致，所以在视口变换前先做剔除，免得白做一次视口变换；
         // 有向面积为正说明三角形是逆时针的，这在左手系中是背对相机的；
         // 由于这里已经剔除掉了所有逆时针三角形，所以后续计算 Edge Function 时只用处理顺时针三角形。
         if (Geometry::orient2D(triangle[0], triangle[1], triangle[2]) > 0) continue;
         // 视口变换 NDC -> Screen Space; 顶点的 x,y 由 [-1.0,1.0] 映射到 [0.0, width], [0.0, height].
-        for(auto & coord : triangle)
+        for(auto& coord: triangle)
           NDCToScreen(coord, buffer->width(), buffer->height());
 
         std::array<Varying, 3> varyings {

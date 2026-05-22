@@ -99,7 +99,7 @@ T lerp(const T& a, const T& b, f32 t) noexcept {
 
 /// @brief 判断 val 是否在给定区间里
 template<typename T>
-constexpr bool between(T val, T min, T max) noexcept {
+constexpr bool isBetween(T val, T min, T max) noexcept {
   return val >= min && val <= max;
 }
 
