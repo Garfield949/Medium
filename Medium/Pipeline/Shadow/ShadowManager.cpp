@@ -6,6 +6,7 @@
 ///
 #include "ShadowManager.h"
 
+#include "Scene/Light/DirectionalLight.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderContext.h"
 #include "Pipeline/RenderQueue.h"
@@ -13,7 +14,8 @@
 namespace Medium {
 
 void ShadowManager::render(std::span<const MeshNode* const> mesh_nodes,
-                           const AABB3D& bbox_scene_ws) {
+                           const AABB3D& bbox_scene_ws,
+                           const f32 max_shadow_dist) {
   shadow_map_->clearDepthBuf();
 
   // 构造平行光视椎拟合参数
@@ -22,12 +24,12 @@ void ShadowManager::render(std::span<const MeshNode* const> mesh_nodes,
     .camera     = main_camera_,
     .light_dir  = main_light_->dir,
     .shadow_res = shadow_map_->width(),
-    .slice_far  = 5.0f,
+    .slice_far  = max_shadow_dist,
     .bbox_scene_ws = bbox_scene_ws
   };
 
   // 获取平行光视椎拟合结果并重建平行光空间
-  auto dir_light_view_fit = calcDirectionalViewFit(fit_desc, DirectionalFitMode::Tight);
+  auto dir_light_view_fit = calcDirectionalViewFit(fit_desc);
   main_light_->applyViewFit(dir_light_view_fit);
 
   FrameCtx frame_ctx {

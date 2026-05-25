@@ -42,7 +42,7 @@ inline Vec3f calcNormalBias(const Vec3f& frag_n,
                         const f32    texel_size_ws)
 {
   // 点积设置一个安全值，防止除零
-  const f32 safe_nl = std::max(nl, 0.05f);
+  const f32 safe_nl = std::max(nl, Math::KINDA_SMALL_NUMBER);
   // - Shadow map 的一个纹素投影到世界空间物体表面时，会有深度 aliasing 现象：
   //   1) 若光线与表面垂直，则 aliasing 程度最轻；
   //   2) 光线越呈掠射角（越与平面平行），一个纹素投影到表面的面积会拉长，加深 aliasing (深度跨度很大的多个点被量化到同一个
@@ -71,10 +71,10 @@ inline f32 sampleShadowPCF(const RenderTarget* shadow_map,
   // 3x3 采样
   for(int x = -1; x <= 1; ++x) {
     for(int y = -1; y <= 1; ++y) {
-      const Vec2f offset = Vec2f(x, y) * texel_size;
+      const Vec2f offset = Vec2f{x, y} * texel_size;
       f32 depth_from_map = shadow_map->sampleDepth(uv + offset);
       // 用一个极小常量 bias 修补深度数值误差
-      const f32 depth_bias = 0.0003f;
+      const f32 depth_bias = 0.0005f;
       if(depth_frag + depth_bias > depth_from_map)
         visibility += 1.0f;
     }
@@ -82,7 +82,7 @@ inline f32 sampleShadowPCF(const RenderTarget* shadow_map,
   visibility /= 9.0f; // 取平均值
 
   // 将 visibility 从 [0, 1] 映射到 [0.3, 1.0]
-  return 0.3f + (visibility * 0.9f);
+  return 0.3f + (visibility * 0.7f);
 }
   
 } // namespace Medium

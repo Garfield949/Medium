@@ -67,7 +67,10 @@ void App::onRender() {
   };
 
   // ---------- Shadow Pass ----------
-  shadow_renderer_.render(active_scene_->meshNodes(), active_scene_->worldAABB());
+  shadow_renderer_.render(active_scene_->meshNodes(),
+                          active_scene_->worldAABB(),
+                          active_scene_->maxShadowDistance());
+
   frame_ctx.dir_light_shadow_texel_size_ws = shadow_renderer_.shadowTexelSizeWorld();
 
   // ---------- Main Pass ----------
@@ -130,7 +133,7 @@ bool App::loadScene() {
   const WindowCfg& cfg_window = app_config_.window;
   
   auto lua_path = fs::path(PROJECT_ROOT_DIR) / "scripts"
-    / "scene_sponza.lua";
+    / "scene_house.lua";
   
   active_scene_ = Scene::loadFromLua(lua_path, cfg_window.aspectRatio());
 
@@ -147,7 +150,7 @@ void App::setupTools() noexcept {
   profiler_.setReportInterval(1.0f);
 }
 
-void App::onWindowResize() const {
+void App::onWindowResize() {
   const u32 w_new = mfb_get_window_width(mfb_window_);
   const u32 h_new = mfb_get_window_height(mfb_window_);
   

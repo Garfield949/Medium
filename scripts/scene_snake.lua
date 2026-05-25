@@ -6,7 +6,8 @@ local camera = {
 }
 
 local light = {
-    direction = {-1.0, -1.0, 2.0}
+    direction = {-1.0, -1.0, 2.0},
+    max_shadow_dist = 5
 }
 
 local model = {

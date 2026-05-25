@@ -64,14 +64,15 @@ struct AABB3D {
     return bbox_world;
   }
 
-  /// @brief 返回包围盒的 8 个角点
-  /// @note 注意，角点是轴对齐的
+  /// @brief 返回包围盒的 8 个轴对齐角点：Zmin -> Zmax, left -> right, top -> bottom.
+  /// @note  注意，std::array 是一种聚合体类型，底层维护一个原生数组。故返回值需套两层括号：
+  ///        1) 第一层初始化 std::array 本身； 2) 第二层初始化里面的数组。
   [[nodiscard]] std::array<Vec3f, 8> corners() const noexcept {
     f32 min_x = min.x(), min_y = min.y(), min_z = min.z();
     f32 max_x = max.x(), max_y = max.y(), max_z = max.z();
     return std::array<Vec3f, 8> {{
-      {min_x, min_y, min_z}, {min_x, min_y, max_z}, {max_x, min_y, max_z}, {max_x, min_y, min_z},
-      {min_x, max_y, min_z}, {min_x, max_y, max_z}, {max_x, max_y, max_z}, {max_x, max_y, min_z}
+      {min_x, max_y, min_z}, {max_x, max_y, min_z}, {min_x, min_y, min_z}, {max_x, min_y, min_z},
+      {min_x, max_y, max_z}, {max_x, max_y, max_z}, {min_x, min_y, max_z}, {max_x, min_y, max_z}
     }};
   }
 
@@ -102,10 +103,10 @@ struct ScreenAABB {
     // 包围盒范围从 Subpixel 转到 Pixel 空间。进行安全的取整策略：宁可多框一些像素，避免漏掉边缘像素；
     // 1. Floor   行为：单纯右移。使得在 [160, 176) 范围内取整结果为 10；
     // 2. Ceiling 行为：加一个偏置再右移。这里加 15，使得在 (160, 176] 范围内取整结果为 11；
-    bbox.min.x() = std::max(0, x_min >> Subpixel::Bits);
-    bbox.min.y() = std::max(0, y_min >> Subpixel::Bits);
-    bbox.max.x() = std::min(static_cast<i32>(width_screen  - 1), (x_max + Subpixel::Mask) >> Subpixel::Bits);
-    bbox.max.y() = std::min(static_cast<i32>(height_screen - 1), (y_max + Subpixel::Mask) >> Subpixel::Bits);
+    bbox.min.x() = std::max(0, x_min >> Subpixel::kBits);
+    bbox.min.y() = std::max(0, y_min >> Subpixel::kBits);
+    bbox.max.x() = std::min(static_cast<i32>(width_screen  - 1), (x_max + Subpixel::kMask) >> Subpixel::kBits);
+    bbox.max.y() = std::min(static_cast<i32>(height_screen - 1), (y_max + Subpixel::kMask) >> Subpixel::kBits);
 
     return bbox;
   }

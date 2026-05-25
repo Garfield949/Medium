@@ -26,7 +26,7 @@ void RenderQueue::build(std::span<const MeshNode* const> mesh_nodes, const ViewC
           mesh.get(),
           &sub_mesh,
           mesh->materials[sub_mesh.material_index].get(),
-          &world,
+          world,
           (view_ctx.view * bbox_world.center().homogeneous()).z()
         );
       }

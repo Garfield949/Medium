@@ -32,11 +32,11 @@ inline static const std::array<f32, 256> GammaDecodingLUT = [] {
 // 标准 Gamma encoding : IEC 61966-2-1
 // https://www.w3.org/Graphics/Color/srgb
 // 注意表大小得是分辨率 + 1. 否则索引 i 范围为 [0, 4095]，最大只能计算 4095/4096，取不到 1.0 的 Linear 值
-inline constexpr size_t GammaEncodeResolution = 4096;
-inline static const std::array<u8, GammaEncodeResolution + 1> GammaEncodingLUT = [] {
-  std::array<u8, GammaEncodeResolution + 1> lut{};
-  for (size_t i = 0; i <= GammaEncodeResolution; i++) {
-    if (f32 linear = static_cast<f32>(i) / static_cast<f32>(GammaEncodeResolution); linear <= 0.0031308f)
+inline constexpr size_t kGammaEncodeResolution = 4096;
+inline static const std::array<u8, kGammaEncodeResolution + 1> GammaEncodingLUT = [] {
+  std::array<u8, kGammaEncodeResolution + 1> lut{};
+  for (size_t i = 0; i <= kGammaEncodeResolution; i++) {
+    if (f32 linear = static_cast<f32>(i) / static_cast<f32>(kGammaEncodeResolution); linear <= 0.0031308f)
       lut[i] = Util::quantizeToU8(linear * 12.92f);
     else
       lut[i] = Util::quantizeToU8(1.055f * std::powf(linear, 0.4166667f) - 0.055f);
@@ -222,7 +222,7 @@ inline Color LinearColor::toColor(ColorSpace space) const noexcept {
   LinearColor tmp = this->clamped();
   if(space == ColorSpace::SRGB) {
     auto IndexLUT = [&](f32 linear) -> size_t {
-      return std::lround(linear * static_cast<f32>(GammaEncodeResolution));
+      return std::lround(linear * static_cast<f32>(kGammaEncodeResolution));
     };
     return {
       GammaEncodingLUT[IndexLUT(tmp.R)],

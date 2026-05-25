@@ -31,7 +31,8 @@ public:
   }
 
   void render(std::span<const MeshNode* const> mesh_nodes,
-              const AABB3D& bbox_scene_ws);
+              const AABB3D& bbox_scene_ws,
+              f32 max_shadow_dist);
 
   [[nodiscard]]
   RenderTarget* shadowMap() {

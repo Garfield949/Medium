@@ -11,9 +11,7 @@
 #include "Forwards.h"
 
 namespace tinyobj {
-  
 struct material_t;
-  
 }
 
 namespace Medium {
@@ -38,7 +36,7 @@ private:
   void parseMTL(const MeshPtr &mesh, const std::vector<tinyobj::material_t>& tiny_materials,
                 const std::filesystem::path& path_obj);
 
-  TexturePtr loadTexture (const std::filesystem::path& filepath, ColorSpace& color_space);
+  TexturePtr loadTexture (const std::filesystem::path& filepath, const ColorSpace& color_space);
 
   // 使用 weak_ptr 进行观察，不增加引用计数
   std::unordered_map<std::string, std::weak_ptr<Mesh>>     mesh_cache_{};

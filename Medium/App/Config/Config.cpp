@@ -56,7 +56,7 @@ AppCfg AppCfg::loadFromToml(const fs::path& config_dir) {
 // 注：toml++ 的底层是 std::map，只支持字典序，所以不论往 toml::table 里 insert 的顺序是
 // 怎样，最终序列化出来键值都只会按字典序排，不利于阅读。所以这里直接手动实现序列化 (toml11 支
 // 持有序表，但是那个库太重就不考虑了）。
-std::string AppCfg::toTomlString() const noexcept {
+std::string AppCfg::toTomlString() const {
   return fmt::format(
   "[window]\n"
   "title = \"{}\"\n"

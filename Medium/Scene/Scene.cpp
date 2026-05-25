@@ -56,10 +56,12 @@ struct SceneLoader {
 
     luabridge::LuaRef tbl_dir = tbl_scene["Light"];
     Vec3f direction = readVec3f(tbl_dir, "direction");
+    f32 max_shadow_dist = tbl_dir["max_shadow_dist"].cast<f32>().value();
 
     scene->main_light_ = scene->root_.attachChild(make_unique<DirectionalLight>("Main Light"));
     scene->main_light_->dir = direction.normalized();
     scene->main_light_->transform.lookAt(scene->main_light_->dir);
+    scene->max_shadow_dist_ = max_shadow_dist;
   }
 
   static bool setupModels(const luabridge::LuaRef& tbl_scene, Scene* scene) {

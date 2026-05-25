@@ -16,9 +16,11 @@ TODO
 
 - 完成 Scene 类型: Done
 
-- 将 App 的私有成员改为值而非指针 : Done
+- AABB 缓存机制、阴影趟与主趟共享包围盒数据
 
-- RenderQueue, RenderCommand : Done
+- 将场景解析的职责从 Scene 拆分出来为一个类型（Config 同理）
+
+- RenderQueue, RenderCommand :
 
 - 将渲染分为多pass
 

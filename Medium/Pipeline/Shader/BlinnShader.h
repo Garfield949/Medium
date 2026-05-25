@@ -90,16 +90,21 @@ struct BlinnShader {
         Vec4f frag_ndc_ls  = frag_clip_ls / frag_clip_ls.w();
 
         // [-1,1] 的 NDC 坐标映射到 [0,1] 作为阴影采样 uv
-        Vec2f uv{(frag_ndc_ls.x() + 1) * 0.5f, (frag_ndc_ls.y() + 1) * 0.5f};
+        Vec2f shadow_uv{(frag_ndc_ls.x() + 1) * 0.5f, (frag_ndc_ls.y() + 1) * 0.5f};
 
         // 不在光视椎 near -> far 范围内的 frag 不参与 shadow compare;
         // uv 任意分量超出 [0,1] 说明不在光视椎长宽范围内，不参与 shadow compare.
         if(Math::isBetween(frag_ndc_ls.z(), 0.0f, 1.0f) && 
-           Math::isBetween(uv.x(), 0.0f, 1.0f) && 
-           Math::isBetween(uv.y(), 0.0f, 1.0f)) 
+           Math::isBetween(shadow_uv.x(), 0.0f, 1.0f) &&
+           Math::isBetween(shadow_uv.y(), 0.0f, 1.0f))
         {
-          f32 depth_frag = frag_ndc_ls.z();
-          shadow = sampleShadowPCF(uniforms.shadow_map, uv, depth_frag);
+          f32 z_frag_ls = frag_ndc_ls.z();
+          f32 z_map = uniforms.shadow_map->sampleDepth(shadow_uv);
+          // 用一个常量 bias 修补深度数值误差。
+          const f32 z_bias = 0.0001f;
+          // 注意，阴影趟同样复用了翻转 z，故判断条件是反过来的。
+          if(z_frag_ls + z_bias < z_map)
+            shadow = 0.3f;
         }
       } else {
         // 背部不受光自然处于阴影中

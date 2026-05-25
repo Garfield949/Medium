@@ -34,7 +34,7 @@ namespace Medium::Pipeline {
 void executeCommands(const std::vector<RenderCommand>& cmds, const PassCtx& ctx) {
   std::visit([&](auto& active_shader) {
     for(const auto& cmd: cmds) {
-      active_shader.bind(ctx, *cmd.matrix_world, cmd.material);
+      active_shader.bind(ctx, cmd.mat_world, cmd.material);
       draw(*cmd.mesh, *cmd.submesh, ctx.shader, ctx.buffer);
     }
   }, *ctx.shader);
@@ -49,6 +49,7 @@ void draw(const Mesh &mesh, const SubMesh &sub_mesh, VariantShader* shader, Rend
 
       // 将当前三角形作为裁剪输入，运行顶点着色器 World Space -> Clip Space，并获取待插值的 varying
       ClipPolygon clip_poly;
+
       for(size_t j = 0; j < 3; ++j, ++clip_poly.num_verts) {
         size_t vert_idx = mesh.indices[tri_idx + j];
         
@@ -86,7 +87,6 @@ void draw(const Mesh &mesh, const SubMesh &sub_mesh, VariantShader* shader, Rend
         std::array<Varying, 3> varyings {
           clip_poly.verts[0].varying, clip_poly.verts[l].varying, clip_poly.verts[l + 1].varying
         };
-
         // 将屏幕坐标送进光栅器。
         rasterize(triangle, varyings, shader, buffer);
       }
@@ -102,14 +102,14 @@ void draw(const Mesh &mesh, const SubMesh &sub_mesh, VariantShader* shader, Rend
 // 故当 E(x+1,y) 有 Delta E = A = y1-y0；当 E(x,y+1) 有 Delta E = B = -(x1-x0) = x0-x1.
 // 注：当应用了次像素，边函数就变为了 E(x*scale, y*scale) = (A*scale)x + (B*scale)y + C.
 void rasterize(const std::array<Vec4f, 3>&   tri_screen,
-                const std::array<Varying, 3>& varyings,
-                VariantShader* shader,
-                RenderTarget*  buffer)
+               const std::array<Varying, 3>& varyings,
+               VariantShader* shader,
+               RenderTarget*  buffer)
 {
   using namespace Geometry;
 
   std::array<Vec2i, 3> tri_fixed; // 将传入三角形的浮点屏幕坐标提升为次像素定点数；
-  std::array<f32  , 3> v_depth{}; // 保存三角形顶点的深度值 Zndc.
+  std::array<f32  , 3> v_depth;   // 保存三角形顶点的深度值 Zndc.
 
   for(i32 i = 0; i < 3; ++i) {
     tri_fixed[i].x() = Subpixel::fromFloat(tri_screen[i].x());
@@ -126,13 +126,13 @@ void rasterize(const std::array<Vec4f, 3>&   tri_screen,
   Vec2i delta20{tri_fixed[0].x() - tri_fixed[2].x(),  tri_fixed[0].y() - tri_fixed[2].y()};
 
   // A 对应边函数 E(X+1,Y) 时的增量；同理，B 对应 E(X,Y+1) 时的增量
-  i32 A01 = Subpixel::Scale * delta01.y(),  B01 = -Subpixel::Scale * delta01.x();
-  i32 A12 = Subpixel::Scale * delta12.y(),  B12 = -Subpixel::Scale * delta12.x();
-  i32 A20 = Subpixel::Scale * delta20.y(),  B20 = -Subpixel::Scale * delta20.x();
+  i32 A01 = Subpixel::kScale * delta01.y(),  B01 = -Subpixel::kScale * delta01.x();
+  i32 A12 = Subpixel::kScale * delta12.y(),  B12 = -Subpixel::kScale * delta12.x();
+  i32 A20 = Subpixel::kScale * delta20.y(),  B20 = -Subpixel::kScale * delta20.x();
 
   // 从包围盒左下角的坐标开始测试、着色，一行一行往上
   // 加一个偏置将采样点移到像素中心，这里 array 方法将向量转为数组以进行逐分量加法
-  Vec2i p_start = (bbox.min * Subpixel::Scale).array() + Subpixel::Half;
+  Vec2i p_start = (bbox.min * Subpixel::kScale).array() + Subpixel::kHalf;
 
   // 开头获取首坐标对应三条边的 Equation，后续的坐标只需在此基础上加上推导好的增量即可。
   i64 E01_row = edgeEquation(tri_fixed[0],  tri_fixed[1], p_start);

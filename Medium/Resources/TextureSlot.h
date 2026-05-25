@@ -7,8 +7,6 @@
 ///
 #pragma once
 
-#include <variant>
-
 #include "Forwards.h"
 #include "Texture.h"
 
@@ -26,7 +24,7 @@ inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv) {
     // 0 对应 TexturePtr, 1 对应 LinearColor
     if (slot.index() == 0) {
         const auto& map = std::get<0>(slot);
-        return map->sample(uv, Texture::FilterMode::Nearest);
+        return map->sample(uv, Texture::FilterMode::Bilinear);
     }
     return std::get<1>(slot);
 }

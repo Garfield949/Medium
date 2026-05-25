@@ -36,7 +36,7 @@ private:
   bool loadScene();
   void setupTools() noexcept;
 
-  void onWindowResize() const;
+  void onWindowResize();
   void onUpdate(f32 dt);
   void onRender();
   

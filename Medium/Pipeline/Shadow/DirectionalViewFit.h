@@ -8,7 +8,6 @@
 
 #include "Geometry/AABB.h"
 #include "Scene/Camera.h"
-#include "Scene/Light/DirectionalLight.h"
 
 namespace Medium {
   
@@ -37,15 +36,7 @@ struct DirectionalViewFit {
   f32 shadow_texel_size_ws;
 };
 
-/// @enum DirectionalFitMode
-/// @brief 决定方向光视椎拟合的计算模式：
-/// @details Stable 选择计算主相机视椎的外接球，Tight 选择计算主相机视椎在光空间下的紧致 AABB.
-enum class DirectionalFitMode {
-  Stable, Tight
-};
-
 /// @brief 根据参数计算返回平行光的视椎拟合结果
-DirectionalViewFit calcDirectionalViewFit(const DirectionalViewFitDesc& fit_desc,
-                                          DirectionalFitMode mode);
+DirectionalViewFit calcDirectionalViewFit(const DirectionalViewFitDesc& fit_desc);
   
 } // namespace Medium

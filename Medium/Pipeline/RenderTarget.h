@@ -6,6 +6,7 @@
 #pragma once
 
 #include "Base/Color.h"
+#include <cstddef>
 
 namespace Medium {
 
@@ -26,7 +27,7 @@ public:
 
   explicit RenderTarget(u32 res, Mode mode) : RenderTarget{res, res, mode} {}
 
-  void resize(u32 width_new, u32 height_new) noexcept {
+  void resize(u32 width_new, u32 height_new) {
     if (width_new == w_ && height_new == h_) return;
     w_ = width_new;
     h_ = height_new;
@@ -52,7 +53,7 @@ public:
   }
 
   // 深度测试，Reversed-Z 致使离 0 更近的深度对应离相机更远的顶点
-  [[nodiscard]] bool depthTest(u32 index, f32 new_dep) const noexcept {
+  [[nodiscard]] bool depthTest(size_t index, f32 new_dep) const noexcept {
     return new_dep > depth_buf_[index];
   }
 

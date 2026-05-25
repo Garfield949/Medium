@@ -12,10 +12,8 @@
 #include <stb_image.h>
 #include <fmt/color.h>
 
-#include "Base/Color.h"
 #include "Mesh.h"
 #include "Material.h"
-#include "TextureSlot.h"
 
 namespace fs = std::filesystem;
 
@@ -46,8 +44,8 @@ struct IndexEqual {
   bool operator()(const index_t& lhs, const index_t& rhs) const noexcept {
     // 仅索引相同还不够，因为同一个空间位置可能被多个面共用，而其在每个面上的法线和 uv 都可能不同，这样会被算作两个不同的顶点
     return lhs.vertex_index   == rhs.vertex_index &&
-            lhs.normal_index   == rhs.normal_index &&
-            lhs.texcoord_index == rhs.texcoord_index;
+           lhs.normal_index   == rhs.normal_index &&
+           lhs.texcoord_index == rhs.texcoord_index;
   }
 };
 
@@ -71,7 +69,6 @@ using FacesByMatMap = std::unordered_map<i32, std::vector<index_t>>;
 FacesByMatMap getFacesByMatIDMap(const shape_t& shape) {
   // 将一个 shape 中材质相同的面分装在一起 [material_id] -> [索引vector]. vector 中每 3 个 index_t 为一个 face.
   FacesByMatMap map;
-
   // 遍历 shape 里的每个面。num_face_vertices 是一个 vector，num_face_vertices[i] 表示第 i 个
   // 面有几个顶点。由于已配置了三角化，这里只用到 num_face_vertices.size()，即获取总三角面片的个数。
   for(size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++) {
@@ -279,7 +276,7 @@ void AssetCache::parseMTL(const MeshPtr& mesh_new,
   }
 }
 
-TexturePtr AssetCache::loadTexture(const fs::path& tex_path, ColorSpace& color_space) {
+TexturePtr AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& color_space) {
   const std::string tex_path_str = tex_path.generic_string();
   const std::string tex_key = fmt::format("{}#colorspace={}", tex_path_str, static_cast<i32>(color_space));
   // 纹理缓存查询
@@ -296,10 +293,10 @@ TexturePtr AssetCache::loadTexture(const fs::path& tex_path, ColorSpace& color_s
   // UV 空间的原点在左下角，而纹理图的存储是行优先的，原点在左上角。为了索引方便，先设置将读进的纹理上下翻转。
   stbi_set_flip_vertically_on_load(true);
   unsigned char* raw = stbi_load(tex_path_str.c_str(),
-                                  &width,
-                                  &height,
-                                  &channels,
-                                  STBI_rgb_alpha); // 强制补齐 alpha 通道。
+                                 &width,
+                                 &height,
+                                 &channels,
+                                 STBI_rgb_alpha); // 强制补齐 alpha 通道。
   stbi_set_flip_vertically_on_load(false);
 
   if(!raw) {

@@ -40,6 +40,8 @@ public:
   /// @brief 返回场景的世界空间包围盒。
   [[nodiscard]] AABB3D worldAABB() const noexcept;
 
+  [[nodiscard]] f32 maxShadowDistance() const noexcept { return max_shadow_dist_; }
+
 private:
   Scene() = default;
 
@@ -50,6 +52,8 @@ private:
   DirectionalLight* main_light_ = nullptr;
 
   std::vector<MeshNode*> mesh_nodes_;
+
+  f32 max_shadow_dist_ = 0.0f;
 };
 
 } // namespace Medium

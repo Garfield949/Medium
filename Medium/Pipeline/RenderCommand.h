@@ -22,13 +22,13 @@ struct SubMesh;
 ///          5. 渲染队列根据实际情况将 sort_key 作为条件进行指令排序；
 struct RenderCommand {
   // C++ 20 才支持在 emplace_back 中进行聚合初始化，所以必须定义构造函数。
-  RenderCommand(const Mesh* m, const SubMesh* sm, const Material* mat, const Mat4f* mw, f32 sk)
-    : mesh{m}, submesh{sm}, material{mat}, matrix_world{mw}, sort_key{sk} {}
-  const Mesh*     mesh         = nullptr;
-  const SubMesh*  submesh      = nullptr;
-  const Material* material     = nullptr;
-  const Mat4f*    matrix_world = nullptr;
-  f32 sort_key = 0.0f;
+  RenderCommand(const Mesh* m, const SubMesh* sm, const Material* mat, Mat4f mw, f32 sk)
+    : mesh{m}, submesh{sm}, material{mat}, mat_world{std::move(mw)}, sort_key{sk} {}
+  const Mesh*     mesh     = nullptr;
+  const SubMesh*  submesh  = nullptr;
+  const Material* material = nullptr;
+  Mat4f mat_world;
+  f32   sort_key;
 };
 
 } // namespace Medium

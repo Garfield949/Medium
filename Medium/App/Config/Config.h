@@ -34,7 +34,7 @@ struct RenderCfg {
 struct AppCfg {
   static AppCfg loadFromToml(const std::filesystem::path& config_dir);
 
-  [[nodiscard]] std::string toTomlString() const noexcept;
+  [[nodiscard]] std::string toTomlString() const;
   
   [[nodiscard]] AppCfg sanitized() const noexcept;
 

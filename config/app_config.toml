@@ -5,4 +5,4 @@ height = 900
 
 [render.shadow]
 resolution = 2048
-csm_level = 1
+csm_level = 2

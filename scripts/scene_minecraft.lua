@@ -6,11 +6,12 @@ local camera = {
 }
 
 local light = {
-    direction = {2, -1, 1}
+    direction = {2, -1, 1},
+    max_shadow_dist = 15
 }
 
 local model = {
-    name = "Empire",
+    name = "Minecraft",
     file = "assets/models/minecraft/minecraft.obj",
     position = {0.0, 0.0, 0.0},
     rotation = {0.0, 0.0, 0.0},
