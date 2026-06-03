@@ -7,7 +7,11 @@ local camera = {
 
 local light = {
     direction = {2, -1, 1},
-    max_shadow_dist = 8
+}
+
+local shadow_config = {
+    max_shadow_distance = 14.0,
+    csm_cascade_count = 2
 }
 
 local model = {
@@ -18,4 +22,9 @@ local model = {
     scale = 0.005
 }
 
-return { Camera = camera, Light = light, Model = model }
+return {
+    Camera = camera,
+    Light = light,
+    ShadowConfig = shadow_config,
+    Model = model,
+}

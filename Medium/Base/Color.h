@@ -64,12 +64,12 @@ struct Color {
 
   Color() : Color{0} {}
 
-  [[nodiscard]] LinearColor toLinear(ColorSpace space) const noexcept;
+  LinearColor toLinear(ColorSpace space) const noexcept;
 
-  [[nodiscard]] u8 a() const noexcept { return (data >> 24) & 0xFF; }
-  [[nodiscard]] u8 r() const noexcept { return (data >> 16) & 0xFF; }
-  [[nodiscard]] u8 g() const noexcept { return (data >>  8) & 0xFF; }
-  [[nodiscard]] u8 b() const noexcept { return data & 0xFF; }
+  u8 a() const noexcept { return (data >> 24) & 0xFF; }
+  u8 r() const noexcept { return (data >> 16) & 0xFF; }
+  u8 g() const noexcept { return (data >>  8) & 0xFF; }
+  u8 b() const noexcept { return data & 0xFF; }
 
   static Color Black() noexcept { return {}; }
   static Color White() noexcept { return {255}; }
@@ -138,7 +138,7 @@ struct LinearColor {
   }
   
   // 暂不考虑线性颜色某通道变为负数的情况
-  [[nodiscard]] bool isBlack() const noexcept {
+  bool isBlack() const noexcept {
     return Math::isNearlyZero(R) && Math::isNearlyZero(G) && Math::isNearlyZero(B);
   }
 
@@ -146,14 +146,14 @@ struct LinearColor {
   /// @details 关于 Alpha blending: 设某像素已有颜色为 Cdst, 待混合颜色为 Csrc, Cout 为混合输出颜色，则：
   ///          1. 不做预乘的混合公式：Cout = Csrc * Asrc + Cdst * (1 - Asrc).
   ///          2. 做了预乘的混合公式：Cout = Csrc + Cdst * (1 - Asrc), 会简单一些。
-  [[nodiscard]] LinearColor premultiplied() const noexcept {
+  LinearColor premultiplied() const noexcept {
     return {R * A, G * A, B * A, A};
   }
 
   /// @brief Straight alpha
   /// @details 注意，若颜色的 Alpha = 0，则在 premul 阶段就会将 RGB 乘为 0，进而在 demul 阶段无法恢复
   ///          三原色分量。不过这是符合语义的，因为 Alpha = 0 代表完全透明。
-  [[nodiscard]] LinearColor demultiplied() const noexcept {
+  LinearColor demultiplied() const noexcept {
     f32 alpha_clamped    = std::clamp(A, 0.0f, 1.0f);
     f32 alpha_linear_inv = Math::isNearlyZero(alpha_clamped) ? 0.0f : 1.0f / alpha_clamped;
     return {R * alpha_linear_inv, G * alpha_linear_inv, B * alpha_linear_inv, alpha_clamped};
@@ -164,7 +164,7 @@ struct LinearColor {
   }
 
   /// @brief 将各分量钳制在 [0, 1]
-  [[nodiscard]] LinearColor clamped() const noexcept {
+  LinearColor clamped() const noexcept {
     return {
       std::clamp(R, 0.0f, 1.0f),
       std::clamp(G, 0.0f, 1.0f),
@@ -176,7 +176,7 @@ struct LinearColor {
   /// @brief ACES 色调映射简单拟合
   /// @details 将各分量的高动态范围压缩到 [0, 1] LDR 范围内。
   /// @note 严格来说，线性颜色经色调映射后就不再是线性的了，语义上偷了点懒。
-  [[nodiscard]] LinearColor toneMapped() const noexcept {
+  LinearColor toneMapped() const noexcept {
     constexpr f32 a = 2.51f, b = 0.03f, c = 2.43f, d = 0.59f, e = 0.14f;
     auto formula = [&](f32 channel) {
       channel = std::max(0.0f, channel);
@@ -189,7 +189,7 @@ struct LinearColor {
   /// @param space 传入目标 Color 的预期色彩空间枚举
   ///              1. ColorSpace::SRGB:   进行伽马矫正再量化到 u8
   ///              2. ColorSpace::Linear: 线性直出并量化到 u8
-  [[nodiscard]] Color toColor(ColorSpace space) const noexcept;
+  Color toColor(ColorSpace space) const noexcept;
 
   static LinearColor Black() noexcept { return {}; }
   static LinearColor White() noexcept { return {1.0f}; }

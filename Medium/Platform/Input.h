@@ -18,19 +18,19 @@ public:
   void update(mfb_window * window);
 
   // 检测是否按下了键盘某个键
-  [[nodiscard]] bool key_held(mfb_key key) const noexcept {
+  bool key_held(mfb_key key) const noexcept {
     if(key_buffer_ == nullptr) return false;
     return key_buffer_[key] != 0;
   }
 
   // 检测是否按下了鼠标某个键
-  [[nodiscard]] bool mouse_btn_held(mfb_mouse_button button) const noexcept {
+  bool mouse_btn_held(mfb_mouse_button button) const noexcept {
     if(mouse_btn_buffer_ == nullptr) return false;
     return mouse_btn_buffer_[button] != 0;
   }
 
   // 获取鼠标从上一 Tick 到这一 Tick 移动的偏移
-  [[nodiscard]] Vec2i mouse_move_delta() const noexcept { return mouse_delta_; }
+  Vec2i mouse_move_delta() const noexcept { return mouse_delta_; }
 
 private:
   const u8* key_buffer_ = nullptr;

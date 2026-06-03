@@ -5,7 +5,10 @@
 /// @brief
 #pragma once
 
+#include "Base/Types.h"
+#include "Base/Math/Math.h"
 #include "Pipeline/RenderTarget.h"
+#include "Pipeline/Shadow/CSM.h"
 
 namespace Medium {
 //                                     [ 自影伪影问题 Shadow Acne ]
@@ -38,11 +41,11 @@ namespace Medium {
 //   得潘现象；相比单纯堆叠 Depth Bias，normal bias 往往能以更小的偏置解决自阴影，因此通常更不容易产生严重的 Peter Panning.
 // - 补充：其实 Depth Bias 也是一种几何修改技术，只不过仅修改 frag 在光空间内的 z 使其抬升。
 inline Vec3f calcNormalBias(const Vec3f& frag_n,
-                        const f32    nl,
-                        const f32    texel_size_ws)
+                            const f32    nl,
+                            const f32    texel_size_ws)
 {
   // 点积设置一个安全值，防止除零
-  const f32 safe_nl = std::max(nl, Math::KINDA_SMALL_NUMBER);
+  f32 safe_nl = std::max(nl, Math::KINDA_SMALL_NUMBER);
   // - Shadow map 的一个纹素投影到世界空间物体表面时，会有深度 aliasing 现象：
   //   1) 若光线与表面垂直，则 aliasing 程度最轻；
   //   2) 光线越呈掠射角（越与平面平行），一个纹素投影到表面的面积会拉长，加深 aliasing (深度跨度很大的多个点被量化到同一个
@@ -51,38 +54,112 @@ inline Vec3f calcNormalBias(const Vec3f& frag_n,
   //   1) 有 nl = cosθ，所以 tanθ = sinθ / cosθ = sqrt(1 - nl^2) / nl;
   //   2) tanθ 的性质：光线与表面垂直时，其值为 0; 光线与表面趋于平行时，slope 趋于无穷（设置 safe_nl 的原因），该性质符
   //      合 Normal Bias 的要求 --- 即 aliasing 程度越高，当前 frag 的法向几何位移应越大。
-  const f32 sin2 = std::max(0.0f, 1 - safe_nl * safe_nl);
-  const f32 slope = std::min(std::sqrt(sin2) / safe_nl, 3.0f);
+  f32 sin2 = std::max(0.0f, 1 - safe_nl * safe_nl);
+  // slope 上限不要给太大：几乎与光平行的面会造成极小的 safe_nl 从而直接取到斜率上限，然而在光空间里如此大的 normal bias,
+  // 沿墙法向偏移时对 light space z 几乎没有改善，反而在 light space xy 上有巨大偏移，造成阴影比较错误。
+  f32 slope = std::min(std::sqrt(sin2) / safe_nl, 1.0f);
   // - 法向位移距离。纹素大小起到自适应调节：Shadow Map 分辨率越小，每 texel 覆盖世界范围越大，aliasing 会加重，bias 会
   //   自动调整变大。
-  const f32 bias = slope * texel_size_ws;
+  f32 bias = slope * texel_size_ws;
 
   return bias * frag_n;
 }
 
-/// @brief 百分比遮挡过滤 PCF, Percentage Closer Filtering
-inline f32 sampleShadowPCF(const RenderTarget* shadow_map,
-                           const Vec2f& uv,
-                           const f32 depth_frag)
+inline f32 sampleVisibility(const CSMSamplingCtx* csm_ctx,
+                                           const CSMCascade* cascade,
+                                           const f32    nl,
+                                           const Vec3f& frag_pos,
+                                           const Vec3f& frag_n)
 {
-  const f32 texel_size = 1.0f / static_cast<f32>(shadow_map->width());
+  f32 visibility = 1.0f;
+  
+  Vec3f frag_pos_biased = frag_pos + calcNormalBias(frag_n, nl, cascade->texel_size_ws);
 
-  f32 visibility = 0.0f;
-  // 3x3 采样
-  for(int x = -1; x <= 1; ++x) {
-    for(int y = -1; y <= 1; ++y) {
-      const Vec2f offset = Vec2f{x, y} * texel_size;
-      f32 depth_from_map = shadow_map->sampleDepth(uv + offset);
-      // 用一个极小常量 bias 修补深度数值误差
-      const f32 depth_bias = 0.0005f;
-      if(depth_frag + depth_bias > depth_from_map)
-        visibility += 1.0f;
+  Vec4f frag_clip_ls = cascade->light_vp * frag_pos_biased.homogeneous();
+
+  Vec4f frag_ndc_ls = frag_clip_ls / frag_clip_ls.w();
+
+  Vec2f shadow_uv{
+    (frag_ndc_ls.x() + 1.0f) * 0.5f,
+    (frag_ndc_ls.y() + 1.0f) * 0.5f
+  };
+
+  if(Math::isBetween(frag_ndc_ls.z(), 0.0f, 1.0f) &&
+     Math::isBetween(shadow_uv.x(), 0.0f, 1.0f) &&
+     Math::isBetween(shadow_uv.y(), 0.0f, 1.0f))
+  {
+    f32 z_frag = frag_ndc_ls.z();
+
+    f32 z_map = csm_ctx->shadow_map_atlas->sampleTileDepth(shadow_uv, cascade->viewport);
+
+    constexpr f32 z_bias = 0.0001f;
+
+    if(z_frag + z_bias < z_map) visibility = 0.3f;
+  }
+
+  return visibility;
+}
+
+inline f32 CSMBlend(const CSMSamplingCtx* csm_ctx,
+                    const f32    nl,
+                    const Vec3f& frag_pos,
+                    const Vec3f& frag_n,
+                    const f32    frag_z_view) 
+{
+  f32 visibility = 1.0f;
+
+  auto cascade_query = csm_ctx->cascadeQuery(frag_z_view);
+
+  if(cascade_query) {
+    auto [cascade, index] = cascade_query.value();
+
+    visibility = sampleVisibility(csm_ctx, cascade, nl, frag_pos, frag_n);
+
+    f32 band_width = csm_ctx->blendBandWidth(index);
+
+    f32 blend_start = cascade->slice_far - band_width;
+
+    f32 blend_end = cascade->slice_far;
+
+    // 非尾级联且在混合带里。
+    if(index + 1 < csm_ctx->cascade_cnt && frag_z_view >= blend_start && frag_z_view <= blend_end) {
+      f32 blend_offset = frag_z_view - blend_start;
+      f32 t = blend_offset / band_width;
+
+      const CSMCascade* cascade_next = &csm_ctx->cascades[index + 1];
+
+      f32 vsb_next = sampleVisibility(csm_ctx, cascade_next, nl, frag_pos, frag_n);
+
+      visibility = Math::lerp(visibility, vsb_next, t);
     }
   }
-  visibility /= 9.0f; // 取平均值
-
-  // 将 visibility 从 [0, 1] 映射到 [0.3, 1.0]
-  return 0.3f + (visibility * 0.7f);
+  
+  return visibility;
 }
+
+/// @brief 百分比遮挡过滤 PCF, Percentage Closer Filtering
+// inline f32 sampleShadowPCF(const RenderTarget* shadow_map,
+//                            const Vec2f& uv,
+//                            const f32 depth_frag)
+// {
+//   f32 texel_size = 1.0f / static_cast<f32>(shadow_map->width());
+
+//   f32 visibility = 0.0f;
+//   // 3x3 采样
+//   for(int x = -1; x <= 1; ++x) {
+//     for(int y = -1; y <= 1; ++y) {
+//       Vec2f offset = Vec2f{x, y} * texel_size;
+//       f32 depth_from_map = shadow_map->sampleDepth(uv + offset);
+//       // 用一个极小常量 bias 修补深度数值误差
+//       f32 depth_bias = 0.0005f;
+//       if(depth_frag + depth_bias > depth_from_map)
+//         visibility += 1.0f;
+//     }
+//   }
+//   visibility /= 9.0f; // 取平均值
+
+//   // 将 visibility 从 [0, 1] 映射到 [0.3, 1.0]
+//   return 0.3f + (visibility * 0.7f);
+// }
   
 } // namespace Medium

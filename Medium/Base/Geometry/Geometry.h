@@ -4,7 +4,7 @@
 ///
 #pragma once
 
-#include "Geometry/Sphere.h"
+#include "Base/Geometry/Sphere.h"
 
 namespace Medium::Geometry {
 

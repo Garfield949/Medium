@@ -13,7 +13,7 @@
 namespace Medium {
 
 class MeshNode;
-struct ViewCtx;
+struct CameraCtx;
 
 /// @class RenderQueue
 /// @brief 渲染队列，在每个 pass 收集渲染命令
@@ -27,11 +27,11 @@ public:
 
   explicit RenderQueue(Type type) : type_{type} {}
   
-  void build(std::span<const MeshNode* const> mesh_nodes, const ViewCtx& view_ctx);
+  void build(std::span<const MeshNode* const> mesh_nodes, const CameraCtx& view_ctx);
 
   void sort();
   
-  [[nodiscard]] const std::vector<RenderCommand>& commands() const noexcept {
+  const std::vector<RenderCommand>& commands() const noexcept {
     return cmds_;
   }
 

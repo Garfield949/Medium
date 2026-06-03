@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Scene/Node.h"
-#include "Geometry/AABB.h"
+#include "Base/Geometry/AABB3D.h"
 #include "Resources/Forwards.h"
 
 namespace Medium {

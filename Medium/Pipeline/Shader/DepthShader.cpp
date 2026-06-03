@@ -7,13 +7,16 @@
 #include "DepthShader.h"
 
 #include "Pipeline/RenderContext.h"
-#include "Scene/Light/DirectionalLight.h"
 
 namespace Medium {
   
-void DepthShader::bind(const PassCtx& ctx, const Mat4f& world, const Material* mat) noexcept {
-  uniforms.wvp_light = ctx.frame_ctx->main_light->vpMatrix() * world;
-  uniforms.material  = mat;
+void DepthShader::bind(const ShaderBindCtx& bind_ctx, const Mat4f& world, const Material* mat) noexcept {
+  const CameraCtx& cam_ctx = bind_ctx.camera_ctx;
+
+  this->uniforms = {
+    .wvp_light = cam_ctx.vp * world,
+    .material  = mat,
+  };
 }
 
 } // Medium

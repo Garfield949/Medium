@@ -6,8 +6,8 @@
 ///
 #pragma once
 
-#include "Geometry/Plane.h"
-#include "Geometry/AABB.h"
+#include "Base/Geometry/Plane.h"
+#include "Base/Geometry/AABB3D.h"
 
 namespace Medium {
 
@@ -38,7 +38,7 @@ public:
   /// @brief 测试传入的包围盒是否与视椎相交。
   /// @details    六个裁剪面分别分割了两个半空间，每个平面的正面（法向）均指向视椎内。只要包围盒
   ///             完全在其中某个裁剪面的背面，那么它就一定不在视椎内部。
-  [[nodiscard]] bool intersects(const AABB3D& bbox) const noexcept {
+  bool intersects(const AABB3D& bbox) const noexcept {
     for(const auto& plane: planes) {
       const Vec3f& n = plane.normal();
       Vec3f p_vert = bbox.min;
@@ -47,7 +47,7 @@ public:
       if(n.y() >= 0) p_vert.y() = bbox.max.y();
       if(n.z() >= 0) p_vert.z() = bbox.max.z();
       // 最有希望在平面内部的点都在外面，那整个 AABB 都在外面
-      if(plane.signedDistTo(p_vert) < 0) 
+      if(plane.signedDistanceTo(p_vert) < 0)
         return false;
     }
     return true;

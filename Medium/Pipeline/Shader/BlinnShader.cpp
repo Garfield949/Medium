@@ -7,23 +7,24 @@
 #include "BlinnShader.h"
 
 #include "Pipeline/RenderContext.h"
-#include "Scene/Light/DirectionalLight.h"
 
 namespace Medium {
   
-void BlinnShader::bind(const PassCtx& ctx, const Mat4f& world, const Material* mat) noexcept {
-  const FrameCtx* frame_ctx = ctx.frame_ctx;
-  const ViewCtx*  view_ctx  = ctx.view_ctx;
-  
-  uniforms.world      = world;
-  uniforms.wvp        = view_ctx->vp * world;
-  uniforms.camera_pos = view_ctx->cam_pos;
-  uniforms.material   = mat;
+void BlinnShader::bind(const ShaderBindCtx& bind_ctx, const Mat4f& world, const Material* mat) noexcept {
+  const CameraCtx&   cam_ctx      = bind_ctx.camera_ctx;
+  const LightingCtx* lighting_ctx = bind_ctx.lighting_ctx;
 
-  uniforms.shadow_map = frame_ctx->shadow_map;
-  uniforms.wvp_light  = frame_ctx->main_light->vpMatrix();
-  uniforms.light_dir  = -(frame_ctx->main_light->transform.forward());
-  uniforms.dir_light_shadow_texel_size_ws = frame_ctx->dir_light_shadow_texel_size_ws;
+  this->uniforms = {
+    .camera_pos    = cam_ctx.cam_pos,
+    .view          = cam_ctx.view,
+    .wvp           = cam_ctx.vp * world,
+
+    .world         = world,
+    .material      = mat,
+
+    .light_dir_inv = -lighting_ctx->light_dir,
+    .csm_ctx      =  lighting_ctx->csm_data
+  };
 }
 
 } // namespace Medium

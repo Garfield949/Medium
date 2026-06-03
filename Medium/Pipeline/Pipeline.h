@@ -10,27 +10,31 @@
 #include "Pipeline/Shader/VariantShader.h"
 
 namespace Medium {
-  
 class  RenderTarget;
 class  Mesh;
 struct SubMesh;
-struct PassCtx;
-  
+struct ShaderBindCtx;
+struct RenderPassCtx;
+struct RectF;
 }
 
 namespace Medium::Pipeline {
 
-void executeCommands(const std::vector<RenderCommand>& cmds, 
-                      const PassCtx& ctx);
+void executeCommands(const std::vector<RenderCommand>& cmds,
+                     const ShaderBindCtx& shader_ctx,
+                     const RenderPassCtx& pass_ctx,
+                     VariantShader&       shader);
 
 void draw(const Mesh&    mesh,
           const SubMesh& sub_mesh,
-          VariantShader* shader,
-          RenderTarget*  buffer);
+          const RectF&   viewport,
+          RenderTarget&  buffer,
+          VariantShader& shader);
 
 void rasterize(const std::array<Vec4f, 3>&   tri_screen,
                const std::array<Varying, 3>& varyings,
-               VariantShader* shader,
-               RenderTarget*  buffer);
+               const RectF&   viewport,
+               RenderTarget&  buffer,
+               VariantShader& shader);
   
 } // namespace Medium::Pipeline

@@ -24,9 +24,7 @@ add_library(lua_static STATIC ${LUA_SOURCES})
 file(GLOB_RECURSE SOURCES "Medium/*.cpp" "Medium/*.h" "Medium/*.hpp")
 
 # 生成可执行文件
-add_executable(${PROJECT_NAME} ${SOURCES}
-        Medium/Pipeline/Shadow/ShadowManager.cpp
-        Medium/Pipeline/Shadow/ShadowManager.h)
+add_executable(${PROJECT_NAME} ${SOURCES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 20          # 指定项目使用 C++20

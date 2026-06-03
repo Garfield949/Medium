@@ -7,7 +7,6 @@
 #pragma once
 
 #include "Light.h"
-
 #include "Scene/Camera.h"
 
 namespace Medium {
@@ -26,15 +25,15 @@ public:
     ortho_camera_->setOrthoParams(near, far, width, height);
   }
 
-  [[nodiscard]] Mat4f vpMatrix() const noexcept {
-    return ortho_camera_->vpMatrix();
+  Mat4f viewProjMatrix() const noexcept {
+    return ortho_camera_->viewProjMatrix();
   }
 
-  [[nodiscard]] Mat4f viewMatrix() const noexcept {
+  Mat4f viewMatrix() const noexcept {
     return ortho_camera_->viewMatrix();
   }
 
-  [[nodiscard]] const Camera* attachedCamera() const noexcept {
+  const Camera* attachedCamera() const noexcept {
     return ortho_camera_;
   }
 

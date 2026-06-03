@@ -4,5 +4,4 @@ width = 1440
 height = 900
 
 [render.shadow]
-resolution = 2048
-csm_level = 2
+resolution = 1024

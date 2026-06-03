@@ -28,7 +28,7 @@ public:
   }
 
   // 加载 Wavefront OBJ 模型文件
-  MeshPtr loadFromObj (const std::filesystem::path& path_obj);
+  [[nodiscard]] MeshPtr loadFromObj (const std::filesystem::path& path_obj);
 
 private:
   AssetCache() = default;

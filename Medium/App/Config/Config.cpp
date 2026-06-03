@@ -43,12 +43,11 @@ AppCfg AppCfg::loadFromToml(const fs::path& config_dir) {
   // std::nullopt，if 判断失败而回退到默认值。
   auto window = toml_app["window"];
   if(auto v = window["title"].value<std::string>()) app_cfg.window.title  = *v;
-  if(auto v = window["width"].value<u32>())         app_cfg.window.width  = *v;
-  if(auto v = window["height"].value<u32>())        app_cfg.window.height = *v;
+  if(auto v = window["width"].value<u32>())         app_cfg.window.w  = *v;
+  if(auto v = window["height"].value<u32>())        app_cfg.window.h = *v;
 
   auto shadow = toml_app["render"]["shadow"];
   if(auto v = shadow["resolution"].value<u32>()) app_cfg.render.shadow.shadow_map_res = *v;
-  if(auto v = shadow["csm_level"].value<u32>())  app_cfg.render.shadow.csm_level = *v;
 
   return app_cfg.sanitized();
 }  
@@ -63,22 +62,19 @@ std::string AppCfg::toTomlString() const {
   "width = {}\n"
   "height = {}\n\n"
   "[render.shadow]\n"
-  "resolution = {}\n"
-  "csm_level = {}\n",
-  window.title, window.width, window.height,
-  render.shadow.shadow_map_res, render.shadow.csm_level);
+  "resolution = {}\n",
+  window.title, window.w, window.h,
+  render.shadow.shadow_map_res);
 }
 
 AppCfg AppCfg::sanitized() const noexcept {
   AppCfg res = *this;
   
-  res.window.width  = std::max(Config::kMinWindowWidth, window.width);
-  res.window.height = std::max(Config::kMinWindowHeight, window.height);
+  res.window.w = std::max(Config::kMinWindowWidth,  window.w);
+  res.window.h = std::max(Config::kMinWindowHeight, window.h);
   
   res.render.shadow.shadow_map_res =
     std::max(Config::kMinShadowRes, render.shadow.shadow_map_res);
-  res.render.shadow.csm_level =
-    std::clamp(render.shadow.csm_level, Config::kMinCSMLevel, Config::kMaxCSMLevel);
   
   return res;
 }

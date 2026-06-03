@@ -11,7 +11,7 @@ namespace Medium::Math {
 inline constexpr f32 MEDIUM_PI          = 3.141592653f;
 inline constexpr f32 KINDA_SMALL_NUMBER = 1e-4f;
 inline constexpr f32 VERY_SMALL_NUMBER  = 1e-6f;
-inline constexpr f32 KINDA_LIKE_ONE     = 0.999f;
+inline constexpr f32 KINDA_LIKE_ONE     = 0.99f;
 
 } // namespace Medium::Math
 
@@ -38,11 +38,11 @@ inline f32 rad_to_deg(f32 rad) noexcept {
 
 /// @brief 欧拉角转四元数
 /// @param    euler_deg 欧拉角（度数）Pitch(X), Heading(Y), Bank(Z)
-/* 1. AngleAxis 是旋转的一种「中间表达式」，其对乘号做了重载，相乘隐式得到一个 Quaternion.
-  * 2. 绕世界固定轴 Z-X-Y 旋转等价于绕对象轴 Y-X-Z 旋转.
-  * 3. 复合旋转为右结合：rot * v = Heading * (Pitch * (Bank * v))
-  *    固定轴视角为 Bank(Z) -> Pitch(X) -> Heading(Y)，局部轴视角为 Yaw(Y) -> Pitch(X) -> Roll(Z)
-  * 4. 该项目采用 FPS 控制，固采用 YXZ 的顺序旋转。                                             */
+/*  1. AngleAxis 是旋转的一种「中间表达式」，其对乘号做了重载，相乘隐式得到一个 Quaternion.
+ *  2. 绕世界固定轴 Z-X-Y 旋转等价于绕对象轴 Y-X-Z 旋转.
+ *  3. 复合旋转为右结合：rot * v = Heading * (Pitch * (Bank * v))
+ *     固定轴视角为 Bank(Z) -> Pitch(X) -> Heading(Y)，局部轴视角为 Yaw(Y) -> Pitch(X) -> Roll(Z)
+ *  4. 该项目采用 FPS 控制，固采用 YXZ 的顺序旋转。                                               */
 inline Quatf eulerToQuatf(const Vec3f& euler_deg) {
   f32 x_rad = deg_to_rad(euler_deg.x());
   f32 y_rad = deg_to_rad(euler_deg.y());
@@ -92,6 +92,8 @@ T interpolate(const T& attrib0, const T& attrib1, const T& attrib2, const Vec3f&
 }
 
 /// @brief 线性插值
+/// @details 因子 t 取值范围 [0, 1]；
+///          想象为一个滑轨，往 0 的方向滑动，就会更多取得 a 的贡献；往 1 的方向滑动，就会更多取得 b 的贡献。
 template<typename T>
 T lerp(const T& a, const T& b, f32 t) noexcept {
   return a * (1.0f - t) + b * t;
@@ -99,7 +101,7 @@ T lerp(const T& a, const T& b, f32 t) noexcept {
 
 /// @brief 判断 val 是否在给定区间里
 template<typename T>
-constexpr bool isBetween(T val, T min, T max) noexcept {
+bool isBetween(T val, T min, T max) noexcept {
   return val >= min && val <= max;
 }
 

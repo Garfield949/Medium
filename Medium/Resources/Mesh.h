@@ -6,12 +6,12 @@
 
 #include "Forwards.h"
 #include "Vertex.h"
-#include "Geometry/AABB.h"
+#include "Base/Geometry/AABB3D.h"
 
 namespace Medium {
 
 struct SubMesh {
-  [[nodiscard]] size_t triangleCnt() const noexcept {
+  size_t triangleCount() const noexcept {
     return index_count / 3;
   }
 

@@ -195,10 +195,10 @@ MeshPtr AssetCache::loadFromObj(const fs::path& obj_path) {
 
   fmt::print(fmt::emphasis::bold | fg(fmt::color::green), "\nAssetCache::loadFromObj - [{}]\n", obj_path_str);
   fmt::print("Vertices : {}\n"
-              "Normals  : {}\n"
-              "UVs      : {}\n"
-              "Submeshes: {}\n"
-              "Materials: {}\n\n", attrib.vertices.size()/3, attrib.normals.size()/3, attrib.texcoords.size()/2,
+             "Normals  : {}\n"
+             "UVs      : {}\n"
+             "Submeshes: {}\n"
+             "Materials: {}\n\n", attrib.vertices.size()/3, attrib.normals.size()/3, attrib.texcoords.size()/2,
                                   shapes.size(), materials.size());
 
   // 顶点、索引数组空间预计算。
@@ -245,7 +245,7 @@ void AssetCache::parseMTL(const MeshPtr& mesh_new,
 
     // 将 TinyObjLoader 读取的原始材质参数装入自定义结构
     MaterialParams& mat_new_params = mat_new->params;
-    mat_new_params.Kd    = {mat_t.diffuse[0],  mat_t.diffuse[1],  mat_t.diffuse[2], 1.0f, ColorSpace::SRGB};
+    mat_new_params.Kd    = {mat_t.diffuse[0],  mat_t.diffuse[1],  mat_t.diffuse[2], 1.0f, ColorSpace::Linear};
     mat_new_params.Ks    = {mat_t.specular[0], mat_t.specular[1], mat_t.specular[2]};
     mat_new_params.Ns    =  mat_t.shininess;
     mat_new_params.d     =  mat_t.dissolve;

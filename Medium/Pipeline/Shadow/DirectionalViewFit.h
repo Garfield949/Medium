@@ -6,27 +6,24 @@
 ///
 #pragma once
 
-#include "Geometry/AABB.h"
-#include "Scene/Camera.h"
+#include "Base/Geometry/AABB3D.h"
 
 namespace Medium {
   
 class Camera;
-class DirectionalLight;
 
-/// @struct DirectionalViewFitDesc
-/// @brief  平行光阴影拟合参数描述。Desc 是 Description 的简写。
-struct DirectionalViewFitDesc {
+/// @struct DirectionalViewFitParams
+struct DirectionalViewFitParams {
   const Camera* camera = nullptr;
   Vec3f light_dir;
-  u32 shadow_res = 0u;
-  f32 slice_far = 0.0f;
-  AABB3D bbox_scene_ws;
+  u32 shadow_res;
+  f32 slice_near;
+  f32 slice_far;
+  AABB3D scene_bbox_ws;
 };
 
 /// @struct DirectionalViewFit
 /// @brief  平行光阴影拟合结果
-/// @details 正交投影可直接将 near 设为 0，因为 “透视除法” 阶段顶点的 w 永远是 1，不会发生除零。
 struct DirectionalViewFit {
   Vec3f light_pos_ws;
   f32 ortho_near;
@@ -37,6 +34,6 @@ struct DirectionalViewFit {
 };
 
 /// @brief 根据参数计算返回平行光的视椎拟合结果
-DirectionalViewFit calcDirectionalViewFit(const DirectionalViewFitDesc& fit_desc);
+DirectionalViewFit calcDirectionalViewFit(const DirectionalViewFitParams& params);
   
 } // namespace Medium

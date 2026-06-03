@@ -15,12 +15,13 @@
 #include "Scene/Camera.h"
 #include "Scene/Light/DirectionalLight.h"
 #include "Scene/MeshNode.h"
+#include "Pipeline/Shadow/CSM.h"
 #include "Resources/AssetCache.h"
 
 namespace {
 
-// TODO: 鲁棒性处理（不过只要场景脚本写对也没啥大问题）。
 using namespace Medium;
+
 Vec3f readVec3f(const luabridge::LuaRef& tbl, std::string_view key) {
   luabridge::LuaRef v = tbl[key];
   return Vec3f{
@@ -32,12 +33,13 @@ Vec3f readVec3f(const luabridge::LuaRef& tbl, std::string_view key) {
 
 }
 
+// TODO: 鲁棒性处理（不过只要场景脚本写对也没啥大问题）
 namespace Medium {
+
+using namespace std;
 
 struct SceneLoader {
   static void setupCamera(const luabridge::LuaRef& tbl_scene, Scene* scene, f32 aspect_ratio) {
-    using namespace std;
-
     luabridge::LuaRef tbl_camera = tbl_scene["Camera"];
     f32 fov  = tbl_camera["fov"].cast<f32>().value();
     f32 near = tbl_camera["near"].cast<f32>().value();
@@ -45,28 +47,31 @@ struct SceneLoader {
     Vec3f pos = readVec3f(tbl_camera, "position");
     Vec3f rot = readVec3f(tbl_camera, "rotation");
 
-    scene->main_camera_ = scene->root_.attachChild(make_unique<Camera>("Main Camera", Camera::Mode::Perspective));
+    scene->main_camera_
+      = scene->root_.attachChild(make_unique<Camera>("Main Camera", Camera::Mode::Perspective));
     scene->main_camera_->setPerspParams(fov, near, aspect_ratio);
     scene->main_camera_->transform.setPosition(pos);
     scene->main_camera_->transform.setRotation(rot);
   }
 
   static void setupLight(const luabridge::LuaRef& tbl_scene, Scene* scene) {
-    using namespace std;
-
     luabridge::LuaRef tbl_dir = tbl_scene["Light"];
     Vec3f direction = readVec3f(tbl_dir, "direction");
-    f32 max_shadow_dist = tbl_dir["max_shadow_dist"].cast<f32>().value();
+    // 注意，初始化必须调用一次 lookAt 来调整方向光的姿态。每帧计算的 DirectionalView 仅是获取光相机的
+    // 位置和正交范围，并不会改变光的朝向。
+    scene->dir_light_ = scene->root_.attachChild(make_unique<DirectionalLight>("Main Light"));
+    scene->dir_light_->dir = direction.normalized();
+    scene->dir_light_->transform.lookAt(scene->dir_light_->dir);
+  }
 
-    scene->main_light_ = scene->root_.attachChild(make_unique<DirectionalLight>("Main Light"));
-    scene->main_light_->dir = direction.normalized();
-    scene->main_light_->transform.lookAt(scene->main_light_->dir);
-    scene->max_shadow_dist_ = max_shadow_dist;
+  static void readShadowCfg(const luabridge::LuaRef& tbl_scene, Scene* scene) {
+    luabridge::LuaRef tbl_shadow_cfg  = tbl_scene["ShadowConfig"];
+    scene->shadowCfg_.max_shadow_dist = tbl_shadow_cfg["max_shadow_distance"].cast<f32>().value();
+    scene->shadowCfg_.csm_cascade_cnt
+      = std::clamp(tbl_shadow_cfg["csm_cascade_count"].cast<u32>().value(), 1u, kMaxCSMCascades);
   }
 
   static bool setupModels(const luabridge::LuaRef& tbl_scene, Scene* scene) {
-    using namespace std;
-
     luabridge::LuaRef tbl_model = tbl_scene["Model"];
     string name = tbl_model["name"];
     string path = tbl_model["file"];
@@ -117,6 +122,7 @@ std::unique_ptr<Scene> Scene::loadFromLua(const std::filesystem::path& lua_path,
   
   SceneLoader::setupCamera(tbl_scene, scene.get(), aspect_ratio);
   SceneLoader::setupLight (tbl_scene, scene.get());
+  SceneLoader::readShadowCfg(tbl_scene, scene.get());
   if(!SceneLoader::setupModels(tbl_scene, scene.get()))
     return nullptr;
 

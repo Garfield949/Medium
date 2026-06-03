@@ -12,7 +12,7 @@
 
 namespace Medium {
 
-struct PassCtx;
+struct ShaderBindCtx;
 
 struct DepthShader {
   struct Uniform {
@@ -22,9 +22,9 @@ struct DepthShader {
   
   Uniform uniforms;
   
-  void bind(const PassCtx& ctx, const Mat4f& world, const Material* mat) noexcept;
+  void bind(const ShaderBindCtx& bind_ctx, const Mat4f& world, const Material* mat) noexcept;
 
-  [[nodiscard]] VSOut vertex(const Vertex& vert) const noexcept {
+  VSOut vertex(const Vertex& vert) const noexcept {
     Vec4f pos_clip = uniforms.wvp_light * vert.pos.homogeneous();
 
     Varying varying;
@@ -33,9 +33,9 @@ struct DepthShader {
     return { pos_clip, varying };
   }
 
-  [[nodiscard]] bool fragment(const std::array<Varying, 3>& varyings,
-                              const Vec3f& weights,
-                              LinearColor&) const noexcept
+  bool fragment(const std::array<Varying, 3>& varyings,
+                const Vec3f& weights,
+                LinearColor&) const noexcept
   {
     Vec2f frag_uv = Math::interpolate(varyings[0].uv, varyings[1].uv, varyings[2].uv, weights);
 

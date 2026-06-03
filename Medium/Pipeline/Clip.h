@@ -29,7 +29,7 @@ enum ClipPlane {
 struct ClipVertex {
   // 1/w 在 clip space 里是非线性的，不能直接插值。这里先对 pos 进行插值，再取 1/w.
   // Note: 不对插值过程中的 normal 和 tangent 进行归一化，因为 fragment 阶段会归一化。
-  [[nodiscard]] static ClipVertex lerp(const ClipVertex& a, const ClipVertex& b, f32 t) noexcept {
+  static ClipVertex lerp(const ClipVertex& a, const ClipVertex& b, f32 t) noexcept {
     Vec4f pos_lerp = Math::lerp(a.pos, b.pos, t);
     const Varying& var_a = a.varying;
     const Varying& var_b = b.varying;
@@ -71,7 +71,7 @@ inline constexpr std::array kClipPlanes = {
   Near, Left, Right, Top, Bottom, Far
 };
 
-[[nodiscard]] inline f32 calcSignedDistance(const Vec4f& v, const ClipPlane plane) noexcept {
+inline f32 calcSignedDistance(const Vec4f& v, const ClipPlane plane) noexcept {
   switch(plane) {
     case Left:   return v.w() + v.x();
     case Right:  return v.w() - v.x();
@@ -83,7 +83,7 @@ inline constexpr std::array kClipPlanes = {
   }
 }
 
-[[nodiscard]] inline ClipPolygon clipByPlane(const ClipPolygon& poly_in, const ClipPlane plane) noexcept {
+inline ClipPolygon clipByPlane(const ClipPolygon& poly_in, const ClipPlane plane) noexcept {
   ClipPolygon poly_out;
   
   // 遍历输入多边形的所有边，由 head -> tail 定义
@@ -110,7 +110,7 @@ inline constexpr std::array kClipPlanes = {
 }
 
 // 输入初始三角面片
-[[nodiscard]] inline bool clip(ClipPolygon& tri) noexcept {
+inline bool clip(ClipPolygon& tri) noexcept {
   int code0 = calcOutcode(tri.verts[0].pos);
   int code1 = calcOutcode(tri.verts[1].pos);
   int code2 = calcOutcode(tri.verts[2].pos);

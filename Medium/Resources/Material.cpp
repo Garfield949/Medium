@@ -6,8 +6,6 @@
 ///
 #include "Material.h"
 
-#include <fmt/color.h>
-
 namespace Medium {
 
 void Material::setEnables() noexcept {
@@ -20,13 +18,6 @@ void Material::setEnables() noexcept {
   enable_diss = diss_map_exists || !Math::isNearlyOne(params.d);
   enable_norm = norm_map_exists;
   enable_bump = bump_map_exists;
-  
-  // fmt::print(fmt::emphasis::bold | fg(fmt::color::green),
-  //        "\nMaterial: {}\n", name);
-  // fmt::print("Specular enabled: {}\n", enable_spec);
-  // fmt::print("Dissolve enabled: {}\n", enable_diss);
-  // fmt::print("Normal enabled: {}\n", enable_norm);
-  // fmt::print("Bump enabled: {}\n", enable_bump);
 }
 
 } // namespace Medium

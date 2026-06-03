@@ -38,6 +38,7 @@ class Material {
 public:
   Material(std::string mat_name = "Default") : name(std::move(mat_name)) {}
 
+  [[nodiscard]]
   static std::shared_ptr<Material> Default() {
     return std::make_shared<Material>();
   }

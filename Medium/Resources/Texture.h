@@ -22,7 +22,7 @@ class Texture {
 public:
   enum class FilterMode { Nearest, Bilinear };
   
-  [[nodiscard]] LinearColor texel(i32 x, i32 y) const noexcept {
+  LinearColor texel(i32 x, i32 y) const noexcept {
     x = std::clamp(x, 0, w_ - 1);
     y = std::clamp(y, 0, h_ - 1);
     // 平铺的 R,G,B,A
@@ -33,7 +33,7 @@ public:
     return res;
   }
 
-  [[nodiscard]] LinearColor sample(const Vec2f& uv, FilterMode filter_mode) const noexcept {
+  LinearColor sample(const Vec2f& uv, FilterMode filter_mode) const noexcept {
     // - Repeat 平铺模式，取小数部分：1.1 -> 0.1, 1.0 -> 0.0
     // - U, V 能取到的范围是 0 ~ 0.9999..
     f32 U = uv.x() - std::floor(uv.x());
@@ -75,8 +75,8 @@ public:
     return Math::lerp(bottom, top, t2);
   }
 
-  [[nodiscard]] u32 width()  const noexcept { return w_; }
-  [[nodiscard]] u32 height() const noexcept { return h_; }
+  u32 width()  const noexcept { return w_; }
+  u32 height() const noexcept { return h_; }
 
 private:
   Texture() = default;

@@ -12,3 +12,14 @@ C++ 特性：
 
 - 命名空间别名：namespace fs = std::filesystem; 注意不能写为 using fs = std::filesystem; std::filesystem 并不是一个具
   体类型；
+
+- std::lround: 将浮点数四舍五入，并将结果转为一个 long 有符号整数；
+
+- 聚合体 Aggregates, 纯数据结构。条件：
+  - 无继承关系；
+  - 所有成员为public；
+  - 无显式构造函数。
+
+- std::vector 的 resize 和 reserve 的区别：
+  - resize 分配指定大小的内存并对所有元素进行初始化，即同时改变 capacity 和 size;
+  - reserve 只分配指定大小的内存，不进行初始化，只改变 capacity.

@@ -4,9 +4,11 @@
 ///
 #pragma once
 
+#include <array>
+
 #include "Base/Types.h"
-#include "Geometry/Frustum.h"
-#include "Geometry/Sphere.h"
+#include "Base/Geometry/Frustum.h"
+#include "Base/Geometry/Sphere.h"
 #include "Scene/Node.h"
 
 namespace Medium {
@@ -17,6 +19,8 @@ namespace Medium {
 class Camera : public Node{
 public:
   static constexpr NodeType Type = NodeType::Camera;
+
+  static constexpr f32 MinimumNearPlane = 0.1f;
 
   enum class Mode { 
     Perspective, Orthographic
@@ -29,37 +33,44 @@ public:
   void setPerspParams(f32 fov, f32 near, f32 aspect_ratio) noexcept;
   
   /// @brief 当构造为一个正交相机时，传入相应参数
+  /// @details 正交投影可直接将 near 设为 0，因为 “透视除法” 阶段顶点的 w 永远是 1，不会发生除零。
   void setOrthoParams(f32 near, f32 far, f32 width, f32 height) noexcept;
   
   /// @brief 修改视区宽高比，通常用于窗口缩放
   void setAspectRatio(f32 aspect_ratio) noexcept;
   
   /// @brief 返回相机所属的视椎体，由相机的 view_projection 矩阵构建
-  [[nodiscard]] Frustum frustum() const noexcept {
-    return Frustum::fromMatrixVP(vpMatrix());
+  Frustum frustum() const noexcept {
+    return Frustum::fromMatrixVP(viewProjMatrix());
   }
-  
-  /// @brief 返回相机视椎切片的八个局部空间角点。
-  /// @details    由于采用无限远平面，所以返回一个视椎切片：即接收一个 slice_far 作为切片的远平面，near
-  ///             依然采用初始化相机时传入的值；先算出 near 和 slice_far 的右上角点，再一一镜像即可得到
-  ///             所有 8 个角点。
-  [[nodiscard]] std::array<Vec3f, 8> slicedFrustumCornersLocal(f32 slice_far) const noexcept;
+
+  /// @brief 构造相机视椎切片的外接球，球心转换到世界坐标，并根据变换缩放半径。
+  Sphere slicedFrustumCircumSphereWorld(f32 slice_near, f32 slice_far) const noexcept;
 
   /// @brief 返回相机视椎切片的八个世界空间角点。
-  [[nodiscard]] std::array<Vec3f, 8> slicedFrustumCornersWorld(f32 slice_far) const noexcept;
+  /// @details 由于采用无限远平面，所以返回一个视椎切片：slice_near 和 slice_far 作为切片的近平面和远平面，
+  std::array<Vec3f, 8> slicedFrustumCornersWorld(f32 slice_near, f32 slice_far) const noexcept;
+  
+  const Mat4f& projMatrix() const noexcept;
+  Mat4f viewMatrix()        const noexcept;
+  Mat4f viewProjMatrix()    const noexcept;
+
+  /// @brief 返回近平面。
+  f32 near() const noexcept { return near_; }
+  /// @brief 返回远平面，对于透视投影返回无穷大。
+  f32 far()  const noexcept { 
+    return mode_ == Mode::Orthographic ? far_ : std::numeric_limits<f32>::infinity();
+  }
+
+private:
+  /// @brief 返回相机视椎切片的八个局部空间角点。
+  /// @details 先算出 slice_near 和 slice_far 的右上角点，再一一镜像即可得到所有 8 个角点。
+  std::array<Vec3f, 8> slicedFrustumCornersLocal(f32 slice_near, f32 slice_far) const noexcept;
 
   /// @brief 构造相机局部空间视椎外接球。
   /// @details 直接由解析解构造，速度较快。
-  [[nodiscard]] Sphere slicedFrustumCircumSphereLocal(f32 slice_far) const noexcept;
-
-  /// @brief 构造相机视椎的外接球，球心转换到世界坐标。
-  [[nodiscard]] Sphere slicedFrustumCircumSphereWorld(f32 slice_far) const noexcept;
-
-  [[nodiscard]] const Mat4f& projMatrix() const noexcept;
-  [[nodiscard]] Mat4f viewMatrix()        const noexcept;
-  [[nodiscard]] Mat4f vpMatrix()          const noexcept;
-
-private:
+  Sphere slicedFrustumCircumSphereLocal(f32 slice_near, f32 slice_far) const noexcept;
+  
   void updateMatProj() const noexcept;
 
   Mode mode_;

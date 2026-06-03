@@ -14,17 +14,16 @@ namespace Medium {
   
 struct WindowCfg {
   std::string title{Config::kDefaultWindowTitle};
-  u32 width  = Config::kDefaultWindowWidth;
-  u32 height = Config::kDefaultWindowHeight;
+  u32 w = Config::kDefaultWindowWidth;
+  u32 h = Config::kDefaultWindowHeight;
 
-  [[nodiscard]] f32 aspectRatio() const {
-    return static_cast<f32>(width) / static_cast<f32>(height);
+  f32 aspectRatio() const {
+    return static_cast<f32>(w) / static_cast<f32>(h);
   }
 };
 
 struct ShadowCfg {
   u32 shadow_map_res = Config::kDefaultShadowRes;
-  u32 csm_level = Config::kDefaultCSMLevel;
 };
 
 struct RenderCfg {
@@ -32,11 +31,12 @@ struct RenderCfg {
 };
 
 struct AppCfg {
+  [[nodiscard]]
   static AppCfg loadFromToml(const std::filesystem::path& config_dir);
 
-  [[nodiscard]] std::string toTomlString() const;
+  std::string toTomlString() const;
   
-  [[nodiscard]] AppCfg sanitized() const noexcept;
+  AppCfg sanitized() const noexcept;
 
   void saveToTomlFile() const;
 

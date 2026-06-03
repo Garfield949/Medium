@@ -7,48 +7,43 @@
 #pragma once
 
 #include "Base/Types.h"
-#include "Scene/Camera.h"
+#include "Base/Geometry/Frustum.h"
 #include "Pipeline/Shader/VariantShader.h"
 
 namespace Medium {
 
 class RenderTarget;
 class DirectionalLight;
+struct RectF;
+struct CSMSamplingCtx;
 
-/// @struct FrameCtx
-/// @brief 一帧所需的上下文
-struct FrameCtx {
-  const DirectionalLight* main_light = nullptr;
-  RenderTarget* shadow_map = nullptr;
-
-  f32 dir_light_shadow_texel_size_ws = 0.0f;
-};
-
-/// @struct ViewCtx
+/// @struct CameraCtx
 /// @brief 相机视图相关的上下文
-struct ViewCtx {
-  explicit ViewCtx(const Camera* cam)
-    : view{cam->viewMatrix()},
-      proj{cam->projMatrix()},
-      vp{proj * view},
-      frustum{cam->frustum()},
-      cam_pos{cam->transform.worldPosition()} {}
-
-  Mat4f view;
-  Mat4f proj;
-  Mat4f vp;
-  Frustum frustum;
-  Vec3f cam_pos;
+struct CameraCtx {
+  Vec3f   cam_pos;
+  Mat4f   view;
+  Mat4f   vp;
+  Frustum frustum; // 用于 culling.
 };
 
-/// @struct PassCtx
-/// @brief 单 Pass 所需的上下文
-struct PassCtx {
-  const FrameCtx* frame_ctx;
-  const ViewCtx*  view_ctx;
-
-  RenderTarget*  buffer;
-  VariantShader* shader;
+/// @struct LightingCtx
+struct LightingCtx {
+  Vec3f light_dir;
+  const CSMSamplingCtx* csm_data = nullptr;
 };
+
+/// @struct ShaderBindCtx
+struct ShaderBindCtx {
+  const CameraCtx&   camera_ctx;
+  const LightingCtx* lighting_ctx = nullptr;
+};
+
+/// @struct RenderPassCtx
+struct RenderPassCtx {
+  const RectF&  viewport;
+  RenderTarget& buffer;
+};
+
+// 注：将某些字段设为一个指针，当目标着色器用不到该字段时，可直接设为 nullptr.
 
 } // namespace Medium

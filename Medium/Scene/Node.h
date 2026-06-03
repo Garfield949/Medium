@@ -11,7 +11,7 @@
 namespace Medium {
 
 class RenderQueue;
-struct ViewCtx;
+struct CameraCtx;
 
 // 用于 cast_to 进行类型识别
 enum class NodeType { Vanilla, MeshInstance, Light, Camera };
@@ -29,7 +29,7 @@ public:
 
   void setName(std::string name) { name_ = std::move(name); }
 
-  [[nodiscard]] const std::string& name() const noexcept { return name_; }
+  const std::string& name() const noexcept { return name_; }
 
   /// @brief 静态方法，试图将传入的 Node* 静态转型为指定的 NodeT*
   template<typename NodeT>
@@ -82,6 +82,7 @@ public:
   }
 
 protected:
+  // TODO: 暂时不知道给节点起名有啥用。
   std::string name_;
   Node* parent_ = nullptr;
   std::vector<std::unique_ptr<Node>> children_;

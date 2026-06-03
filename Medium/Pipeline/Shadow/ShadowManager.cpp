@@ -7,52 +7,96 @@
 #include "ShadowManager.h"
 
 #include "Scene/Light/DirectionalLight.h"
+#include "Pipeline/Shadow/CSM.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderContext.h"
 #include "Pipeline/RenderQueue.h"
 
 namespace Medium {
 
-void ShadowManager::render(std::span<const MeshNode* const> mesh_nodes,
-                           const AABB3D& bbox_scene_ws,
-                           const f32 max_shadow_dist) {
-  shadow_map_->clearDepthBuf();
+void ShadowManager::init(Camera* camera, 
+                         DirectionalLight* dir_light,
+                         u32 shadow_map_tile_res,
+                         f32 max_shadow_dist,
+                         i32 cascade_count)
+{  
+  camera_          = camera;
+  dir_light_       = dir_light;
 
-  // 构造平行光视椎拟合参数
-  // TODO: 取消掉 DirectionalViewFitDesc，改为传参
-  DirectionalViewFitDesc fit_desc{
-    .camera     = main_camera_,
-    .light_dir  = main_light_->dir,
-    .shadow_res = shadow_map_->width(),
-    .slice_far  = max_shadow_dist,
-    .bbox_scene_ws = bbox_scene_ws
-  };
+  cascade_cnt_         = cascade_count;
+  max_shadow_dist_     = max_shadow_dist;
+  shadow_map_tile_res_ = shadow_map_tile_res;
 
-  // 获取平行光视椎拟合结果并重建平行光空间
-  auto dir_light_view_fit = calcDirectionalViewFit(fit_desc);
-  main_light_->applyViewFit(dir_light_view_fit);
+  // shadow_map_res 是单张 tile 的分辨率。
+  shadow_map_atlas_ = std::make_unique<RenderTarget>(shadow_map_tile_res << 1, RenderTarget::Mode::ShadowMap);
 
-  FrameCtx frame_ctx {
-    .main_light = main_light_,
-    .shadow_map = shadow_map_.get()
-  };
+  csm_ctx_.cascade_cnt      = cascade_cnt_;
+  csm_ctx_.shadow_map_atlas = shadow_map_atlas_.get();
 
-  shadow_texel_size_ws_ = dir_light_view_fit.shadow_texel_size_ws;
+  // 计算级联切片逻辑范围。
+  csm_slices_ = calcCSMSlices(camera_->near(), max_shadow_dist, cascade_count);
 
-  ViewCtx view_ctx_shadow { main_light_->attachedCamera() };
+  // 计算各 tile 视区
+  for(i32 i = 0; i < cascade_cnt_; i++)
+    cascade_viewports_[i] = calcCSMAtlasViewport(i, shadow_map_tile_res);
+}
 
-  PassCtx pass_ctx_shadow {
-    .frame_ctx = &frame_ctx,
-    .view_ctx  = &view_ctx_shadow,
-    .buffer    = shadow_map_.get(),
-    .shader    = &depth_shader_,
-  };
-  
-  RenderQueue shadow_caster_queue{RenderQueue::Type::Shadow};
-  shadow_caster_queue.build(mesh_nodes, view_ctx_shadow);
-  shadow_caster_queue.sort();
+void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
+                           const AABB3D& bbox_scene_ws)
+{
+  shadow_map_atlas_->clearDepthBuf();
 
-  Pipeline::executeCommands(shadow_caster_queue.commands(), pass_ctx_shadow);
+  // 计算 CSMFrameCtx 各级联数据。
+  for(i32 i = 0; i < cascade_cnt_; i++) {
+    f32 fit_near = csm_slices_[i];
+    f32 fit_far  = csm_slices_[i + 1];
+
+    // 从 CSM1 开始将拟合的 near 边界往前一级联扩张一些。
+    if(i > 0) fit_near = csm_slices_[i] - csm_ctx_.blendBandWidth(i - 1);
+
+    DirectionalViewFitParams fit_params{
+      .camera        = camera_,
+      .light_dir     = dir_light_->dir,
+      .shadow_res    = shadow_map_tile_res_,
+      .slice_near    = fit_near,
+      .slice_far     = fit_far,
+      .scene_bbox_ws = bbox_scene_ws
+    };
+
+    DirectionalViewFit fit = calcDirectionalViewFit(fit_params);
+    dir_light_->applyViewFit(fit);
+
+    csm_ctx_.cascades[i] = {
+      .slice_near    = csm_slices_[i],
+      .slice_far     = csm_slices_[i + 1],
+      .light_vp      = dir_light_->viewProjMatrix(),
+      .viewport      = cascade_viewports_[i],
+      .texel_size_ws = fit.shadow_texel_size_ws
+    };
+
+    const Camera* light_cam = dir_light_->attachedCamera();
+    CameraCtx cam_ctx{
+      .cam_pos = light_cam->transform.worldPosition(),
+      .view    = light_cam->viewMatrix(),
+      .vp      = light_cam->viewProjMatrix(),
+      .frustum = light_cam->frustum()
+    };
+
+    ShaderBindCtx shader_ctx{
+      .camera_ctx = cam_ctx
+    };
+
+    RenderPassCtx pass_ctx{
+      .viewport = cascade_viewports_[i],
+      .buffer   = *shadow_map_atlas_
+    };
+
+    RenderQueue queue{RenderQueue::Type::Shadow};
+    queue.build(scene_mesh_nodes, cam_ctx);
+    queue.sort();
+
+    Pipeline::executeCommands(queue.commands(), shader_ctx, pass_ctx, depth_shader_);
+  }
 }
 
 } // namespace Medium

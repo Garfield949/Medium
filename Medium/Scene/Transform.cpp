@@ -99,6 +99,12 @@ Quatf Transform::worldRotation() const noexcept {
   return rot_local_;
 }
 
+f32 Transform::worldScale() const noexcept {
+  if(const auto ptr = belong_to_->parent_)
+    return ptr->transform.worldScale() * scale_local_;
+  return scale_local_;
+}
+
 const Mat4f& Transform::worldMatrix() const noexcept {
   if(dirty_world_) {
     updateWorldMatrix();

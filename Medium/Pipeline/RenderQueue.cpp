@@ -12,7 +12,7 @@
 
 namespace Medium {
 
-void RenderQueue::build(std::span<const MeshNode* const> mesh_nodes, const ViewCtx& view_ctx) {
+void RenderQueue::build(std::span<const MeshNode* const> mesh_nodes, const CameraCtx& view_ctx) {
   for(auto mesh_node: mesh_nodes) {
     const MeshPtr& mesh    = mesh_node->mesh();
     const Mat4f&   world   = mesh_node->transform.worldMatrix();

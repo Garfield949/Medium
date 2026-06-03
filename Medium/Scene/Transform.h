@@ -48,20 +48,21 @@ public:
   void rotate(const Vec3f& axis, f32 euler_degree, Space space = Space::Self) noexcept;
 
   // ---------- Getters: 获取状态
-  [[nodiscard]] const Vec3f& position() const noexcept { return pos_local_; }
-  [[nodiscard]] const Quatf& rotation() const noexcept { return rot_local_; }
-  [[nodiscard]] f32          scale()    const noexcept { return scale_local_; }
+  const Vec3f& position() const noexcept { return pos_local_; }
+  const Quatf& rotation() const noexcept { return rot_local_; }
+  f32          scale()    const noexcept { return scale_local_; }
 
-  [[nodiscard]] Vec3f worldPosition() const noexcept;
-  [[nodiscard]] Quatf worldRotation() const noexcept;
+  Vec3f worldPosition() const noexcept;
+  Quatf worldRotation() const noexcept;
+  f32   worldScale()    const noexcept;
 
-  [[nodiscard]] const Mat4f& worldMatrix() const noexcept;
-  [[nodiscard]] const Mat4f& localMatrix() const noexcept;
-  [[nodiscard]] Mat4f worldMatrixInverse() const noexcept;
+  const Mat4f& worldMatrix() const noexcept;
+  const Mat4f& localMatrix() const noexcept;
+  Mat4f worldMatrixInverse() const noexcept;
 
-  [[nodiscard]] Vec3f forward() const noexcept;
-  [[nodiscard]] Vec3f up() const      noexcept;
-  [[nodiscard]] Vec3f right() const   noexcept;
+  Vec3f forward() const noexcept;
+  Vec3f up() const      noexcept;
+  Vec3f right() const   noexcept;
 
 private:
   void updateDirtyFlags()  noexcept;       // 递归地更新附属节点的孩子的脏标记

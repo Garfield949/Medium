@@ -12,7 +12,7 @@ TODO
 
 - Shader 动态绑定 : Done
 
-- 阴影贴图 : Done
+- CSM : Done
 
 - 完成 Scene 类型: Done
 
@@ -20,14 +20,18 @@ TODO
 
 - 将场景解析的职责从 Scene 拆分出来为一个类型（Config 同理）
 
+- 设计 Plane 类型，可为 dragon 这种模型提供一个地面
+
 - RenderQueue, RenderCommand :
 
 - 将渲染分为多pass
 
 - 包围盒线框debug
 
-- Alpha 预乘
+- Alpha blending:
 
 - Mipmap
 
 - 环境光遮蔽
+
+- License 署名

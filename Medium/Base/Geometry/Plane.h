@@ -6,8 +6,6 @@
 ///
 #pragma once
 
-#include <utility>
-
 #include "Base/Math/Math.h"
 #include "Base/Types.h"
 
@@ -39,9 +37,9 @@ public:
     }
   }
 
-  [[nodiscard]] f32 signedDistTo(const Vec3f& p) const noexcept { return N.dot(p) + D; }
+  f32 signedDistanceTo(const Vec3f& p) const noexcept { return N.dot(p) + D; }
 
-  [[nodiscard]] const Vec3f& normal() const noexcept { return N; }
+  const Vec3f& normal() const noexcept { return N; }
 
 private:
   Vec3f N = Vec3f::Zero();

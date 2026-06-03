@@ -4,14 +4,14 @@
 ///
 #pragma once
 
+#include "App/Profiler.h"
+#include "App/FPSController.h"
 #include "Config/Config.h"
 #include "Platform/Timer.h"
-#include "Platform/Profiler.h"
 #include "Platform/Input.h"
 #include "Scene/Scene.h"
-#include "Scene/FPSController.h"
-#include "Pipeline/RenderTarget.h"
 #include "Pipeline/Shadow/ShadowManager.h"
+#include "Pipeline/ForwardRenderer.h"
 
 using namespace Medium;
 
@@ -21,10 +21,10 @@ struct mfb_window;
 
 class App {
 public:
-  App();
+  explicit App() = default;
 
   // 资源加载
-  [[nodiscard]] bool init();
+  bool init();
 
   // 主循环
   void loop();
@@ -32,6 +32,7 @@ public:
   void quit();
 
 private:
+  void loadConfig();
   bool createWindow();
   bool loadScene();
   void setupTools() noexcept;
@@ -48,8 +49,9 @@ private:
   Profiler      profiler_;
   FPSController controller_;
 
-  std::unique_ptr<RenderTarget> frame_buf_    = nullptr;
-  std::unique_ptr<Scene>        active_scene_ = nullptr;
+  // 使用智能指针的原因：若有场景切换需求，需从 Scene::loadFromLua 接收一个 std::unique_ptr<Scene>，避免深拷贝。
+  std::unique_ptr<Scene> active_scene_ = nullptr;
 
-  ShadowManager shadow_renderer_;
+  ShadowManager   shadow_manager_;
+  ForwardRenderer forward_renderer_;
 };
