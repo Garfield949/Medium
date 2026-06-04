@@ -6,6 +6,7 @@
 
 #include "Base/Color.h"
 #include "Base/Geometry/Rect.h"
+#include <cstddef>
 
 namespace Medium {
 
@@ -56,13 +57,18 @@ public:
     return new_dep > depth_buf_[index];
   }
 
-  void writeDepth(u32 index, f32 new_dep) noexcept {
+  void writeDepth(size_t index, f32 new_dep) noexcept {
     depth_buf_[index] = new_dep;
   }
 
-  void setColor(u32 index, const LinearColor& linear) noexcept {
+  void setColor(size_t index, const LinearColor& linear) noexcept {
     if(mode_ == Mode::ShadowMap) return;
     color_buf_hdr_[index] = linear;
+  }
+
+  void setColorPremultiplied(size_t index, const LinearColor& src_linear) noexcept {
+    if(mode_ == Mode::ShadowMap) return;
+    color_buf_hdr_[index] = LinearColor::premulOver(src_linear, color_buf_hdr_[index]);
   }
 
   // TODO: 改名

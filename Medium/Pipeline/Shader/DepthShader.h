@@ -42,10 +42,9 @@ struct DepthShader {
     const Material* mat = uniforms.material;
 
     // Alpha Test
-    if(mat->enable_diss) {
-      f32 d = sampleSlot(mat->diss_slot, frag_uv).R;
-      f32 alpha_cutoff = 0.5f; // 透明度阈值
-      if(d < alpha_cutoff) return true;
+    if(mat->surface_mode == Material::SurfaceMode::Masked) {
+      f32 value = sampleSlot(mat->diss_slot, frag_uv).R;
+      if(value < Material::AlphaCutoff) return true;
     }
 
     return false;

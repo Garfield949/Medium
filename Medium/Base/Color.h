@@ -81,7 +81,7 @@ struct Color {
 
 
 /// @struct LinearColor
-/// @brief  表示线性（物理）空间的颜色，r, g, b, a 为限定在 [0.0f, 1.0f] 范围内的浮点数。
+/// @brief  表示线性（物理）空间的颜色。
 struct LinearColor {
   f32 R = 0.0f, G = 0.0f, B = 0.0f, A = 1.0f;
 
@@ -158,9 +158,11 @@ struct LinearColor {
     f32 alpha_linear_inv = Math::isNearlyZero(alpha_clamped) ? 0.0f : 1.0f / alpha_clamped;
     return {R * alpha_linear_inv, G * alpha_linear_inv, B * alpha_linear_inv, alpha_clamped};
   }
-  
-  static LinearColor premulOver(const LinearColor& src, const LinearColor& dst) noexcept {
-    return src + dst * (1.0f - src.A);
+
+  /// @brief 预乘叠加混合。
+  /// @details src 为新生成颜色，dst 为着色点已存在的背景色。
+  static LinearColor premulOver(const LinearColor& src_premult, const LinearColor& dst) noexcept {
+    return src_premult + dst * (1.0f - src_premult.A);
   }
 
   /// @brief 将各分量钳制在 [0, 1]

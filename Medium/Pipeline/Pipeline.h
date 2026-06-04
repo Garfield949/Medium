@@ -16,6 +16,7 @@ struct SubMesh;
 struct ShaderBindCtx;
 struct RenderPassCtx;
 struct RectF;
+struct RenderState;
 }
 
 namespace Medium::Pipeline {
@@ -25,16 +26,18 @@ void executeCommands(const std::vector<RenderCommand>& cmds,
                      const RenderPassCtx& pass_ctx,
                      VariantShader&       shader);
 
-void draw(const Mesh&    mesh,
-          const SubMesh& sub_mesh,
-          const RectF&   viewport,
-          RenderTarget&  buffer,
-          VariantShader& shader);
+void draw(const Mesh&        mesh,
+          const SubMesh&     sub_mesh,
+          const RenderState& render_state,
+          const RectF&       viewport,
+          RenderTarget&      buffer,
+          VariantShader&     shader);
 
 void rasterize(const std::array<Vec4f, 3>&   tri_screen,
                const std::array<Varying, 3>& varyings,
-               const RectF&   viewport,
-               RenderTarget&  buffer,
-               VariantShader& shader);
+               const RenderState& render_state,
+               const RectF&       viewport,
+               RenderTarget&      buffer,
+               VariantShader&     shader);
   
 } // namespace Medium::Pipeline

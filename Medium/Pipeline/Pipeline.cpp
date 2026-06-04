@@ -67,20 +67,21 @@ namespace Medium::Pipeline {
 void executeCommands(const std::vector<RenderCommand>& cmds,
                      const ShaderBindCtx& shader_ctx,
                      const RenderPassCtx& pass_ctx,
-                     VariantShader&       shader)
+                     VariantShader& shader)
 {
   std::visit([&](auto& active_shader) {
     for(const auto& cmd: cmds) {
       active_shader.bind(shader_ctx, cmd.mat_world, cmd.material);
-      draw(*cmd.mesh, *cmd.submesh, pass_ctx.viewport, pass_ctx.buffer, shader);
+      draw(*cmd.mesh, *cmd.submesh, pass_ctx.render_state, pass_ctx.viewport, pass_ctx.buffer, shader);
     }
   }, shader);
 }
 
-void draw(const Mesh&    mesh,
+void draw(const Mesh& mesh,
           const SubMesh& sub_mesh,
-          const RectF&   viewport,
-          RenderTarget&  buffer,
+          const RenderState& render_state,
+          const RectF& viewport,
+          RenderTarget& buffer,
           VariantShader& shader)
 {
   std::visit([&](auto& active_shader) { // SubMesh 层级做 dispatch
@@ -130,7 +131,7 @@ void draw(const Mesh&    mesh,
           clip_poly.verts[0].varying, clip_poly.verts[l].varying, clip_poly.verts[l + 1].varying
         };
         // 将屏幕坐标送进光栅器。
-        rasterize(triangle, varyings, viewport, buffer, shader);
+        rasterize(triangle, varyings, render_state, viewport, buffer, shader);
       }
     }
 
@@ -145,8 +146,9 @@ void draw(const Mesh&    mesh,
 // 注：当应用了次像素，边函数就变为了 E(x*scale, y*scale) = (A*scale)x + (B*scale)y + C.
 void rasterize(const std::array<Vec4f, 3>&   tri_screen,
                const std::array<Varying, 3>& varyings,
-               const RectF&   viewport,
-               RenderTarget&  buffer,
+               const RenderState& render_state,
+               const RectF& viewport,
+               RenderTarget& buffer,
                VariantShader& shader)
 {
   using namespace Geometry;
@@ -212,27 +214,29 @@ void rasterize(const std::array<Vec4f, 3>&   tri_screen,
           // Equation 值需临时减去偏置，重心坐标需要精确的值
           // V0 对应对边 E12，其它同理
           Vec3f weights{
-            static_cast<f32>(E12-bias12) * area_total_inv,
-            static_cast<f32>(E20-bias20) * area_total_inv,
-            static_cast<f32>(E01-bias01) * area_total_inv
+            static_cast<f32>(E12 - bias12) * area_total_inv,
+            static_cast<f32>(E20 - bias20) * area_total_inv,
+            static_cast<f32>(E01 - bias01) * area_total_inv
           };
-
           // Zndc 已是 A+B/z 的形式，在屏幕空间是线性的，无需透视矫正插值。
           f32 z_interp = Math::interpolate(vert_depth[0], vert_depth[1], vert_depth[2], weights);
-
-          // Early-Z
+          // Early-Z.
           u32 index = buffer.getBufIdx(x, y);
           if(buffer.depthTest(index, z_interp)) {
             LinearColor frag_color;
-            // Alpha test
+            // Alpha test.
             bool discard = active_shader.fragment(varyings, weights, frag_color);
             if(!discard) {
-              buffer.writeDepth(index, z_interp);
-              buffer.setColor(index, frag_color);
+              if(render_state.depth_write) 
+                buffer.writeDepth(index, z_interp);
+              if(render_state.blend_mode == BlendMode::Replace)
+                buffer.setColor(index, frag_color);
+              else
+                buffer.setColorPremultiplied(index, frag_color.premultiplied());
             }
           }
         }
-        //  E(X+1,Y) 方向推进
+        // E(X+1,Y) 方向推进
         E01 += A01;
         E12 += A12;
         E20 += A20;

@@ -38,7 +38,7 @@ bool App::loadScene() {
   const WindowCfg& cfg_window = app_config_.window;
   
   auto lua_path = fs::path(PROJECT_ROOT_DIR) / "scenes"
-    / "bmw.lua";
+      / "living_room.lua";
   
   active_scene_ = Scene::loadFromLua(lua_path, cfg_window.aspectRatio());
 

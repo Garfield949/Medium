@@ -86,16 +86,20 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
       .camera_ctx = cam_ctx
     };
 
-    RenderPassCtx pass_ctx{
+    RenderPassCtx opaque_pass_ctx{
+      .render_state = {
+        .blend_mode = BlendMode::Replace,
+        .depth_write = true
+      },
       .viewport = cascade_viewports_[i],
       .buffer   = *shadow_map_atlas_
     };
 
-    RenderQueue queue{RenderQueue::Type::Shadow};
+    RenderQueue queue{RenderQueue::Type::OpaqueQueue};
     queue.build(scene_mesh_nodes, cam_ctx);
     queue.sort();
 
-    Pipeline::executeCommands(queue.commands(), shader_ctx, pass_ctx, depth_shader_);
+    Pipeline::executeCommands(queue.commands(), shader_ctx, opaque_pass_ctx, depth_shader_);
   }
 }
 

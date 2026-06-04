@@ -59,17 +59,17 @@ struct BlinnShader {
     Vec2f frag_uv  = Math::interpolate(varyings[0].uv, varyings[1].uv, varyings[2].uv, weights, w_invs);
     Vec3f frag_n   = Math::interpolate(varyings[0].normal, varyings[1].normal, varyings[2].normal, weights, w_invs).normalized();
     Vec3f frag_pos = Math::interpolate(varyings[0].pos_world, varyings[1].pos_world, varyings[2].pos_world, weights, w_invs);
-
+    
     const Material* mat = uniforms.material;
 
-    // Alpha Test
-    // TODO: 将 alpha_cutoff 设为一个材质参数或者一个全局常量
-    // if(mat->enable_diss) {
-    //   f32 d = sampleSlot(mat->diss_slot, frag_uv).R;
-    //   // 透明度阈值，cut off 是切断、剪切的意思。
-    //   f32 alpha_cutoff = 0.5f;
-    //   if(d < alpha_cutoff) return true;
-    // }
+    f32 frag_alpha = 1.0f;
+    if(mat->surface_mode == Material::SurfaceMode::Masked) { // Alpha Test
+      f32 value = sampleSlot(mat->diss_slot, frag_uv).R;
+      if(value < Material::AlphaCutoff) return true;
+    } 
+    else if(mat->surface_mode == Material::SurfaceMode::Transparent) {
+      frag_alpha = mat->params.d;
+    }
 
     LinearColor diffuse = sampleSlot(mat->diff_slot, frag_uv);
 
@@ -127,6 +127,8 @@ struct BlinnShader {
     f32 diff = half_lambert * half_lambert;
 
     frag_color = (diffuse * diff + specular) * frag_visibility;
+
+    frag_color.A = frag_alpha;
 
     return false;
   }

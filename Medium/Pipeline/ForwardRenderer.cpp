@@ -49,16 +49,35 @@ void ForwardRenderer::render(std::span<const MeshNode* const> scene_mesh_nodes,
     .lighting_ctx = &lighting_ctx,
   };
 
-  RenderPassCtx pass_ctx{
+  RenderPassCtx opaque_pass_ctx{
+    .render_state = {
+      .blend_mode = BlendMode::Replace, 
+      .depth_write = true 
+    },
     .viewport = {0, 0, frame_buffer_->widthF(), frame_buffer_->heightF()},
     .buffer   = *frame_buffer_
   };
   
-  RenderQueue opaque_queue{RenderQueue::Type::Opaque};
+  RenderQueue opaque_queue{RenderQueue::Type::OpaqueQueue};
   opaque_queue.build(scene_mesh_nodes, cam_ctx);
   opaque_queue.sort();
   
-  Pipeline::executeCommands(opaque_queue.commands(), shader_ctx, pass_ctx, blinn_shader_);
+  Pipeline::executeCommands(opaque_queue.commands(), shader_ctx, opaque_pass_ctx, blinn_shader_);
+
+  RenderPassCtx transparent_pass_ctx{
+    .render_state = {
+      .blend_mode = BlendMode::PremultipliedOver, 
+      .depth_write = false
+    },
+    .viewport = {0, 0, frame_buffer_->widthF(), frame_buffer_->heightF()},
+    .buffer   = *frame_buffer_
+  };
+
+  RenderQueue transparent_queue{RenderQueue::Type::TransparentQueue};
+  transparent_queue.build(scene_mesh_nodes, cam_ctx);
+  transparent_queue.sort();
+  
+  Pipeline::executeCommands(transparent_queue.commands(), shader_ctx, transparent_pass_ctx, blinn_shader_);
 
   // ---------- Post Process ----------
   frame_buffer_->toneMap();

@@ -245,7 +245,7 @@ void AssetCache::parseMTL(const MeshPtr& mesh_new,
 
     // 将 TinyObjLoader 读取的原始材质参数装入自定义结构
     MaterialParams& mat_new_params = mat_new->params;
-    mat_new_params.Kd    = {mat_t.diffuse[0],  mat_t.diffuse[1],  mat_t.diffuse[2], 1.0f, ColorSpace::Linear};
+    mat_new_params.Kd    = {mat_t.diffuse[0],  mat_t.diffuse[1],  mat_t.diffuse[2], 1.0f, ColorSpace::SRGB};
     mat_new_params.Ks    = {mat_t.specular[0], mat_t.specular[1], mat_t.specular[2]};
     mat_new_params.Ns    =  mat_t.shininess;
     mat_new_params.d     =  mat_t.dissolve;
@@ -263,11 +263,10 @@ void AssetCache::parseMTL(const MeshPtr& mesh_new,
 
     mat_new->diff_slot = makeSlot(fetchTexPtr(mat_t.diffuse_texname,  ColorSpace::SRGB),   mat_new_params.Kd);
     mat_new->spec_slot = makeSlot(fetchTexPtr(mat_t.specular_texname, ColorSpace::Linear), mat_new_params.Ks);
-    mat_new->diss_slot = makeSlot(fetchTexPtr(mat_t.alpha_texname,    ColorSpace::Linear), LinearColor{mat_t.dissolve});
+    mat_new->diss_slot = fetchTexPtr(mat_t.alpha_texname,  ColorSpace::Linear);
     mat_new->norm_slot = fetchTexPtr(mat_t.normal_texname, ColorSpace::Linear);
-    mat_new->bump_slot = fetchTexPtr(mat_t.bump_texname,   ColorSpace::Linear);
 
-    mat_new->setEnables();
+    mat_new->setAttributes();
 
     mesh_new->materials.push_back(mat_new);
 

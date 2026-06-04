@@ -20,9 +20,8 @@ struct CameraCtx;
 class RenderQueue {
 public:
   enum class Type {
-    Shadow,
-    Opaque,
-    Transparent,
+    OpaqueQueue,
+    TransparentQueue
   };
 
   explicit RenderQueue(Type type) : type_{type} {}
@@ -36,7 +35,6 @@ public:
   }
 
 private:
-  void sortShadow();
   void sortOpaque();
   void sortTransparent();
 

@@ -6,8 +6,6 @@
 ///
 #pragma once
 
-#include <utility>
-
 #include "Base/Color.h"
 #include "Resources/Forwards.h"
 #include "Resources/TextureSlot.h"
@@ -36,30 +34,38 @@ struct MaterialParams {
 class Material {
   friend class AssetCache;
 public:
-  Material(std::string mat_name = "Default") : name(std::move(mat_name)) {}
+  enum class SurfaceMode {
+    Opaque,     // MTL 不含 map_d 且 d = 1;
+    Masked,     // MTL 含 map_d;
+    Transparent // MTL 里 d < 1，与 Masked 互斥。
+  };
+
+  // map_d 一般是一张非黑即白的二值图，所以 alpha test 的阈值设为该值即可；cut off 是切断、截止的意思。
+  static constexpr f32 AlphaCutoff = 0.5f;
+  
+  Material(std::string mat_name = "Default") : name{std::move(mat_name)} {}
 
   [[nodiscard]]
   static std::shared_ptr<Material> Default() {
     return std::make_shared<Material>();
   }
 
-  void setEnables() noexcept;
+  void setAttributes() noexcept;
 
   std::string name;
 
   MaterialParams params;
 
+  SurfaceMode surface_mode = SurfaceMode::Opaque;
+
   bool enable_spec = false;
-  bool enable_diss = false;
   bool enable_norm = false;
-  bool enable_bump = false;
 
   TextureSlot diff_slot = LinearColor::Green();
   TextureSlot spec_slot = LinearColor::Black();
-  TextureSlot diss_slot = LinearColor::White();
 
+  TexturePtr diss_slot = nullptr;
   TexturePtr norm_slot = nullptr;
-  TexturePtr bump_slot = nullptr;
 };
 
 } // Medium

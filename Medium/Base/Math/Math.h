@@ -11,7 +11,7 @@ namespace Medium::Math {
 inline constexpr f32 MEDIUM_PI          = 3.141592653f;
 inline constexpr f32 KINDA_SMALL_NUMBER = 1e-4f;
 inline constexpr f32 VERY_SMALL_NUMBER  = 1e-6f;
-inline constexpr f32 KINDA_LIKE_ONE     = 0.99f;
+inline constexpr f32 KINDA_LIKE_ONE     = 0.999f;
 
 } // namespace Medium::Math
 
