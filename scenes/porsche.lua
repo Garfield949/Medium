@@ -1,12 +1,12 @@
 local camera = {
     fov = 70,
     near = 0.1,
-    position = { 0.0, 0.0, 0.0 },
-    rotation = { 18.0, 38.0, 0.0 },
+    position = { 2.5, 1.0, -1.0 },
+    rotation = { 10.0, -72.0, 0.0 },
 }
 
 local light = {
-    direction = { 2, -1, 1 }
+    direction = { -2, -1, 1 }
 }
 
 local shadow_config = {

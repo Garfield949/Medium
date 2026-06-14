@@ -10,12 +10,14 @@
 #define TOML_EXCEPTIONS 0
 #include <toml++/toml.hpp>
 #include <fmt/base.h>
+#include <fmt/format.h>
+#include <fmt/color.h>
 
 namespace fs = std::filesystem;
 
 namespace Medium {
 
-AppCfg AppCfg::loadFromToml(const fs::path& config_dir) {
+AppCfg AppCfg::LoadFromToml(const fs::path& config_dir) {
   const fs::path toml_path = config_dir / "app_config.toml";
   
   // 初始化为默认配置
@@ -31,19 +33,20 @@ AppCfg AppCfg::loadFromToml(const fs::path& config_dir) {
   // 解析失败原因一般是 toml 语法错误，直接返回默认配置，toml++ 会打印错误原因
   toml::parse_result app_toml = toml::parse_file(toml_path.string());
   if(!app_toml) {
-    fmt::print(stderr, "\nloadAppConfig - toml++::{}\n", app_toml.error().description());
+    fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "\nloadAppConfig - toml++::");
+    fmt::print("{}\n", app_toml.error().description());
     fmt::print("Falling back to default.\n");
     return app_cfg;
   }
 
   toml::table toml_app = app_toml.table();
-
+  
   // value 返回的是 std::optional<T>
   // 注：若 toml 里写了类似 width = -1 这样的值，那么进行 u32 转换是不安全的，value 会返回一个
   // std::nullopt，if 判断失败而回退到默认值。
   auto window = toml_app["window"];
-  if(auto v = window["title"].value<std::string>()) app_cfg.window.title  = *v;
-  if(auto v = window["width"].value<u32>())         app_cfg.window.w  = *v;
+  if(auto v = window["title"].value<std::string>()) app_cfg.window.title = *v;
+  if(auto v = window["width"].value<u32>())         app_cfg.window.w = *v;
   if(auto v = window["height"].value<u32>())        app_cfg.window.h = *v;
 
   auto shadow = toml_app["render"]["shadow"];
@@ -74,7 +77,7 @@ AppCfg AppCfg::sanitized() const noexcept {
   res.window.h = std::max(Config::kMinWindowHeight, window.h);
   
   res.render.shadow.shadow_map_res =
-    std::max(Config::kMinShadowRes, render.shadow.shadow_map_res);
+    std::max(Config::kMinShadowTileRes, render.shadow.shadow_map_res);
   
   return res;
 }

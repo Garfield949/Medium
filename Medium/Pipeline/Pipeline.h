@@ -10,7 +10,7 @@
 #include "Pipeline/Shader/VariantShader.h"
 
 namespace Medium {
-class  RenderTarget;
+class  FrameBuffer;
 class  Mesh;
 struct SubMesh;
 struct ShaderBindCtx;
@@ -30,14 +30,14 @@ void draw(const Mesh&        mesh,
           const SubMesh&     sub_mesh,
           const RenderState& render_state,
           const RectF&       viewport,
-          RenderTarget&      buffer,
+          FrameBuffer&       buffer,
           VariantShader&     shader);
 
-void rasterize(const std::array<Vec4f, 3>&   tri_screen,
+void rasterize(const std::array<Vec4f, 3>&   tri_viewport,
                const std::array<Varying, 3>& varyings,
                const RenderState& render_state,
                const RectF&       viewport,
-               RenderTarget&      buffer,
+               FrameBuffer&       buffer,
                VariantShader&     shader);
   
 } // namespace Medium::Pipeline

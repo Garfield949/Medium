@@ -20,7 +20,7 @@ class Camera : public Node{
 public:
   static constexpr NodeType Type = NodeType::Camera;
 
-  static constexpr f32 MinimumNearPlane = 0.1f;
+  static constexpr f32 kMinimumNearPlane = 0.1f;
 
   enum class Mode { 
     Perspective, Orthographic
@@ -41,7 +41,7 @@ public:
   
   /// @brief 返回相机所属的视椎体，由相机的 view_projection 矩阵构建
   Frustum frustum() const noexcept {
-    return Frustum::fromMatrixVP(viewProjMatrix());
+    return Frustum::FromMatrixVP(viewProjMatrix());
   }
 
   /// @brief 构造相机视椎切片的外接球，球心转换到世界坐标，并根据变换缩放半径。

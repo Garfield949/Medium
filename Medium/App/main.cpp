@@ -6,11 +6,9 @@
 #include "App.h"
 
 int main() {
-  App app;
+  Medium::App app;
 
-  if(!app.init()) return -1;
-
-  app.loop();
+  if(app.init()) app.loop();
 
   app.quit();
 

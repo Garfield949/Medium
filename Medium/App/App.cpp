@@ -4,46 +4,34 @@
 ///
 #include "App.h"
 
-#include <MiniFB.h>
+#include <fmt/base.h>
+#include <SDL3/SDL_events.h>
 
 #include "App/Config/Config.h"
-#include "Pipeline/RenderStat.h"
+#include "Base/Log.h"
+#include "Scene/Scene.h"
 #include "Scene/Light/DirectionalLight.h"
+#include "Pipeline/RenderStat.h"
 
-#include <iostream>
+namespace Medium {
 
 namespace fs = std::filesystem;
 
 void App::loadConfig() {
-  app_config_ = AppCfg::loadFromToml(fs::path(PROJECT_ROOT_DIR) / Config::kConfigDirName);
-}
-
-bool App::createWindow() {
-  const WindowCfg& cfg_window = app_config_.window;
-
-  mfb_window_ = mfb_open_ex(cfg_window.title.c_str(),
-                            cfg_window.w,
-                            cfg_window.h,
-                            MFB_WF_RESIZABLE);
-  if(!mfb_window_) {
-    fmt::print(stderr, "App::Init Failed::Cannot create a MiniFB Window.\n");
-    return false;
-  }
-  
-  mfb_show_cursor(mfb_window_, true);
-  return true;
+  app_config_ = AppCfg::LoadFromToml(fs::path(PROJECT_ROOT_DIR) / Config::kConfigDirName);
 }
 
 bool App::loadScene() {
   const WindowCfg& cfg_window = app_config_.window;
-  
+
   auto lua_path = fs::path(PROJECT_ROOT_DIR) / "scenes"
-      / "living_room.lua";
-  
-  active_scene_ = Scene::loadFromLua(lua_path, cfg_window.aspectRatio());
+    / "sponza.lua";
+
+  active_scene_ = Scene::LoadFromLua(lua_path, cfg_window.aspectRatio());
 
   if(!active_scene_) {
-    fmt::print(stderr, "App - Initialize Failed\n");
+    printLogPrefix("App", "loadScene", true);
+    fmt::print("Initialize Failed\n");
     return false;
   }
 
@@ -58,44 +46,53 @@ void App::setupTools() noexcept {
 bool App::init() {
   loadConfig();
 
-  if(!createWindow()) return false;
-  
+  if(!window_manager_.init(app_config_.window)) return false;
+
   if(!loadScene()) return false;
-  
+
   setupTools();
 
-  shadow_manager_.init(active_scene_->camera(),
-                       active_scene_->dirLight(),
-                       app_config_.render.shadow.shadow_map_res,
-                       active_scene_->shadowCfg().max_shadow_dist,
-                       active_scene_->shadowCfg().csm_cascade_cnt);
+  if(!shadow_manager_.init(active_scene_->camera(),
+                           active_scene_->dirLight(),
+                           app_config_.render.shadow.shadow_map_res,
+                           active_scene_->shadowCfg().max_shadow_dist,
+                           active_scene_->shadowCfg().csm_cascade_cnt)) return false;
 
-  const WindowCfg& cfg_window = app_config_.window;
-  forward_renderer_.init(cfg_window.w,
-                         cfg_window.h,
-                         active_scene_->camera(),
-                         active_scene_->dirLight()->dir);
+  auto [width_physical, height_physical] = window_manager_.physicalExtent();
+  
+  if(!forward_renderer_.init(width_physical,
+                             height_physical,
+                             active_scene_->camera(),
+                             active_scene_->dirLight()->dir)) return false;
 
   return true;
 }
 
 void App::loop() {
-  do {
-    const f32 dt = frame_timer_.tick();
+  while(true) {
+    // 使用一个循环不断从事件队列中取出并消费下一个事件，非阻塞。
+    SDL_Event e;
+    while(SDL_PollEvent(&e)) {
+      switch(e.type) {
+      case SDL_EVENT_QUIT:
+        return;
+      case SDL_EVENT_KEY_DOWN:
+        if(e.key.key == SDLK_ESCAPE) return;
+      case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+        if(!onWindowResize()) return;
+        break;
+      default: break;
+      }
+    }
 
-    onUpdate(dt);
-    
-    onWindowResize();
+    onUpdate(frame_timer_.tick());
 
     onRender();
-
-  } while(mfb_wait_sync(mfb_window_));
-  // mfb_wait_sync 强制等待垂直同步
-  // 若句柄因错误被置空，mfb_wait_sync 返回 false
+  }
 }
 
 void App::onUpdate(const f32 dt) {
-  input_.update(mfb_window_);
+  input_.update();
   profiler_.update(dt);
   controller_.update(dt);
 }
@@ -107,7 +104,7 @@ void App::onRender() {
   shadow_manager_.render(active_scene_->meshNodes(),
                          active_scene_->worldAABB());
 
-  // 临时输出场景的 xy 长宽
+  // 临时输出场景的 XZ 轴尺寸。
   // auto aabb = active_scene_->worldAABB();
   // std::cout << "Extent X: " << aabb.max.x() - aabb.min.x() << std::endl;
   // std::cout << "Extent Z: " << aabb.max.z() - aabb.min.z() << std::endl;
@@ -116,36 +113,42 @@ void App::onRender() {
   forward_renderer_.render(active_scene_->meshNodes(),
                            shadow_manager_.CSMData());
 
-  // render_stat.draw_calls += opaque_queue.commands().size();
-  //
-  // profiler_.collectStats(render_stat);
+  const FrameBuffer* fb = forward_renderer_.frameBuffer();
 
-  // mfb_update_state 为用于 mfb_update_ex 返回值的枚举:
-  // 1. STATE_OK 更新成功；2. STATE_EXIT 用户按了 esc，或程序请求退出；
-  // 3. STATE_INVALID_WINDOW 窗口句柄无效；
-  // 4. STATE_INTERNAL_ERROR minifb 内部错误；
-  RenderTarget* frame_buffer = forward_renderer_.frameBuffer();
-  mfb_update_state state = mfb_update_ex(mfb_window_,
-                                         frame_buffer->colorBuf(),
-                                         frame_buffer->width(),
-                                         frame_buffer->height());
-  // 更新异常，则主动断开对窗口句柄的持有
-  if (state != MFB_STATE_OK) mfb_window_ = nullptr;
+  window_manager_.commitBuffer(fb->presentColorBuffer(), fb->width(), fb->height());
 }
 
-void App::onWindowResize() {
-  u32 w_new = mfb_get_window_width(mfb_window_);
-  u32 h_new = mfb_get_window_height(mfb_window_);
-  
-  if(w_new == 0 || h_new == 0) return;
+[[nodiscard]]
+bool App::onWindowResize() {
+  auto [w_physical, h_physical] = window_manager_.physicalExtent();
+
+  FrameBuffer* fb = forward_renderer_.frameBuffer();
+  if(static_cast<u32>(w_physical) == fb->width() && static_cast<u32>(h_physical) == fb->height())
+    return true;
+
+  // 测试过，窗口手动拉伸的最小尺寸是有下限的。出现 0 只能说明出现异常。
+  if(w_physical <= 0 || h_physical <= 0) {
+    printLogPrefix("App", "onWindowResize", true);
+    fmt::print("Invalid window size: [{} x {}]\n", w_physical, h_physical);
+    return false;
+  }
+
+  if(!forward_renderer_.frameBuffer()->resize(w_physical, h_physical)) {
+    printLogPrefix("App", "onWindowResize", true);
+    fmt::print("Failed\n", w_physical, h_physical);
+    return false;
+  }
 
   // 注：更改 aspect ratio 后，相机视椎形状会变，进而使阴影拟合产生变化
-  active_scene_->camera()->setAspectRatio(
-    static_cast<f32>(w_new) / static_cast<f32>(h_new));
-  
-  forward_renderer_.frameBuffer()->resize(w_new, h_new);
+  active_scene_->camera()->setAspectRatio(static_cast<f32>(w_physical) / static_cast<f32>(h_physical));
+
+  window_manager_.onResize();
+
+  return true;
 }
 
 void App::quit() {
   app_config_.saveToTomlFile();
 }
+
+} // namespace Medium

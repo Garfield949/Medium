@@ -5,6 +5,7 @@
 /// @brief
 ///
 #include "AssetCache.h"
+#include "fmt/base.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -12,8 +13,10 @@
 #include <stb_image.h>
 #include <fmt/color.h>
 
+#include "Base/Color.h"
 #include "Mesh.h"
 #include "Material.h"
+#include "Texture2D.h"
 
 namespace fs = std::filesystem;
 
@@ -177,8 +180,10 @@ MeshPtr AssetCache::loadFromObj(const fs::path& obj_path) {
 
   ObjReader reader;
   if(!reader.ParseFromFile(obj_path_norm, config)) {
-    if(!reader.Error().empty())
-      fmt::print(stderr, "\nAssetCache::loadFromObj - TinyObjReader::{}\n", reader.Error());
+    if(!reader.Error().empty()){
+      fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "\nAssetCache::loadFromObj - TinyObjReader::");
+      fmt::print("{}\n", reader.Error());
+    }    
     return nullptr;
   }
 
@@ -193,7 +198,8 @@ MeshPtr AssetCache::loadFromObj(const fs::path& obj_path) {
   const std::vector<shape_t>&    shapes    = reader.GetShapes();
   const std::vector<material_t>& materials = reader.GetMaterials();
 
-  fmt::print(fmt::emphasis::bold | fg(fmt::color::green), "\nAssetCache::loadFromObj - [{}]\n", obj_path_str);
+  fmt::print(fmt::emphasis::bold | fg(fmt::color::green), "\nAssetCache::loadFromObj - ");
+  fmt::print("[{}]\n", obj_path_str);
   fmt::print("Vertices : {}\n"
              "Normals  : {}\n"
              "UVs      : {}\n"
@@ -240,16 +246,17 @@ void AssetCache::parseMTL(const MeshPtr& mesh_new,
       }
       material_cache_.erase(it);
     }
-
+    
     MaterialPtr mat_new = std::make_shared<Material>(mat_t.name);
 
     // 将 TinyObjLoader 读取的原始材质参数装入自定义结构
     MaterialParams& mat_new_params = mat_new->params;
-    mat_new_params.Kd    = {mat_t.diffuse[0],  mat_t.diffuse[1],  mat_t.diffuse[2], 1.0f, ColorSpace::SRGB};
-    mat_new_params.Ks    = {mat_t.specular[0], mat_t.specular[1], mat_t.specular[2]};
-    mat_new_params.Ns    =  mat_t.shininess;
-    mat_new_params.d     =  mat_t.dissolve;
-    mat_new_params.illum =  mat_t.illum;
+    // 总是认为 MTL 里定义的 Kd 漫反射纯色是一个归一化的 Srgb 值，虽然各种模型都不太规范就是了。
+    mat_new_params.Kd    = LinearColor::FromNormalizedSRGB(mat_t.diffuse[0],  mat_t.diffuse[1],  mat_t.diffuse[2], 1.0f);
+    mat_new_params.Ks    = LinearColor{mat_t.specular[0], mat_t.specular[1], mat_t.specular[2]};
+    mat_new_params.Ns    = mat_t.shininess;
+    mat_new_params.d     = mat_t.dissolve;
+    mat_new_params.illum = mat_t.illum;
 
     auto fetchTexPtr = [&](const fs::path& tex_path, ColorSpace space) -> TexturePtr {
       // 材质的某些通道（如漫反射）可能是不含材质图片的纯色，直接返回对应的空贴图指针即可；用 loadTexture 返回 nullptr 也行，但
@@ -281,34 +288,29 @@ TexturePtr AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& c
   // 纹理缓存查询
   if(auto it = texture_cache_.find(tex_key); it != texture_cache_.end()) {
     if(auto tex_cached = it->second.lock()) {
-      fmt::print(fmt::emphasis::bold | fg(fmt::color::green), "AssetCache::loadTexture - [{}]", tex_path_str);
-      fmt::print(" cached\n");
+      fmt::print(fmt::emphasis::bold | fg(fmt::color::green), "AssetCache::loadTexture - ");
+      fmt::print("[{}] cached\n", tex_path_str);
       return tex_cached;
     }
     texture_cache_.erase(it);
   }
 
   i32 width, height, channels;
-  // UV 空间的原点在左下角，而纹理图的存储是行优先的，原点在左上角。为了索引方便，先设置将读进的纹理上下翻转。
+  // 纹理图的存储默认原点在左上角。
   stbi_set_flip_vertically_on_load(true);
   unsigned char* raw = stbi_load(tex_path_str.c_str(),
                                  &width,
                                  &height,
                                  &channels,
                                  STBI_rgb_alpha); // 强制补齐 alpha 通道。
-  stbi_set_flip_vertically_on_load(false);
 
   if(!raw) {
-    fmt::print(stderr, "\nTexture::loadFromFile - StbImage::{}\n\n", stbi_failure_reason());
+    fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "\nTexture::loadFromFile - StbImage::");
+    fmt::print("{}\n\n", stbi_failure_reason());
     return nullptr;
   }
 
-  // Texture 的构造函数为私有，第三方模板函数 std::make_shared 无法访问
-  TexturePtr tex_new{new Texture};
-  tex_new->data_.reset(raw);
-  tex_new->w_ = width;
-  tex_new->h_ = height;
-  tex_new->color_space_ = color_space;
+  TexturePtr tex_new = std::make_shared<Texture2D>(width, height, PixelFormat::ABGR8, color_space, raw);
 
   texture_cache_[tex_key] = tex_new;
   return tex_new;

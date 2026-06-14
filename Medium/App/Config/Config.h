@@ -2,7 +2,7 @@
 /// @file   Config.h
 /// @author Garfield949
 /// @date   2026/3/1 22:34
-/// @brief  存放应用程序和渲染相关的配置常量
+/// @brief  
 ///
 #pragma once
 
@@ -23,7 +23,7 @@ struct WindowCfg {
 };
 
 struct ShadowCfg {
-  u32 shadow_map_res = Config::kDefaultShadowRes;
+  u32 shadow_map_res = Config::kDefaultShadowTileRes;
 };
 
 struct RenderCfg {
@@ -32,7 +32,7 @@ struct RenderCfg {
 
 struct AppCfg {
   [[nodiscard]]
-  static AppCfg loadFromToml(const std::filesystem::path& config_dir);
+  static AppCfg LoadFromToml(const std::filesystem::path& config_dir);
 
   std::string toTomlString() const;
   

@@ -15,7 +15,7 @@ namespace Medium {
 class RotationMatrix {
 public:
   /// @brief 根据传入的 forward 向量构造一个纯旋转矩阵，默认参考 up 向量为世界 +y
-  static Mat3f makeFromForward(const Vec3f& forward, const Vec3f& up_ref = Vec3f::UnitY());
+  static Mat3f MakeFromForward(const Vec3f& forward, const Vec3f& up_ref = Vec3f::UnitY());
 };
 
 } // Medium

@@ -10,7 +10,7 @@
 
 namespace Medium {
 
-Mat3f RotationMatrix::makeFromForward(const Vec3f& forward, const Vec3f& up_ref) {
+Mat3f RotationMatrix::MakeFromForward(const Vec3f& forward, const Vec3f& up_ref) {
   Mat3f rotation_world = Mat3f::Identity();
 
   if(forward.isZero()) return rotation_world;

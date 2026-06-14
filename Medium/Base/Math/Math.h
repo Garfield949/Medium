@@ -18,21 +18,22 @@ inline constexpr f32 KINDA_LIKE_ONE     = 0.999f;
 namespace Medium::Math {
 
 // 判定浮点数是否接近零
+// std::abs 在 C++23 才是 constexpr.
 inline bool isNearlyZero(f32 value, f32 tolerance = VERY_SMALL_NUMBER) noexcept {
   return std::abs(value) <= tolerance;
 }
 
-inline bool isNearlyOne(f32 value, f32 tolerance = KINDA_LIKE_ONE) noexcept {
+inline constexpr bool isNearlyOne(f32 value, f32 tolerance = KINDA_LIKE_ONE) noexcept {
   return value >= tolerance;
 }
 
 // 度数转弧度
-inline f32 deg_to_rad(f32 deg) noexcept {
+inline constexpr f32 deg_to_rad(f32 deg) noexcept {
   return MEDIUM_PI * deg / 180.0f;
 }
 
 // 弧度转度数
-inline f32 rad_to_deg(f32 rad) noexcept {
+inline constexpr f32 rad_to_deg(f32 rad) noexcept {
   return rad * 180.0f / MEDIUM_PI;
 }
 

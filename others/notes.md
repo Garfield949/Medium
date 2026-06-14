@@ -23,3 +23,17 @@ C++ 特性：
 - std::vector 的 resize 和 reserve 的区别：
   - resize 分配指定大小的内存并对所有元素进行初始化，即同时改变 capacity 和 size;
   - reserve 只分配指定大小的内存，不进行初始化，只改变 capacity.
+
+- std::unique_ptr<T> data; 若 data 指向一块连续内存，则 unique_ptr 默认析构行为(delete)是未定义行为，可能只会释放首地址的第
+  一个 T，其余的全部泄露。
+  - 因为模板参数暗示 data 指向的是一个单独的 T;
+  - 若 data 指向的是一个数组，则应写为 std::unique_ptr<T[]>，此时默认析构行为是 delete[]，会正确释放所有元素。
+
+- Color(u8 r, u8 g, u8 b, u8 a = 255)
+    : data{(static_cast<u32>(a) << 24) | (static_cast<u32>(r) << 16) |
+           (static_cast<u32>(g) << 8)  |  static_cast<u32>(b)} {}
+  u8 左移会被隐式提升为一个 int. 比方说：
+                                    u8 a = 255; u32 b = a << 24;
+  a 的位模式为 0xFF，提升后变成 (int)0x0000 00FF. 这里的坑是，左移 24 位会恰好使符号位翻转：0xFF00 0000，这是 UB. 虽然后续位
+  模式 0xFF00 0000 还是大概率会被正确解释为一个 u32，但 UB 就让人很不爽。所以这里认为地提升为一个 u32，就不存在符号位这个东西，也
+  就没有 UB 这个说法了。

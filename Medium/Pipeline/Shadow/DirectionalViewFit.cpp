@@ -63,7 +63,7 @@ DirectionalViewFit calcDirectionalViewFit(const DirectionalViewFitParams& params
     [camera, light_dir, shadow_res, slice_near, slice_far, scene_bbox_ws] = params;
 
   // ---------- 计算方向光的 world matrix（仅含旋转），并获得 light basis(lb) matrix
-  Mat3f mat_light_rot_world = RotationMatrix::makeFromForward(light_dir);
+  Mat3f mat_light_rot_world = RotationMatrix::MakeFromForward(light_dir);
   Mat3f mat_rot_lb = mat_light_rot_world.transpose();
 
   // ---------- 计算场景AABB在 lb 下的角点
@@ -97,15 +97,21 @@ DirectionalViewFit calcDirectionalViewFit(const DirectionalViewFitParams& params
   auto [near, far]
     = calcNearAndFar(light_ortho_min, light_ortho_max, scene_bbox_corners_lb);
 
+  // 某级联的光视椎与场景完全无交集则用回退策略：将远近平面设为包围球的两端。
+  if(near >= far) {
+    near = circumsphere_center_lb.z() - circumsphere_radius;
+    far  = circumsphere_center_lb.z() + circumsphere_radius;
+  }
+
   // ---------- 构建光源在 light basis 下的位置
   Vec3f light_pos_lb;
   light_pos_lb.head<2>() = light_ortho_center_snapped;
-  light_pos_lb.z() = near - Camera::MinimumNearPlane;
+  light_pos_lb.z() = near - Camera::kMinimumNearPlane;
 
   // 将平行光相机特化为 near 固定为 0.1.
   return {
     .light_pos_ws         = mat_light_rot_world * light_pos_lb,
-    .ortho_near           = Camera::MinimumNearPlane,
+    .ortho_near           = Camera::kMinimumNearPlane,
     .ortho_far            = far - near,
     .ortho_width          = circumsphere_diameter,
     .ortho_height         = circumsphere_diameter,

@@ -20,7 +20,7 @@ void FPSController::bind(Node *host, const Input *input) noexcept {
   Vec3f forward = host_->transform.forward();
   // sin(theta) = y/1 -> theta = asin(y).
   // 注意，当 y 是个负值（左手系里表示向下 pitch），asin(y) 会返回一个负角度，需要取反。
-  pitch_deg_   = -Math::rad_to_deg(std::asin(forward.y()));
+  pitch_deg_ = -Math::rad_to_deg(std::asin(forward.y()));
   // atan2(a,b) = arctan(a/b) -> tan(theta) = x/z -> theta = atan2(x, z).
   heading_deg_ = Math::rad_to_deg(std::atan2(forward.x(), forward.z()));
 }
@@ -29,7 +29,7 @@ void FPSController::update(f32 dt) noexcept {
   Transform& host_tf = host_->transform;
 
   // 按住鼠标右键才允许视角控制
-  if(input_->mouse_btn_held(MFB_MOUSE_BTN_2)) {
+  if(input_->mouse_btn_held(SDL_BUTTON_RIGHT)) {
     // 由于 delta 要与灵敏度等参数相乘，所以转为浮点类型
     Vec2f delta = input_->mouse_move_delta().cast<f32>();
 
@@ -43,31 +43,29 @@ void FPSController::update(f32 dt) noexcept {
   // 位移 = 速度 * 时间
   f32 S = move_speed_ * dt;
 
-  // 将朝向的 y 分量取消掉，实现 xz 平面平移的行为。
+  // 取消掉朝向的 y 分量，实现 xz 平面平移行为。
   Vec3f forward = host_tf.forward();
   forward.y() = 0.0f;
   forward.normalize();
   
   Vec3f right = host_tf.right();
-  right.y() = 0.0f;
-  right.normalize();
 
-  if(input_->key_held(MFB_KB_KEY_W)) {
+  if(input_->key_held(SDL_SCANCODE_W)) {
     host_tf.translate(forward * S, Space::World);
   }
-  if(input_->key_held(MFB_KB_KEY_S)) {
+  if(input_->key_held(SDL_SCANCODE_S)) {
     host_tf.translate(-forward * S, Space::World);
   }
-  if(input_->key_held(MFB_KB_KEY_A)) {
+  if(input_->key_held(SDL_SCANCODE_A)) {
     host_tf.translate(-right * S, Space::World);
   }
-  if(input_->key_held(MFB_KB_KEY_D)) {
+  if(input_->key_held(SDL_SCANCODE_D)) {
     host_tf.translate(right * S, Space::World);
   }
-  if(input_->key_held(MFB_KB_KEY_SPACE)) {
+  if(input_->key_held(SDL_SCANCODE_SPACE)) {
     host_tf.translate(Vec3f::UnitY() * S, Space::World);
   }
-  if(input_->key_held(MFB_KB_KEY_LEFT_SHIFT)) {
+  if(input_->key_held(SDL_SCANCODE_LSHIFT)) {
     host_tf.translate(-Vec3f::UnitY() * S, Space::World);
   }
 

@@ -7,7 +7,7 @@
 
 #include "Base/Types.h"
 #include "Base/Math/Math.h"
-#include "Pipeline/RenderTarget.h"
+#include "Pipeline/FrameBuffer.h"
 #include "Pipeline/Shadow/CSM.h"
 
 namespace Medium {
@@ -90,7 +90,7 @@ inline f32 sampleVisibility(const CSMSamplingCtx* csm_ctx,
   {
     f32 z_frag = frag_ndc_ls.z();
 
-    f32 z_map = csm_ctx->shadow_map_atlas->sampleTileDepth(shadow_uv, cascade->viewport);
+    f32 z_map = csm_ctx->shadow_map_atlas->sampleDepth(shadow_uv.x(), shadow_uv.y(), cascade->viewport);
 
     constexpr f32 z_bias = 0.0001f;
 

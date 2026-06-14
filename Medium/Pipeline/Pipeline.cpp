@@ -11,8 +11,9 @@
 #include "Resources/Mesh.h"
 #include "Pipeline/Subpixel.h"
 #include "Pipeline/Clip.h"
-#include "Pipeline/RenderTarget.h"
+#include "Pipeline/FrameBuffer.h"
 #include "Pipeline/RenderContext.h"
+#include <cstddef>
 
 namespace {
   
@@ -81,7 +82,7 @@ void draw(const Mesh& mesh,
           const SubMesh& sub_mesh,
           const RenderState& render_state,
           const RectF& viewport,
-          RenderTarget& buffer,
+          FrameBuffer& buffer,
           VariantShader& shader)
 {
   std::visit([&](auto& active_shader) { // SubMesh 层级做 dispatch
@@ -144,11 +145,11 @@ void draw(const Mesh& mesh,
 //        = Ax + By + C.
 // 故当 E(x+1,y) 有 Delta E = A = y1-y0；当 E(x,y+1) 有 Delta E = B = -(x1-x0) = x0-x1.
 // 注：当应用了次像素，边函数就变为了 E(x*scale, y*scale) = (A*scale)x + (B*scale)y + C.
-void rasterize(const std::array<Vec4f, 3>&   tri_screen,
+void rasterize(const std::array<Vec4f, 3>&   tri_viewport,
                const std::array<Varying, 3>& varyings,
                const RenderState& render_state,
                const RectF& viewport,
-               RenderTarget& buffer,
+               FrameBuffer& buffer,
                VariantShader& shader)
 {
   using namespace Geometry;
@@ -158,13 +159,19 @@ void rasterize(const std::array<Vec4f, 3>&   tri_screen,
 
   // 像素空间 -> 次像素空间
   for(i32 i = 0; i < 3; ++i) {
-    tri_subpixel[i].x() = Subpixel::fromFloat(tri_screen[i].x());
-    tri_subpixel[i].y() = Subpixel::fromFloat(tri_screen[i].y());
-    vert_depth[i]       = tri_screen[i].z();
+    tri_subpixel[i].x() = Subpixel::fromFloat(tri_viewport[i].x());
+    tri_subpixel[i].y() = Subpixel::fromFloat(tri_viewport[i].y());
+    vert_depth[i]       = tri_viewport[i].z();
   }
 
   Rect bbox_tri = calcTriBBox(tri_subpixel, viewport);
   if(!bbox_tri.valid()) return; // 若三角形完全在视区外，直接丢弃
+
+  // 若 RenderState 带的 scissor 非法，说明未启用 scissor test;
+  // 若启用，则求其与当前三角包围盒的交集，若无交集，直接放弃接下来的着色。
+  if(const Rect& scissor = render_state.scissor; scissor.valid())
+    if(bbox_tri = scissor.intersection(bbox_tri); !bbox_tri.valid())
+      return;
 
   // 中间量语义化
   Vec2i delta01{tri_subpixel[1].x() - tri_subpixel[0].x(),  tri_subpixel[1].y() - tri_subpixel[0].y()};
@@ -221,20 +228,20 @@ void rasterize(const std::array<Vec4f, 3>&   tri_screen,
           // Zndc 已是 A+B/z 的形式，在屏幕空间是线性的，无需透视矫正插值。
           f32 z_interp = Math::interpolate(vert_depth[0], vert_depth[1], vert_depth[2], weights);
           // Early-Z.
-          u32 index = buffer.getBufIdx(x, y);
-          if(buffer.depthTest(index, z_interp)) {
+          size_t index = buffer.getIndex(x, y);
+          // 当深度测试关闭时，不能做 continue 的处理，否则会跳过 E(x+1,Y) 的推进。
+          bool pass_depth_test = !render_state.depth_test || buffer.depthTest(index, z_interp);
+          if(pass_depth_test) {
             LinearColor frag_color;
-            // Alpha test.
-            bool discard = active_shader.fragment(varyings, weights, frag_color);
+            bool discard = active_shader.fragment(varyings, weights, frag_color); // Alpha test.        
             if(!discard) {
-              if(render_state.depth_write) 
-                buffer.writeDepth(index, z_interp);
-              if(render_state.blend_mode == BlendMode::Replace)
-                buffer.setColor(index, frag_color);
-              else
-                buffer.setColorPremultiplied(index, frag_color.premultiplied());
-            }
-          }
+              if(render_state.depth_write) buffer.writeDepth(index, z_interp);
+              if(render_state.color_write) {
+                if(render_state.blend_mode == BlendMode::Replace) buffer.writeColor(index, frag_color);
+                else buffer.writeColorPremultiplied(index, frag_color.premultiplied());
+              }
+            } // if(!discard)
+          } // if(pass_depth_test)
         }
         // E(X+1,Y) 方向推进
         E01 += A01;

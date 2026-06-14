@@ -10,13 +10,13 @@ namespace Medium {
 
 void Camera::setPerspParams(f32 fov, f32 near, f32 aspect_ratio) noexcept {
   fov_y_             = std::clamp(fov, 1.0f, 179.0f);
-  near_              = std::max(near, MinimumNearPlane);
+  near_              = std::max(near, kMinimumNearPlane);
   aspect_ratio_      = aspect_ratio;
   dirty_proj_matrix_ = true;
 }
 
 void Camera::setOrthoParams(f32 near, f32 far, f32 width, f32 height) noexcept {
-  near_    = std::max(near, MinimumNearPlane);
+  near_    = std::max(near, kMinimumNearPlane);
   far_     = std::max(far, near_ + Math::KINDA_SMALL_NUMBER);
   w_ortho_ = width;
   h_ortho_ = height;

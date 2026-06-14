@@ -16,7 +16,7 @@ namespace Medium {
 class Frustum {
 public:
   /// @brief 仅可通过 view projection 矩阵进行构造 Frustum
-  static Frustum fromMatrixVP(const Mat4f& mat_vp) noexcept {
+  static Frustum FromMatrixVP(const Mat4f& mat_vp) noexcept {
     Vec4f row0 = mat_vp.row(0); Vec4f row1 = mat_vp.row(1);
     Vec4f row2 = mat_vp.row(2); Vec4f row3 = mat_vp.row(3);
 

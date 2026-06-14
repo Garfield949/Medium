@@ -42,11 +42,11 @@ inline f32 calcSignedDistance(const Vec2f& light_ortho_min,
                               const Vec2f& light_ortho_max,
                               const Vec3f& v, FrustumSide plane) noexcept {
   switch(plane) {
-    case Left:   return v.x() - light_ortho_min.x();
-    case Right:  return light_ortho_max.x() - v.x();
-    case Top:    return light_ortho_max.y() - v.y();
-    case Bottom: return v.y() - light_ortho_min.y();
-    default: return 0.0f;
+  case Left:   return v.x() - light_ortho_min.x();
+  case Right:  return light_ortho_max.x() - v.x();
+  case Top:    return light_ortho_max.y() - v.y();
+  case Bottom: return v.y() - light_ortho_min.y();
+  default: return 0.0f;
   }
 }
 

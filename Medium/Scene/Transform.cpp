@@ -36,7 +36,7 @@ void Transform::setRotation(const Vec3f& euler_deg) noexcept {
 void Transform::lookAt(const Vec3f& target_world, const Vec3f& up_ref) noexcept {
   Vec3f forward_world = target_world - worldPosition();
 
-  Mat3f rot_world = RotationMatrix::makeFromForward(forward_world, up_ref);
+  Mat3f rot_world = RotationMatrix::MakeFromForward(forward_world, up_ref);
 
   Quatf R_world{rot_world};
 

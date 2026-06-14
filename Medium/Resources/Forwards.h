@@ -11,11 +11,11 @@
 namespace Medium {
 
 class Mesh;
-class Texture;
+class Texture2D;
 class Material;
 
+using TexturePtr  = std::shared_ptr<Texture2D>;
 using MaterialPtr = std::shared_ptr<Material>;
-using TexturePtr  = std::shared_ptr<Texture>;
 using MeshPtr     = std::shared_ptr<Mesh>;
 
 } // namespace Medium

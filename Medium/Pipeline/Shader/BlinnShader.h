@@ -8,11 +8,12 @@
 
 #include "Base/Color.h"
 #include "Base/Math/Math.h"
+#include "Resources/Sampler.h"
 #include "Resources/Vertex.h"
 #include "Resources/Material.h"
+#include "Pipeline/Shadow/CSM.h"
 #include "Pipeline/Shader/ShaderTypes.h"
 #include "Pipeline/Shadow/ShadowQuery.h"
-#include "Pipeline/Shadow/CSM.h"
 
 namespace Medium {
 
@@ -64,8 +65,8 @@ struct BlinnShader {
 
     f32 frag_alpha = 1.0f;
     if(mat->surface_mode == Material::SurfaceMode::Masked) { // Alpha Test
-      f32 value = sampleSlot(mat->diss_slot, frag_uv).R;
-      if(value < Material::AlphaCutoff) return true;
+      f32 value = Samplers::NearestClamp.sampleColor(*mat->diss_slot, frag_uv.x(), frag_uv.y()).R;
+      if(value < Material::kAlphaCutoff) return true;
     } 
     else if(mat->surface_mode == Material::SurfaceMode::Transparent) {
       frag_alpha = mat->params.d;
@@ -98,7 +99,7 @@ struct BlinnShader {
       // 此时 TBN 同时具备从 tangent -> object 和 object -> world 的变换
       Mat3f TBN = (Mat3f() << T, B, frag_n).finished();
 
-      LinearColor raw = mat->norm_slot->sample(frag_uv, Texture::FilterMode::Bilinear);
+      LinearColor raw = Samplers::LinearClamp.sampleColor(*mat->norm_slot, frag_uv.x(), frag_uv.y());
 
       // 将 [0, 1] 的 LinearColor 映射到 [-1, 1]] 的坐标空间，得到切线空间的法向
       Vec3f n_T = Vec3f{raw.R * 2.0f - 1.0f, raw.G * 2.0f - 1.0f, raw.B * 2.0f - 1.0f}.normalized();

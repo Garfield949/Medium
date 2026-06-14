@@ -1,6 +1,6 @@
 ///
 /// @file Types.h
-/// @brief 主要管理类型别名
+/// @brief 管理类型别名
 ///
 #pragma once
 

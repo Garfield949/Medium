@@ -21,7 +21,7 @@ inline constexpr u32 kMinWindowWidth     = 300u;
 inline constexpr u32 kDefaultWindowHeight = 900u;
 inline constexpr u32 kMinWindowHeight     = 300u;
 
-inline constexpr u32 kDefaultShadowRes = 1024u;
-inline constexpr u32 kMinShadowRes     = 512u;
+inline constexpr u32 kDefaultShadowTileRes = 1024u;
+inline constexpr u32 kMinShadowTileRes     = 512u;
   
 }

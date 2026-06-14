@@ -30,7 +30,7 @@ void RenderQueue::build(std::span<const MeshNode* const> mesh_nodes, const Camer
         if(type_ == Type::TransparentQueue && 
           material->surface_mode != Material::SurfaceMode::Transparent) continue;
         
-        AABB3D bbox_world = sub_mesh.bbox.toWorldAABB(world);
+        AABB3D bbox_world = sub_mesh.aabb_local.toWorldAABB(world);
         if(!frustum.intersects(bbox_world)) continue;
         cmds_.emplace_back(
           mesh.get(),
@@ -46,8 +46,8 @@ void RenderQueue::build(std::span<const MeshNode* const> mesh_nodes, const Camer
 
 void RenderQueue::sort() {
   switch(type_) {
-    case Type::OpaqueQueue: sortOpaque(); break;
-    case Type::TransparentQueue: sortTransparent(); break;
+  case Type::OpaqueQueue: sortOpaque(); break;
+  case Type::TransparentQueue: sortTransparent(); break;
   }
 }
 

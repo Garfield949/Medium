@@ -8,30 +8,31 @@
 
 #include "Scene/Light/DirectionalLight.h"
 #include "Pipeline/Shadow/CSM.h"
+#include "Pipeline/Shadow/DirectionalViewFit.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderContext.h"
 #include "Pipeline/RenderQueue.h"
 
 namespace Medium {
 
-void ShadowManager::init(Camera* camera, 
+bool ShadowManager::init(Camera* camera, 
                          DirectionalLight* dir_light,
                          u32 shadow_map_tile_res,
                          f32 max_shadow_dist,
                          i32 cascade_count)
 {  
-  camera_          = camera;
-  dir_light_       = dir_light;
+  camera_    = camera;
+  dir_light_ = dir_light;
 
   cascade_cnt_         = cascade_count;
   max_shadow_dist_     = max_shadow_dist;
   shadow_map_tile_res_ = shadow_map_tile_res;
 
-  // shadow_map_res 是单张 tile 的分辨率。
-  shadow_map_atlas_ = std::make_unique<RenderTarget>(shadow_map_tile_res << 1, RenderTarget::Mode::ShadowMap);
+  // shadow_map_res 是单级 tile 的分辨率。
+  if(!shadow_map_atlas_.resize(shadow_map_tile_res * 2)) return false;
 
   csm_ctx_.cascade_cnt      = cascade_cnt_;
-  csm_ctx_.shadow_map_atlas = shadow_map_atlas_.get();
+  csm_ctx_.shadow_map_atlas = &shadow_map_atlas_;
 
   // 计算级联切片逻辑范围。
   csm_slices_ = calcCSMSlices(camera_->near(), max_shadow_dist, cascade_count);
@@ -39,12 +40,14 @@ void ShadowManager::init(Camera* camera,
   // 计算各 tile 视区
   for(i32 i = 0; i < cascade_cnt_; i++)
     cascade_viewports_[i] = calcCSMAtlasViewport(i, shadow_map_tile_res);
+
+  return true;
 }
 
 void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
                            const AABB3D& bbox_scene_ws)
 {
-  shadow_map_atlas_->clearDepthBuf();
+  shadow_map_atlas_.clearDepth();
 
   // 计算 CSMFrameCtx 各级联数据。
   for(i32 i = 0; i < cascade_cnt_; i++) {
@@ -83,18 +86,21 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
     };
 
     ShaderBindCtx shader_ctx{
-      .camera_ctx = cam_ctx
+      .camera_ctx = &cam_ctx
     };
 
     RenderPassCtx opaque_pass_ctx{
       .render_state = {
-        .blend_mode = BlendMode::Replace,
-        .depth_write = true
+        .blend_mode  = BlendMode::Replace,
+        .color_write = false,
+        .depth_write = true,
+        .depth_test  = true
       },
       .viewport = cascade_viewports_[i],
-      .buffer   = *shadow_map_atlas_
+      .buffer   = shadow_map_atlas_
     };
 
+    // 透明物体会被剔除掉，实现光绕过车玻璃在车内形成影子。
     RenderQueue queue{RenderQueue::Type::OpaqueQueue};
     queue.build(scene_mesh_nodes, cam_ctx);
     queue.sort();

@@ -19,7 +19,7 @@ struct SubMesh {
   size_t index_count     = 0;
   i32    material_index  = 0;
 
-  AABB3D bbox;
+  AABB3D aabb_local;
 };
 
 /// @class Mesh

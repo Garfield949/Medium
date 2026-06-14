@@ -4,7 +4,7 @@
 ///
 #pragma once
 
-#include <MiniFB.h>
+#include <SDL3/SDL.h>
 
 #include "Base/Types.h"
 
@@ -14,27 +14,22 @@ class Input {
 public:
   Input() = default;
 
-  // 每 Tick 开头调用
-  void update(mfb_window * window);
+  void update();
 
-  // 检测是否按下了键盘某个键
-  bool key_held(mfb_key key) const noexcept {
-    if(key_buffer_ == nullptr) return false;
-    return key_buffer_[key] != 0;
+  bool key_held(SDL_Scancode key) const noexcept {
+    return key_state_ && key_state_[key];
   }
 
-  // 检测是否按下了鼠标某个键
-  bool mouse_btn_held(mfb_mouse_button button) const noexcept {
-    if(mouse_btn_buffer_ == nullptr) return false;
-    return mouse_btn_buffer_[button] != 0;
+  bool mouse_btn_held(Uint32 button) const noexcept {
+    return (mouse_state_ & SDL_BUTTON_MASK(button)) != 0;
   }
 
-  // 获取鼠标从上一 Tick 到这一 Tick 移动的偏移
+  // 获取鼠标从上一 Tick 到这一 Tick 移动的偏移。
   Vec2i mouse_move_delta() const noexcept { return mouse_delta_; }
 
 private:
-  const u8* key_buffer_ = nullptr;
-  const u8* mouse_btn_buffer_ = nullptr;
+  SDL_MouseButtonFlags mouse_state_ = 0; // 0 代表没有按鼠标的任何键。
+  const bool* key_state_ = nullptr;      // 指向键盘状态数组的指针。
 
   bool is_first_tick_ = true;
 

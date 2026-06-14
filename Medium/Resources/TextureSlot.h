@@ -8,10 +8,10 @@
 #pragma once
 
 #include "Forwards.h"
-#include "Texture.h"
+#include "Sampler.h"
 
 namespace Medium {
-  
+
 using TextureSlot = std::variant<TexturePtr, LinearColor>;
 
 // loadTex 返回一个右值，所以直接移动
@@ -23,10 +23,11 @@ inline TextureSlot makeSlot(TexturePtr map, const LinearColor& soild_color) {
 inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv) {
     // 0 对应 TexturePtr, 1 对应 LinearColor
     if (slot.index() == 0) {
-        const auto& map = std::get<0>(slot);
-        return map->sample(uv, Texture::FilterMode::Nearest);
+      // get 返回一个右值，必须绑定 const 引用。
+      const TexturePtr& texture = std::get<0>(slot);
+      return Samplers::LinearRepeat.sampleColor(*texture, uv.x(), uv.y());
     }
     return std::get<1>(slot);
 }
-  
+
 }

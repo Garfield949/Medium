@@ -12,9 +12,9 @@
 
 namespace Medium {
 
-class RenderTarget;
+class FrameBuffer;
 
-inline constexpr u32 kMaxCSMCascades = 4;
+inline constexpr i32 kMaxCSMCascades = 4;
 
 /// @struct CSMCascade
 /// @brief 记录单个级联的上下文。
@@ -43,7 +43,7 @@ struct CSMCascade {
 /// @brief 存储级联数据的结构体，用于 fragment 查询阶段。
 struct CSMSamplingCtx {
   std::array<CSMCascade, kMaxCSMCascades> cascades;
-  const RenderTarget* shadow_map_atlas = nullptr;
+  const FrameBuffer* shadow_map_atlas = nullptr;
   i32 cascade_cnt = 0;
 
   struct CascadeQuery {

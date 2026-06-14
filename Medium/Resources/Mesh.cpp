@@ -82,15 +82,15 @@ void Mesh::calcTangents() noexcept {
 void Mesh::calcAABBs() noexcept {
   // 在整个 Mesh 上算 AABB
   // TODO: 先算 SubMesh 的 AABB，再 merge 为整体的 AABB
-  for(const auto& v: vertices) {
+  for(const auto& v: vertices)
     aabb_local.addPoint(v.pos);
-  }
+  
   // 在 SubMesh 层级算 AABB
   for(auto& sub_mesh: sub_meshes) {
     size_t offset = sub_mesh.index_offset;
     size_t count  = sub_mesh.index_count;
     for(size_t i = offset; i < offset + count; ++i) {
-      sub_mesh.bbox.addPoint(vertices[indices[i]].pos);
+      sub_mesh.aabb_local.addPoint(vertices[indices[i]].pos);
     }
   }
 }

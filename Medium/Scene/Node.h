@@ -33,14 +33,14 @@ public:
 
   /// @brief 静态方法，试图将传入的 Node* 静态转型为指定的 NodeT*
   template<typename NodeT>
-  static NodeT* cast_to(Node* node) {
+  static NodeT* CastTo(Node* node) {
     if(node->node_type == NodeT::Type) return static_cast<NodeT*>(node);
     return nullptr;
   }
   
   /// @brief cast_to 的 const 重载
   template<typename NodeT>
-  static const NodeT* cast_to(const Node* node) {
+  static const NodeT* CastTo(const Node* node) {
     if(node->node_type == NodeT::Type) return static_cast<const NodeT*>(node);
     return nullptr;
   }

@@ -7,6 +7,7 @@
 #include "Scene.h"
 
 #include <fmt/base.h>
+#include <fmt/color.h>
 
 #include <lua/lua.hpp>
 #include <LuaBridge.h>
@@ -39,7 +40,7 @@ namespace Medium {
 using namespace std;
 
 struct SceneLoader {
-  static void setupCamera(const luabridge::LuaRef& tbl_scene, Scene* scene, f32 aspect_ratio) {
+  static void SetupCamera(const luabridge::LuaRef& tbl_scene, Scene* scene, f32 aspect_ratio) {
     luabridge::LuaRef tbl_camera = tbl_scene["Camera"];
     f32 fov  = tbl_camera["fov"].cast<f32>().value();
     f32 near = tbl_camera["near"].cast<f32>().value();
@@ -54,7 +55,7 @@ struct SceneLoader {
     scene->main_camera_->transform.setRotation(rot);
   }
 
-  static void setupLight(const luabridge::LuaRef& tbl_scene, Scene* scene) {
+  static void SetupLight(const luabridge::LuaRef& tbl_scene, Scene* scene) {
     luabridge::LuaRef tbl_dir = tbl_scene["Light"];
     Vec3f direction = readVec3f(tbl_dir, "direction");
     // 注意，初始化必须调用一次 lookAt 来调整方向光的姿态。每帧计算的 DirectionalView 仅是获取光相机的
@@ -64,14 +65,14 @@ struct SceneLoader {
     scene->dir_light_->transform.lookAt(scene->dir_light_->dir);
   }
 
-  static void readShadowCfg(const luabridge::LuaRef& tbl_scene, Scene* scene) {
+  static void ReadShadowCfg(const luabridge::LuaRef& tbl_scene, Scene* scene) {
     luabridge::LuaRef tbl_shadow_cfg  = tbl_scene["ShadowConfig"];
     scene->shadowCfg_.max_shadow_dist = tbl_shadow_cfg["max_shadow_distance"].cast<f32>().value();
     scene->shadowCfg_.csm_cascade_cnt
-      = std::clamp(tbl_shadow_cfg["csm_cascade_count"].cast<u32>().value(), 1u, kMaxCSMCascades);
+      = std::clamp(tbl_shadow_cfg["csm_cascade_count"].cast<i32>().value(), 1, kMaxCSMCascades);
   }
 
-  static bool setupModels(const luabridge::LuaRef& tbl_scene, Scene* scene) {
+  static bool SetupModels(const luabridge::LuaRef& tbl_scene, Scene* scene) {
     luabridge::LuaRef tbl_model = tbl_scene["Model"];
     string name = tbl_model["name"];
     string path = tbl_model["file"];
@@ -106,24 +107,25 @@ struct SceneLoader {
   }
 };
 
-std::unique_ptr<Scene> Scene::loadFromLua(const std::filesystem::path& lua_path, f32 aspect_ratio) {
+std::unique_ptr<Scene> Scene::LoadFromLua(const std::filesystem::path& lua_path, f32 aspect_ratio) {
   std::unique_ptr<Scene> scene{new Scene};
 
   lua_State* L = luaL_newstate();
   luaL_openlibs(L);
 
   if(luaL_dofile(L, lua_path.generic_string().c_str()) != LUA_OK) {
-    fmt::print(stderr, "\nScene::loadFromLua - Lua::{}\n", lua_tostring(L, -1));
+    fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "\nScene::loadFromLua - Lua::");
+    fmt::print("{}\n", lua_tostring(L, -1));
     return nullptr;
   }
 
   // LuaRef 是一种任意值类型
   luabridge::LuaRef tbl_scene = luabridge::LuaRef::fromStack(L, -1);
   
-  SceneLoader::setupCamera(tbl_scene, scene.get(), aspect_ratio);
-  SceneLoader::setupLight (tbl_scene, scene.get());
-  SceneLoader::readShadowCfg(tbl_scene, scene.get());
-  if(!SceneLoader::setupModels(tbl_scene, scene.get()))
+  SceneLoader::SetupCamera(tbl_scene, scene.get(), aspect_ratio);
+  SceneLoader::SetupLight (tbl_scene, scene.get());
+  SceneLoader::ReadShadowCfg(tbl_scene, scene.get());
+  if(!SceneLoader::SetupModels(tbl_scene, scene.get()))
     return nullptr;
 
   return scene;
@@ -133,7 +135,7 @@ AABB3D Scene::worldAABB() const noexcept {
   AABB3D bbox_world;
   // 注：由于该方法是 const 的，故形参得为 const.
   root_.traverse([&](const Node* node) {
-    if(const auto* mesh_node = Node::cast_to<MeshNode>(node)) {
+    if(const auto* mesh_node = Node::CastTo<MeshNode>(node)) {
       bbox_world.merge(mesh_node->worldAABB());
     }
   });

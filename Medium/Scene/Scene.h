@@ -23,12 +23,12 @@ class Scene {
   friend struct SceneLoader;
 public:
   struct ShadowCfg {
-    f32 max_shadow_dist;
-    u32 csm_cascade_cnt;
+    f32 max_shadow_dist = 0.0f;
+    i32 csm_cascade_cnt = 0u;
   };
 
   [[nodiscard]]
-  static std::unique_ptr<Scene> loadFromLua(const std::filesystem::path& lua_path, f32 aspect_ratio);
+  static std::unique_ptr<Scene> LoadFromLua(const std::filesystem::path& lua_path, f32 aspect_ratio);
 
   Node* root() noexcept { return &root_; }
   const Node* root() const noexcept { return &root_; }

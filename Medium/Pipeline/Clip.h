@@ -29,7 +29,7 @@ enum ClipPlane {
 struct ClipVertex {
   // 1/w 在 clip space 里是非线性的，不能直接插值。这里先对 pos 进行插值，再取 1/w.
   // Note: 不对插值过程中的 normal 和 tangent 进行归一化，因为 fragment 阶段会归一化。
-  static ClipVertex lerp(const ClipVertex& a, const ClipVertex& b, f32 t) noexcept {
+  static ClipVertex Lerp(const ClipVertex& a, const ClipVertex& b, f32 t) noexcept {
     Vec4f pos_lerp = Math::lerp(a.pos, b.pos, t);
     const Varying& var_a = a.varying;
     const Varying& var_b = b.varying;
@@ -40,6 +40,7 @@ struct ClipVertex {
         Math::lerp(var_a.normal,    var_b.normal,    t),
         Math::lerp(var_a.tangent,   var_b.tangent,   t),
         Math::lerp(var_a.pos_world, var_b.pos_world, t),
+        Math::lerp(var_a.color,     var_b.color, t),
         1.0f / pos_lerp.w()
       }
     };
@@ -73,13 +74,13 @@ inline constexpr std::array kClipPlanes = {
 
 inline f32 calcSignedDistance(const Vec4f& v, const ClipPlane plane) noexcept {
   switch(plane) {
-    case Left:   return v.w() + v.x();
-    case Right:  return v.w() - v.x();
-    case Top:    return v.w() - v.y();
-    case Bottom: return v.w() + v.y();
-    case Near:   return v.w() - v.z();
-    case Far:    return v.z();
-    default: return 0.0f;
+  case Left:   return v.w() + v.x();
+  case Right:  return v.w() - v.x();
+  case Top:    return v.w() - v.y();
+  case Bottom: return v.w() + v.y();
+  case Near:   return v.w() - v.z();
+  case Far:    return v.z();
+  default: return 0.0f;
   }
 }
 
@@ -103,7 +104,7 @@ inline ClipPolygon clipByPlane(const ClipPolygon& poly_in, const ClipPlane plane
     
     // 若当前、下一个顶点不在同侧，说明此边与裁剪面有交点
     if(inside_head != inside_tail)
-      poly_out.verts[poly_out.num_verts++] = ClipVertex::lerp(*v_head, *v_tail, d_head / (d_head - d_tail));
+      poly_out.verts[poly_out.num_verts++] = ClipVertex::Lerp(*v_head, *v_tail, d_head / (d_head - d_tail));
   }
   
   return poly_out;

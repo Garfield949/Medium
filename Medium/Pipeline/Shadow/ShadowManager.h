@@ -8,17 +8,15 @@
 
 #include <span>
 
-#include "Base/Geometry/Rect.h"
-#include "Pipeline/RenderTarget.h"
+#include "Pipeline/FrameBuffer.h"
 #include "Pipeline/Shader/VariantShader.h"
-#include "Pipeline/Shadow/CSM.h"
-#include "Pipeline/Shadow/DirectionalViewFit.h"
 
 namespace Medium {
 
 class Camera;
 class DirectionalLight;
 class MeshNode;
+struct AABB3D;
 
 /// @class ShadowManager
 /// @brief 负责级联阴影的资源管理和渲染
@@ -26,7 +24,8 @@ class ShadowManager {
 public:
   explicit ShadowManager() = default;
 
-  void init(Camera* camera, 
+  [[nodiscard]]
+  bool init(Camera* camera, 
             DirectionalLight* dir_light, 
             u32 shadow_map_tile_res,
             f32 max_shadow_dist,
@@ -40,7 +39,8 @@ public:
   }
 
 private:
-  std::unique_ptr<RenderTarget>        shadow_map_atlas_ = nullptr;
+  FrameBuffer shadow_map_atlas_{FrameBuffer::Type::DepthOnly};
+  
   std::array<f32, kMaxCSMCascades + 1> csm_slices_{};
   std::array<RectF, kMaxCSMCascades>   cascade_viewports_{};
 

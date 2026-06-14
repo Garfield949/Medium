@@ -16,19 +16,23 @@ TODO
 
 - 完成 Scene 类型: Done
 
+- Alpha blending: Done
+
+- 将渲染分为多pass: Done
+
+- RenderQueue, RenderCommand : Done
+
 - AABB 缓存机制、阴影趟与主趟共享包围盒数据
 
 - 将场景解析的职责从 Scene 拆分出来为一个类型（Config 同理）
 
 - 设计 Plane 类型，可为 dragon 这种模型提供一个地面
 
-- RenderQueue, RenderCommand :
+- 搞清楚 RenderQueue 排序的策略、sort key 的计算策略
 
-- 将渲染分为多pass
+- 优化 VariantShader 的分发策略
 
 - 包围盒线框debug
-
-- Alpha blending:
 
 - Mipmap
 

@@ -41,7 +41,7 @@ public:
   };
 
   // map_d 一般是一张非黑即白的二值图，所以 alpha test 的阈值设为该值即可；cut off 是切断、截止的意思。
-  static constexpr f32 AlphaCutoff = 0.5f;
+  static constexpr f32 kAlphaCutoff = 0.5f;
   
   Material(std::string mat_name = "Default") : name{std::move(mat_name)} {}
 
