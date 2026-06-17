@@ -44,7 +44,7 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_ROOT_DIR="${CMAKE_CUR
 
 target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3 fmt::fmt lua_static)
 
-# 开启高性能优化开关，用于支持 Eigen
+# 开启高性能优化开关
 target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Release>:-O3 -march=native>
     $<$<CONFIG:Debug>:-O0 -g>

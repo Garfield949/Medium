@@ -11,9 +11,13 @@
 #include <fmt/base.h>
 #include <fmt/color.h>
 
+namespace Medium::Log {
+  
 inline void printLogPrefix(std::string_view type_name,
                            std::string_view func_name,
                            bool err) {
   auto color = err ? fmt::color::red : fmt::color::green;
   fmt::print(fmt::emphasis::bold | fg(color), "{}::{} - ", type_name, func_name);
 }
+
+} // namespace Medium::Log

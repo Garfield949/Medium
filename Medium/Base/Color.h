@@ -21,9 +21,9 @@ enum class ColorSpace {
 // 标准 Gamma decoding : IEC 61966-2-1
 // https://www.w3.org/Graphics/Color/srgb
 inline const std::array<f32, 256> GammaDecodingLUT = [] {
-  std::array<f32, 256> lut{};
+  std::array<f32, 256> lut;
   constexpr f32 inv255 = 1.0f / 255.0f;
-  for (size_t i = 0; i < 256; i++) {
+  for (size_t i = 0; i < 256; ++i) {
     if (const f32 channel = static_cast<f32>(i) * inv255; channel <= 0.04045f)
       lut[i] = channel / 12.92f;
     else
@@ -37,8 +37,8 @@ inline const std::array<f32, 256> GammaDecodingLUT = [] {
 // 注意表大小得是分辨率 + 1. 否则索引 i 范围为 [0, 4095]，最大只能计算 4095/4096，取不到 1.0 的 Linear 值
 inline constexpr size_t kGammaEncodeResolution = 4096;
 inline const std::array<u8, kGammaEncodeResolution + 1> GammaEncodingLUT = [] {
-  std::array<u8, kGammaEncodeResolution + 1> lut{};
-  for (size_t i = 0; i <= kGammaEncodeResolution; i++) {
+  std::array<u8, kGammaEncodeResolution + 1> lut;
+  for (size_t i = 0; i <= kGammaEncodeResolution; ++i) {
     if (f32 linear = static_cast<f32>(i) / static_cast<f32>(kGammaEncodeResolution); linear <= 0.0031308f)
       lut[i] = quantizeToU8(linear * 12.92f);
     else

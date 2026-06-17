@@ -56,7 +56,7 @@ std::array<Vec3f, 8> Camera::slicedFrustumCornersWorld(f32 slice_near, f32 slice
   const Mat4f& mat_world = this->transform.worldMatrix();
 
   std::array<Vec3f, 8> corners_world;
-  for(int i = 0; i < 8; i++)
+  for(int i = 0; i < 8; ++i)
     corners_world[i] = (mat_world * corners_local[i].homogeneous()).head<3>();
 
   return corners_world;

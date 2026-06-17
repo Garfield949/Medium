@@ -11,13 +11,13 @@
 namespace Medium {
 
 struct SubMesh {
-  size_t triangleCount() const noexcept {
+  u32 triangleCount() const noexcept {
     return index_count / 3;
   }
 
-  size_t index_offset    = 0;
-  size_t index_count     = 0;
-  i32    material_index  = 0;
+  u32 index_offset    = 0;
+  u32 index_count     = 0;
+  i32 material_index  = 0;
 
   AABB3D aabb_local;
 };

@@ -6,8 +6,6 @@
 ///
 #pragma once
 
-#include <utility>
-
 #include "Base/Types.h"
 
 struct SDL_Window;    // 窗口句柄；
@@ -25,11 +23,11 @@ public:
 
   bool init(const WindowCfg& cfg_window);
 
+  std::pair<i32, i32> physicalExtent() const;
+
   bool onResize();
 
   void commitBuffer(const u32* packed_abgr8_buffer, u32 buffer_width, u32 buffer_height);
-
-  std::pair<i32, i32> physicalExtent() const;
 
 private:
   bool createSDLWindow(const WindowCfg& cfg_window);

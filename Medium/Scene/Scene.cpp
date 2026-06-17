@@ -12,6 +12,7 @@
 #include <lua/lua.hpp>
 #include <LuaBridge.h>
 
+#include "Base/Log.h"
 #include "Scene/Node.h"
 #include "Scene/Camera.h"
 #include "Scene/Light/DirectionalLight.h"
@@ -19,9 +20,8 @@
 #include "Pipeline/Shadow/CSM.h"
 #include "Resources/AssetCache.h"
 
+namespace Medium {
 namespace {
-
-using namespace Medium;
 
 Vec3f readVec3f(const luabridge::LuaRef& tbl, std::string_view key) {
   luabridge::LuaRef v = tbl[key];
@@ -32,7 +32,11 @@ Vec3f readVec3f(const luabridge::LuaRef& tbl, std::string_view key) {
   };
 }
 
-}
+} // 匿名命名空间，控制仅单文件可见
+} // namespace Medium
+
+
+
 
 // TODO: 鲁棒性处理（不过只要场景脚本写对也没啥大问题）
 namespace Medium {
@@ -114,8 +118,8 @@ std::unique_ptr<Scene> Scene::LoadFromLua(const std::filesystem::path& lua_path,
   luaL_openlibs(L);
 
   if(luaL_dofile(L, lua_path.generic_string().c_str()) != LUA_OK) {
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "\nScene::loadFromLua - Lua::");
-    fmt::print("{}\n", lua_tostring(L, -1));
+    Log::printLogPrefix("Scene", "LoadFromLua", true);
+    fmt::print("Lua::{}\n", lua_tostring(L, -1));
     return nullptr;
   }
 

@@ -44,9 +44,9 @@ enum class BlendMode {
 
 struct RenderState {
   BlendMode blend_mode = BlendMode::Replace;
-  bool color_write = true;
-  bool depth_write = true;
-  bool depth_test  = true;
+  bool enable_color_write = true;
+  bool enable_depth_write = true;
+  bool enable_depth_test  = true;
   Rect scissor{}; // 默认为一个非法 scissor，即不启用 scissor test.
 };
 

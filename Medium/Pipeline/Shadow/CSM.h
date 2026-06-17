@@ -53,7 +53,7 @@ struct CSMSamplingCtx {
 
   // 返回级联本身和所在层级。
   std::optional<CascadeQuery> cascadeQuery(f32 z_view) const noexcept {
-    for(i32 i = 0; i < cascade_cnt; i++) {
+    for(i32 i = 0; i < cascade_cnt; ++i) {
       const CSMCascade& c = cascades[i];
       if(z_view >= c.slice_near && z_view <= c.slice_far) return CascadeQuery{&c, i};
     }

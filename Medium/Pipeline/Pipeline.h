@@ -7,6 +7,7 @@
 #pragma once
 
 #include "Pipeline/RenderCommand.h"
+#include "Pipeline/Shader/ShaderTypes.h"
 #include "Pipeline/Shader/VariantShader.h"
 
 namespace Medium {
@@ -17,6 +18,7 @@ struct ShaderBindCtx;
 struct RenderPassCtx;
 struct RectF;
 struct RenderState;
+struct VaryingLayout;
 }
 
 namespace Medium::Pipeline {
@@ -35,9 +37,10 @@ void draw(const Mesh&        mesh,
 
 void rasterize(const std::array<Vec4f, 3>&   tri_viewport,
                const std::array<Varying, 3>& varyings,
-               const RenderState& render_state,
-               const RectF&       viewport,
-               FrameBuffer&       buffer,
-               VariantShader&     shader);
+               const VaryingLayout& varying_layout,
+               const RenderState&   render_state,
+               const RectF&   viewport,
+               FrameBuffer&   buffer,
+               VariantShader& shader);
   
 } // namespace Medium::Pipeline

@@ -8,16 +8,16 @@
 
 #include "Base/Geometry/Geometry.h"
 #include "Base/Geometry/Rect.h"
+#include "Base/Math/Math.h"
 #include "Resources/Mesh.h"
 #include "Pipeline/Subpixel.h"
 #include "Pipeline/Clip.h"
 #include "Pipeline/FrameBuffer.h"
+#include "Pipeline/Shader/ShaderTypes.h"
 #include "Pipeline/RenderContext.h"
-#include <cstddef>
 
+namespace Medium {
 namespace {
-  
-using namespace Medium;
 
 /// @brief   视口变换。
 /// @details 接收一个 NDC 坐标，将其 x,y 分量映射到以给定视口。
@@ -28,8 +28,7 @@ void NDCToViewport(Vec4f& vert, const RectF& viewport) {
 
 /// @brief 计算三角形的屏幕包围盒。
 /// @details Viewport 的作用是进行边界截断，会从 rasterizer 传入一个 RectF 自动隐式转型。
-Rect calcTriBBox(const std::array<Vec2i, 3>& tri_subpixel, const Rect& viewport)
-{
+Rect calcTriBBox(const std::array<Vec2i, 3>& tri_subpixel, const Rect& viewport) {
   // 获取次像素空间的包围盒边界。
   i32 x_min_sub = std::min({tri_subpixel[0].x(), tri_subpixel[1].x(), tri_subpixel[2].x()});
   i32 x_max_sub = std::max({tri_subpixel[0].x(), tri_subpixel[1].x(), tri_subpixel[2].x()});
@@ -61,14 +60,57 @@ Rect calcTriBBox(const std::array<Vec2i, 3>& tri_subpixel, const Rect& viewport)
   return rect;
 }
 
+FSPayload interpVaryings(const VaryingLayout& varying_layout,
+                         const std::array<Varying, 3>& varyings,
+                         const Vec3f& weights,
+                         const Vec3f& w_invs,
+                         bool  enable_interp_mode = false) {
+  // 优化的透视矫正插值路径，但测试过与无优化路径开销毫无差异，可能是 -O3 和 LTO 自动完成了优化。
+  FSPayload fs_payload;
+  Math::PerspWeights pw = Math::PerspWeights::Get(weights, w_invs);
+
+  if(!enable_interp_mode) {
+    // 退化情况直接取第一个顶点的 varying.
+    if(pw.w_interp < 0) [[unlikely]]
+      fs_payload.scalars_interp = varyings[0].scalars;
+    else
+      for(u32 i = 0; i < varying_layout.scalar_cnt; ++i)
+        fs_payload.scalars_interp[i]
+        = Math::interpolate(varyings[0].scalars[i], varyings[1].scalars[i], varyings[2].scalars[i], pw);
+  } else [[unlikely]] {
+    // 当前 scalar 级判断与 field 级开销并无二致。
+    for(const auto& field: varying_layout.fields)
+    for(u32 i = field.offset; i < field.offset + field.scalar_cnt; ++i)
+      if(field.interp_mode == InterpMode::Perspective)
+        fs_payload.scalars_interp[i] =
+        Math::interpolate(varyings[0].scalars[i],
+                          varyings[1].scalars[i],
+                          varyings[2].scalars[i], pw);
+      else if(field.interp_mode == InterpMode::NoPerspective)
+        fs_payload.scalars_interp[i] =
+        Math::interpolate(varyings[0].scalars[i],
+                          varyings[1].scalars[i],
+                          varyings[2].scalars[i], weights);
+      else
+        // 总是拷贝 ClipPolygon 三角划分所得三角形的末顶点属性。
+          fs_payload.scalars_interp[i] = varyings[2].scalars[i];
+  }
+
+  return fs_payload;
 }
+
+} // 匿名命名空间，控制仅单文件可见
+} // namespce Medium
+
+
+
 
 namespace Medium::Pipeline {
 
 void executeCommands(const std::vector<RenderCommand>& cmds,
                      const ShaderBindCtx& shader_ctx,
                      const RenderPassCtx& pass_ctx,
-                     VariantShader& shader)
+                     VariantShader&       shader)
 {
   std::visit([&](auto& active_shader) {
     for(const auto& cmd: cmds) {
@@ -78,24 +120,24 @@ void executeCommands(const std::vector<RenderCommand>& cmds,
   }, shader);
 }
 
-void draw(const Mesh& mesh,
-          const SubMesh& sub_mesh,
+void draw(const Mesh&        mesh,
+          const SubMesh&     sub_mesh,
           const RenderState& render_state,
-          const RectF& viewport,
-          FrameBuffer& buffer,
-          VariantShader& shader)
+          const RectF&       viewport,
+          FrameBuffer&       buffer,
+          VariantShader&     shader)
 {
   std::visit([&](auto& active_shader) { // SubMesh 层级做 dispatch
 
-    for(size_t i = 0; i < sub_mesh.triangleCount(); ++i) {
+    for(u32 i = 0; i < sub_mesh.triangleCount(); ++i) {
       // Mesh 每 3 个紧邻的顶点索引为一个三角形
-      size_t tri_idx = sub_mesh.index_offset + (i * 3);
+      u32 tri_idx = sub_mesh.index_offset + (i * 3);
 
       // 将当前三角形作为裁剪输入，运行顶点着色器 World Space -> Clip Space，并获取待插值的 varying
       ClipPolygon clip_poly;
 
-      for(size_t j = 0; j < 3; ++j, ++clip_poly.num_verts) {
-        size_t vert_idx = mesh.indices[tri_idx + j];
+      for(u32 j = 0; j < 3; ++j, ++clip_poly.num_verts) {
+        u32 vert_idx = mesh.indices[tri_idx + j];
         
         VSOut vs_out = active_shader.vertex(mesh.vertices[vert_idx]);
         
@@ -103,10 +145,11 @@ void draw(const Mesh& mesh,
         clip_poly.verts[j].varying = vs_out.varying;
       }
 
-      if(!clip(clip_poly)) continue;
+      if(!clip(clip_poly, active_shader.varyingScalarCount())) continue;
 
-      // 透视除法 Clip Space -> NDC. x,y -> [-1,1], reversed-z -> [0,1]
-      for(size_t k = 0; k < clip_poly.num_verts; ++k) {
+      // 透视除法 Clip Space -> NDC. x,y -> [-1,1], reversed-z -> [0,1].
+      // 正交投影 w 恒为 1，可以不走这个循环的，但并不是热点也没关系。
+      for(u32 k = 0; k < clip_poly.num_verts; ++k) {
         Vec4f& pos = clip_poly.verts[k].pos;
         f32 w_inv = 1.0f / pos.w();
         pos.x() *= w_inv;
@@ -115,7 +158,7 @@ void draw(const Mesh& mesh,
       }
 
       // 扇形划分：n 个顶点的凸多边形可分出 n - 2 个三角形
-      for(size_t l = 1; l + 1 < clip_poly.num_verts; ++l) {
+      for(u32 l = 1; l + 1 < clip_poly.num_verts; ++l) {
         std::array<Vec4f, 3> triangle = {
           clip_poly.verts[0].pos, clip_poly.verts[l].pos, clip_poly.verts[l + 1].pos
         };
@@ -124,15 +167,14 @@ void draw(const Mesh& mesh,
         // 有向面积为正说明三角形是逆时针的，这在左手系中是背对相机的；
         // 由于这里已经剔除掉了所有逆时针三角形，所以后续计算 Edge Function 时只用处理顺时针三角形。
         if (Geometry::orient2D(triangle[0], triangle[1], triangle[2]) > 0) continue;
-        // 视口变换 NDC -> Screen Space; 顶点的 x,y 由 [-1.0,1.0] 映射到 [0.0, width], [0.0, height].
-        for(auto& vert: triangle)
-          NDCToViewport(vert, viewport);
+        // 视口变换 NDC -> Screen Space; 顶点的 x,y 由 [-1.0,1.0] 映射到 [0.0, width], [0.0, height]（原点在左下角）。
+        for(auto& vert: triangle) NDCToViewport(vert, viewport);
 
         std::array<Varying, 3> varyings {
           clip_poly.verts[0].varying, clip_poly.verts[l].varying, clip_poly.verts[l + 1].varying
         };
-        // 将屏幕坐标送进光栅器。
-        rasterize(triangle, varyings, render_state, viewport, buffer, shader);
+
+        rasterize(triangle, varyings, active_shader.varyingLayout(), render_state, viewport, buffer, shader);
       }
     }
 
@@ -147,18 +189,19 @@ void draw(const Mesh& mesh,
 // 注：当应用了次像素，边函数就变为了 E(x*scale, y*scale) = (A*scale)x + (B*scale)y + C.
 void rasterize(const std::array<Vec4f, 3>&   tri_viewport,
                const std::array<Varying, 3>& varyings,
-               const RenderState& render_state,
-               const RectF& viewport,
-               FrameBuffer& buffer,
+               const VaryingLayout& varying_layout,
+               const RenderState&   render_state,
+               const RectF&   viewport,
+               FrameBuffer&   buffer,
                VariantShader& shader)
 {
   using namespace Geometry;
 
-  std::array<Vec2i, 3> tri_subpixel{}; // 将传入三角形的浮点屏幕坐标提升为次像素定点数；
-  std::array<f32  , 3> vert_depth{};   // 保存三角形顶点的深度值 Zndc.
+  std::array<Vec2i, 3> tri_subpixel; // 将传入三角形的浮点屏幕坐标提升为次像素定点数；
+  std::array<f32  , 3> vert_depth;   // 保存三角形顶点的深度值 Zndc.
 
   // 像素空间 -> 次像素空间
-  for(i32 i = 0; i < 3; ++i) {
+  for(auto i = 0; i < 3; ++i) {
     tri_subpixel[i].x() = Subpixel::fromFloat(tri_viewport[i].x());
     tri_subpixel[i].y() = Subpixel::fromFloat(tri_viewport[i].y());
     vert_depth[i]       = tri_viewport[i].z();
@@ -210,12 +253,12 @@ void rasterize(const std::array<Vec4f, 3>&   tri_viewport,
   // 三角形层面做 dispatch
   std::visit([&](auto& active_shader) {
     // 边函数增量更新
-    for(i32 y = bbox_tri.min().y(); y <= bbox_tri.max().y(); y++) {
+    for(i32 y = bbox_tri.min().y(); y <= bbox_tri.max().y(); ++y) {
       // 当前像素的 Equation 值，注意同样要采用 i64.
       i64 E01 = E01_row; // 三角形 V0V1P 面积的二倍
       i64 E12 = E12_row; // 三角形 V1V2P 面积的二倍
       i64 E20 = E20_row; // 三角形 V2V0P 面积的二倍
-      for(i32 x = bbox_tri.min().x(); x <= bbox_tri.max().x(); x++) {
+      for(i32 x = bbox_tri.min().x(); x <= bbox_tri.max().x(); ++x) {
         // 任意一个为负，其符号位为 1，OR 后整体为负。
         if((E01 | E12 | E20) >= 0) {
           // Equation 值需临时减去偏置，重心坐标需要精确的值
@@ -230,18 +273,28 @@ void rasterize(const std::array<Vec4f, 3>&   tri_viewport,
           // Early-Z.
           size_t index = buffer.getIndex(x, y);
           // 当深度测试关闭时，不能做 continue 的处理，否则会跳过 E(x+1,Y) 的推进。
-          bool pass_depth_test = !render_state.depth_test || buffer.depthTest(index, z_interp);
+          bool pass_depth_test = !render_state.enable_depth_test || buffer.depthTest(index, z_interp);
+          
           if(pass_depth_test) {
-            LinearColor frag_color;
-            bool discard = active_shader.fragment(varyings, weights, frag_color); // Alpha test.        
+            Vec3f w_invs{varyings[0].w_inv, varyings[1].w_inv, varyings[2].w_inv};
+          
+            FSPayload fs_payload = interpVaryings(varying_layout, varyings, weights, w_invs, false);
+
+            bool discard = active_shader.fragment(fs_payload); // Alpha test.  
+            
             if(!discard) {
-              if(render_state.depth_write) buffer.writeDepth(index, z_interp);
-              if(render_state.color_write) {
-                if(render_state.blend_mode == BlendMode::Replace) buffer.writeColor(index, frag_color);
-                else buffer.writeColorPremultiplied(index, frag_color.premultiplied());
+              if(render_state.enable_depth_write) 
+                buffer.writeDepth(index, z_interp);
+              
+              if(render_state.enable_color_write) {
+                if(render_state.blend_mode == BlendMode::Replace) 
+                  buffer.writeColor(index, fs_payload.frag_color);
+                else 
+                  buffer.writeColorPremultiplied(index, fs_payload.frag_color.premultiplied());
               }
-            } // if(!discard)
+            }
           } // if(pass_depth_test)
+          
         }
         // E(X+1,Y) 方向推进
         E01 += A01;

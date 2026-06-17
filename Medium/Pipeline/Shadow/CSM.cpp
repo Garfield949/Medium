@@ -9,6 +9,7 @@
 #include <fmt/color.h>
 
 #include "Base/Math/Math.h"
+#include "Base/Log.h"
 
 //   [ 透视畸变 Perspective Aliasing ]
 // - 平行光的阴影贴图是均匀、精度有限的；
@@ -43,7 +44,7 @@ std::array<f32, kMaxCSMCascades + 1> calcCSMSlices(f32 camera_near,
                                                    f32 max_shadow_dist,
                                                    u32 cascade_cnt)
 {
-  std::array<f32, kMaxCSMCascades + 1> slices{};
+  std::array<f32, kMaxCSMCascades + 1> slices;
 
   slices[0] = camera_near;
 
@@ -51,7 +52,7 @@ std::array<f32, kMaxCSMCascades + 1> calcCSMSlices(f32 camera_near,
   const f32 lambda = 0.65f;
   const f32 k = max_shadow_dist / camera_near;
   // cascade_cnt = 1 时循环不会执行，可正确处理。
-  for(u32 i = 1; i < cascade_cnt; i++) {
+  for(u32 i = 1; i < cascade_cnt; ++i) {
     f32 t = static_cast<f32>(i) / static_cast<f32>(cascade_cnt);
 
     // 均匀划分
@@ -72,7 +73,7 @@ std::array<f32, kMaxCSMCascades + 1> calcCSMSlices(f32 camera_near,
              "Cascade Count      : {}\n", camera_near, max_shadow_dist, cascade_cnt);
 
   fmt::print(fmt::emphasis::bold | fg(fmt::color::green), "\nCSM cascade slicing output:\n");
-  for(u32 i = 0; i < cascade_cnt; i++) {
+  for(u32 i = 0; i < cascade_cnt; ++i) {
     fmt::print("Cascade {}: [{:.1f} ~ {:.1f}]\n", i, slices[i], slices[i+1]);
   }
   fmt::print("\n");

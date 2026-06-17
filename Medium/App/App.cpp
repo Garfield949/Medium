@@ -25,12 +25,12 @@ bool App::loadScene() {
   const WindowCfg& cfg_window = app_config_.window;
 
   auto lua_path = fs::path(PROJECT_ROOT_DIR) / "scenes"
-    / "sponza.lua";
+    / "minecraft_2.lua";
 
   active_scene_ = Scene::LoadFromLua(lua_path, cfg_window.aspectRatio());
 
   if(!active_scene_) {
-    printLogPrefix("App", "loadScene", true);
+    Log::printLogPrefix("App", "loadScene", true);
     fmt::print("Initialize Failed\n");
     return false;
   }
@@ -78,6 +78,7 @@ void App::loop() {
         return;
       case SDL_EVENT_KEY_DOWN:
         if(e.key.key == SDLK_ESCAPE) return;
+        break;
       case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
         if(!onWindowResize()) return;
         break;
@@ -86,7 +87,6 @@ void App::loop() {
     }
 
     onUpdate(frame_timer_.tick());
-
     onRender();
   }
 }
@@ -128,13 +128,13 @@ bool App::onWindowResize() {
 
   // 测试过，窗口手动拉伸的最小尺寸是有下限的。出现 0 只能说明出现异常。
   if(w_physical <= 0 || h_physical <= 0) {
-    printLogPrefix("App", "onWindowResize", true);
+    Log::printLogPrefix("App", "onWindowResize", true);
     fmt::print("Invalid window size: [{} x {}]\n", w_physical, h_physical);
     return false;
   }
 
   if(!forward_renderer_.frameBuffer()->resize(w_physical, h_physical)) {
-    printLogPrefix("App", "onWindowResize", true);
+    Log::printLogPrefix("App", "onWindowResize", true);
     fmt::print("Failed\n", w_physical, h_physical);
     return false;
   }

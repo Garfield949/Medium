@@ -56,7 +56,8 @@ inline Vec3f calcNormalBias(const Vec3f& frag_n,
   //      合 Normal Bias 的要求 --- 即 aliasing 程度越高，当前 frag 的法向几何位移应越大。
   f32 sin2 = std::max(0.0f, 1 - safe_nl * safe_nl);
   // slope 上限不要给太大：几乎与光平行的面会造成极小的 safe_nl 从而直接取到斜率上限，然而在光空间里如此大的 normal bias,
-  // 沿墙法向偏移时对 light space z 几乎没有改善，反而在 light space xy 上有巨大偏移，造成阴影比较错误。
+  // 沿墙法向偏移时对 light space z 几乎没有改善，反而在 light space xy 上有巨大偏移，造成阴影比较错误；
+  // 测试过将 slope 计算封装出去，从而只计算一次（sampleVisibility会调用两次），但无收益。
   f32 slope = std::min(std::sqrt(sin2) / safe_nl, 1.0f);
   // - 法向位移距离。纹素大小起到自适应调节：Shadow Map 分辨率越小，每 texel 覆盖世界范围越大，aliasing 会加重，bias 会
   //   自动调整变大。
@@ -66,18 +67,16 @@ inline Vec3f calcNormalBias(const Vec3f& frag_n,
 }
 
 inline f32 sampleVisibility(const CSMSamplingCtx* csm_ctx,
-                                           const CSMCascade* cascade,
-                                           const f32    nl,
-                                           const Vec3f& frag_pos,
-                                           const Vec3f& frag_n)
-{
+                            const CSMCascade* cascade,
+                            const f32    nl,
+                            const Vec3f& frag_pos,
+                            const Vec3f& frag_n) {
   f32 visibility = 1.0f;
   
   Vec3f frag_pos_biased = frag_pos + calcNormalBias(frag_n, nl, cascade->texel_size_ws);
 
-  Vec4f frag_clip_ls = cascade->light_vp * frag_pos_biased.homogeneous();
-
-  Vec4f frag_ndc_ls = frag_clip_ls / frag_clip_ls.w();
+  // 这个变量其实叫 frag_clip_ls. 但正交投影 w = 1，直接跳过透视除法得到 ndc.
+  Vec4f frag_ndc_ls = cascade->light_vp * frag_pos_biased.homogeneous();
 
   Vec2f shadow_uv{
     (frag_ndc_ls.x() + 1.0f) * 0.5f,
@@ -85,8 +84,8 @@ inline f32 sampleVisibility(const CSMSamplingCtx* csm_ctx,
   };
 
   if(Math::isBetween(frag_ndc_ls.z(), 0.0f, 1.0f) &&
-     Math::isBetween(shadow_uv.x(), 0.0f, 1.0f) &&
-     Math::isBetween(shadow_uv.y(), 0.0f, 1.0f))
+     Math::isBetween(shadow_uv.x()  , 0.0f, 1.0f) &&
+     Math::isBetween(shadow_uv.y()  , 0.0f, 1.0f))
   {
     f32 z_frag = frag_ndc_ls.z();
 
@@ -100,12 +99,11 @@ inline f32 sampleVisibility(const CSMSamplingCtx* csm_ctx,
   return visibility;
 }
 
-inline f32 CSMBlend(const CSMSamplingCtx* csm_ctx,
-                    const f32    nl,
-                    const Vec3f& frag_pos,
-                    const Vec3f& frag_n,
-                    const f32    frag_z_view) 
-{
+inline f32 queryCSMVisibility(const CSMSamplingCtx* csm_ctx,
+                              const f32    nl,
+                              const Vec3f& frag_pos,
+                              const Vec3f& frag_n,
+                              const f32    frag_z_view) {
   f32 visibility = 1.0f;
 
   auto cascade_query = csm_ctx->cascadeQuery(frag_z_view);

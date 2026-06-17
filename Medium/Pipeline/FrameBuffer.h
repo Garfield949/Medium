@@ -11,6 +11,7 @@
 #include <fmt/color.h>
 
 #include "Base/Color.h"
+#include "Base/Log.h"
 #include "Base/Geometry/Rect.h"
 #include "Resources/Texture2D.h"
 
@@ -84,7 +85,7 @@ public:
 
   void toneMap() noexcept {
     assert(this->type_ == Type::ColorDepth);
-    for(size_t i = 0; i < buf_present_.pixelCount(); i++) {
+    for(size_t i = 0; i < buf_present_.pixelCount(); ++i) {
       u32 abgr8 = buf_HDR_.readLinearColor(i)
                           .toneMapped()
                           .toColor(ColorSpace::SRGB).data;
@@ -98,7 +99,8 @@ public:
     
     if(type_ == Type::ColorDepth) 
       if(!buf_HDR_.resize(new_width, new_height) || !buf_present_.resize(new_width, new_height)) {
-        fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "FrameBuffer::resize - Resize failed\n");
+        Log::printLogPrefix("FrameBuffer", "resize", true);
+        fmt::print("Resize failed\n");
         return false;
       }
     
@@ -113,8 +115,6 @@ public:
 
   [[nodiscard]]
   u32* presentColorBuffer() const { return buf_present_.packedAbgr8Data(); }
-
-  const Texture2D& depthBuffer() const noexcept { return buf_depth_; }
 
 private:
   Type type_;

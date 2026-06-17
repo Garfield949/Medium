@@ -14,15 +14,16 @@
 #include <fmt/color.h>
 
 #include "Base/Color.h"
+#include "Base/Log.h"
 #include "Mesh.h"
 #include "Material.h"
 #include "Texture2D.h"
 
 namespace fs = std::filesystem;
 
+namespace Medium {
 namespace {
   
-using namespace Medium;
 using namespace tinyobj;
 
 // ---------- 用于 loadObj 函数里的 std::unordered_map: unique_map
@@ -55,17 +56,13 @@ struct IndexEqual {
 // ---------- 提取 tinyobj::attrib_t 中的数据
 Vec2f extractToVec2f(const std::vector<real_t>& data, const i32 idx) {
   if(idx < 0) return Vec2f::Zero(); // 法线或纹理不存在时，返回初始值零
-  return {
-    data[2 * idx], data[2 * idx + 1]
-  };
+  return { data[2 * idx], data[2 * idx + 1] };
 }
 
 // ---------- 提取 tinyobj::attrib_t 中的数据
 Vec3f extractToVec3f(const std::vector<real_t>& data, const i32 idx) {
   if(idx < 0) return Vec3f::Zero();
-  return {
-    data[3 * idx], data[3 * idx + 1], data[3 * idx + 2]
-  };
+  return { data[3 * idx], data[3 * idx + 1], data[3 * idx + 2] };
 }
 
 using FacesByMatMap = std::unordered_map<i32, std::vector<index_t>>;
@@ -74,17 +71,17 @@ FacesByMatMap getFacesByMatIDMap(const shape_t& shape) {
   FacesByMatMap map;
   // 遍历 shape 里的每个面。num_face_vertices 是一个 vector，num_face_vertices[i] 表示第 i 个
   // 面有几个顶点。由于已配置了三角化，这里只用到 num_face_vertices.size()，即获取总三角面片的个数。
-  for(size_t f = 0; f < shape.mesh.num_face_vertices.size(); f++) {
+  for(size_t f = 0; f < shape.mesh.num_face_vertices.size(); ++f) {
     // 由面片的序号拿到对应的材质id. 如果面片没有材质，tinyobjloader 会将其 id 置 -1.
     i32 mat_id = shape.mesh.material_ids[f];
     // 无材质的面片一律装到默认材质的桶中 (parseMTL 阶段已将默认材质装入了 mesh_new->materials[0])
     if(mat_id < 0) {
-      for(auto v = 0; v < 3; v++)
+      for(auto v = 0; v < 3; ++v)
         map[0].push_back(shape.mesh.indices[f * 3 + v]);
       continue;
     }
     // 含同一材质的三角面装在一起
-    for(auto v = 0; v < 3; v++)
+    for(auto v = 0; v < 3; ++v)
       map[mat_id + 1].push_back(shape.mesh.indices[f * 3 + v]);
   }
   return map;
@@ -107,14 +104,12 @@ void parseSubMeshesFromShapes(MeshPtr& mesh_new, const attrib_t& attrib, const s
   //    为若干 SubMesh 并指定相应材质。
   for(const auto& shape: shapes) {
     FacesByMatMap faces_by_mat = getFacesByMatIDMap(shape);
-
     // 将单 shape 中材质相同的面组装为一个 SubMesh.
     for(const auto& [mat_id, face_indices]: faces_by_mat) {
       SubMesh sub_mesh;
       sub_mesh.index_offset   = mesh_new->indices.size();
       sub_mesh.index_count    = face_indices.size();
       sub_mesh.material_index = mat_id;
-
       // 将每个 SubMesh 顶点去重并计算顶点索引，并更新 index_map
       for(const index_t& index : face_indices) {
         if(vert_pos_by_index_t.count(index) == 0) {  // count 只能返回 0 或 1.
@@ -137,8 +132,8 @@ void parseSubMeshesFromShapes(MeshPtr& mesh_new, const attrib_t& attrib, const s
 void meshPostProcess(MeshPtr& mesh_new, bool no_normals) {
   // 若模型不自带法线就手动计算。
   if(no_normals) {
-    fmt::print("AssetCache::loadFromObj - No normals detected in [{}], "
-      "Vertex normals will be generated automatically.\n\n", mesh_new->name);
+    Log::printLogPrefix("AssetCache", "loadFromObj", false);
+    fmt::print("No normals detected in [{}], Vertex normals will be generated automatically.\n\n", mesh_new->name);
     mesh_new->calcNormals();
   }
   // 只要有任何一个 SubMesh 的材质启用了法线贴图，就计算整个网格的顶点切线
@@ -152,6 +147,9 @@ void meshPostProcess(MeshPtr& mesh_new, bool no_normals) {
 }
 
 } // 匿名命名空间，控制仅单文件可见
+} // namespace Medium
+
+
 
 
 namespace Medium {
@@ -181,8 +179,8 @@ MeshPtr AssetCache::loadFromObj(const fs::path& obj_path) {
   ObjReader reader;
   if(!reader.ParseFromFile(obj_path_norm, config)) {
     if(!reader.Error().empty()){
-      fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "\nAssetCache::loadFromObj - TinyObjReader::");
-      fmt::print("{}\n", reader.Error());
+      Log::printLogPrefix("AssetCache", "loadFromObj", true);
+      fmt::print("TinyObjReader::{}\n", reader.Error());
     }    
     return nullptr;
   }
@@ -198,7 +196,7 @@ MeshPtr AssetCache::loadFromObj(const fs::path& obj_path) {
   const std::vector<shape_t>&    shapes    = reader.GetShapes();
   const std::vector<material_t>& materials = reader.GetMaterials();
 
-  fmt::print(fmt::emphasis::bold | fg(fmt::color::green), "\nAssetCache::loadFromObj - ");
+  Log::printLogPrefix("AssetCache", "loadFromObj", false);
   fmt::print("[{}]\n", obj_path_str);
   fmt::print("Vertices : {}\n"
              "Normals  : {}\n"
@@ -288,7 +286,7 @@ TexturePtr AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& c
   // 纹理缓存查询
   if(auto it = texture_cache_.find(tex_key); it != texture_cache_.end()) {
     if(auto tex_cached = it->second.lock()) {
-      fmt::print(fmt::emphasis::bold | fg(fmt::color::green), "AssetCache::loadTexture - ");
+      Log::printLogPrefix("AssetCache", "loadTexture", false);
       fmt::print("[{}] cached\n", tex_path_str);
       return tex_cached;
     }
@@ -305,8 +303,8 @@ TexturePtr AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& c
                                  STBI_rgb_alpha); // 强制补齐 alpha 通道。
 
   if(!raw) {
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "\nTexture::loadFromFile - StbImage::");
-    fmt::print("{}\n\n", stbi_failure_reason());
+    Log::printLogPrefix("AssetCache", "loadTexture", true);
+    fmt::print("StbImage::{}\n\n", stbi_failure_reason());
     return nullptr;
   }
 

@@ -15,6 +15,7 @@
 #include <fmt/base.h>
 #include <fmt/color.h>
 
+#include "Base/Log.h"
 #include "Base/Types.h"
 #include "Base/Color.h"
 
@@ -154,8 +155,8 @@ public:
     if(new_width == w_ && new_height == h_) return true;
 
     if(new_width == 0 || new_height == 0) {
-      fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "Texture2D::resize - Invalid size ");
-      fmt::print("[{} x {}]\n", new_width, new_height);
+      Log::printLogPrefix("Texture2D", "resize", true);
+      fmt::print("Invalid size [{} x {}]\n", new_width, new_height);
       return false;
     }
 
@@ -166,8 +167,8 @@ public:
 
     // if w * h > max_size. 写成除法是为了防止溢出。
     if(w > max_size / h) {
-      fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "Texture2D::resize - Pixel count overflow ");
-      fmt::print("[{} x {}]\n", new_width, new_height);
+      Log::printLogPrefix("Texture2D", "resize", true);
+      fmt::print("Pixel count overflow [{} x {}]\n", new_width, new_height);
       return false;
     }
 
@@ -175,8 +176,8 @@ public:
 
     // if pixels * bpp > max_size.
     if(pixels > max_size / bpp) {
-      fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "Texture2D::resize - Byte size overflow ");
-      fmt::print("[{} x {}]\n", new_width, new_height);
+      Log::printLogPrefix("Texture2D", "resize", true);
+      fmt::print("Byte size overflow [{} x {}]\n", new_width, new_height);
       return false;
     }
 
@@ -188,8 +189,8 @@ public:
     // 若 realloc 选择在别处开辟新空间，会自动将 old 内存块拷贝到新内存块，并 free 掉旧内存。
     auto new_ptr = static_cast<std::byte*>(std::realloc(old_ptr, new_size));
     if(!new_ptr) {
-      fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "Texture2D::resize - Reallocation failed for ");
-      fmt::print("[{} x {}]\n", new_width, new_height);
+      Log::printLogPrefix("Texture2D", "resize", true);
+      fmt::print("Reallocation failed for [{} x {}]\n", new_width, new_height);
       data_.reset(old_ptr);
       return false;
     }

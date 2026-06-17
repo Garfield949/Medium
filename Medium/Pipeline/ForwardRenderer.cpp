@@ -53,9 +53,9 @@ void ForwardRenderer::render(std::span<const MeshNode* const> scene_mesh_nodes,
   RenderPassCtx opaque_pass_ctx{
     .render_state = {
       .blend_mode  = BlendMode::Replace, 
-      .color_write = true,
-      .depth_write = true,
-      .depth_test  = true
+      .enable_color_write = true,
+      .enable_depth_write = true,
+      .enable_depth_test  = true
     },
     .viewport = {0, 0, frame_buffer_.widthF(), frame_buffer_.heightF()},
     .buffer   = frame_buffer_
@@ -69,9 +69,9 @@ void ForwardRenderer::render(std::span<const MeshNode* const> scene_mesh_nodes,
   RenderPassCtx transparent_pass_ctx{
     .render_state = {
       .blend_mode  = BlendMode::PremultipliedOver, 
-      .color_write = true,
-      .depth_write = false, // 透明队列关闭深度写入，否则在前面的透明物体会占用深度缓冲，导致后面的透明物体直接被丢弃无法参与正常混合。
-      .depth_test  = true
+      .enable_color_write = true,
+      .enable_depth_write = false, // 透明队列关闭深度写入，否则在前面的透明物体会占用深度缓冲，导致后面的透明物体直接被丢弃无法参与正常混合。
+      .enable_depth_test  = true
     },
     .viewport = {0, 0, frame_buffer_.widthF(), frame_buffer_.heightF()},
     .buffer   = frame_buffer_

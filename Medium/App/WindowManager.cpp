@@ -31,7 +31,7 @@ WindowManager::~WindowManager() {
 bool WindowManager::init(const WindowCfg& cfg_window) {
   // SDL_INIT_VIDEO 启用 SDL 与桌面显示环境相关的子系统，该标志位隐式地启动 SDL_INIT_EVENTS.
   if(!SDL_Init(SDL_INIT_VIDEO)) {
-    printLogPrefix("WindowManager", "init", true);
+    Log::printLogPrefix("WindowManager", "init", true);
     fmt::print("{}\n", SDL_GetError());
     return false;
   }
@@ -63,11 +63,11 @@ void WindowManager::commitBuffer(const u32* packed_abgr8_buffer, u32 buffer_widt
     if(static_cast<size_t>(row_pitch) == bytes_cnt_row)
       std::memcpy(dst, packed_abgr8_buffer, bytes_cnt_total);
     else // 否则一行一行写入。
-      for(u32 y = 0; y < buffer_height; y++) // void 指针不支持算术运算，因为类型未知无法计算步长，需转型一下。
+      for(u32 y = 0; y < buffer_height; ++y) // void 指针不支持算术运算，因为类型未知无法计算步长，需转型一下。
         std::memcpy(static_cast<std::byte*>(dst) + y * row_pitch,
                     packed_abgr8_buffer + y * buffer_width,
                     bytes_cnt_row);
-
+    
     SDL_UnlockTexture(sdl_texture_present_);
   }
   // 将缓冲绘制到 SDL_Renderer 上。
@@ -86,7 +86,7 @@ bool WindowManager::createSDLWindow(const WindowCfg& cfg_window) {
   );
 
   if(!sdl_window_) {
-    printLogPrefix("WindowManager", "createSDLWindow", true);
+    Log::printLogPrefix("WindowManager", "createSDLWindow", true);
     fmt::print("{}\n", SDL_GetError());
     return false;
   }
@@ -97,7 +97,7 @@ bool WindowManager::createSDLWindow(const WindowCfg& cfg_window) {
   // 2. 假设设备屏幕只有 1440x900 个物理像素，SDL 只会给一个相同尺寸的缓冲。
   auto [w_physical, h_physical] = physicalExtent();
   if(static_cast<u32>(w_physical) > cfg_window.w || static_cast<u32>(h_physical) > cfg_window.h) {
-    printLogPrefix("WindowManager", "createSDLWindow", true);
+    Log::printLogPrefix("WindowManager", "createSDLWindow", true);
     fmt::print("HiDPI enabled\n");
   }
 
@@ -109,7 +109,7 @@ bool WindowManager::createSDLRenderer() {
   sdl_renderer_ = SDL_CreateRenderer(sdl_window_, nullptr);
 
   if(!sdl_renderer_) {
-    printLogPrefix("WindowManager", "createSDLRenderer", true);
+    Log::printLogPrefix("WindowManager", "createSDLRenderer", true);
     fmt::print("{}\n", SDL_GetError());
     return false;
   }
@@ -132,7 +132,7 @@ bool WindowManager::createSDLTexture() {
   );
 
   if(!new_texture) {
-    printLogPrefix("WindowManager", "createSDLTexture", true);
+    Log::printLogPrefix("WindowManager", "createSDLTexture", true);
     fmt::print("{}\n", SDL_GetError());
     return false;
   }

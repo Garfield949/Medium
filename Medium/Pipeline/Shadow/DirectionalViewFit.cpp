@@ -11,9 +11,8 @@
 #include "Scene/Camera.h"
 #include "DirectionalViewClip.h"
 
+namespace Medium {
 namespace {
-
-using namespace Medium;
 
 // 场景包围盒三角形索引表
 constexpr size_t kBBoxTriNum = 12;
@@ -27,14 +26,14 @@ constexpr std::array<u8, kBBoxTriNum * 3> kSceneBBoxTriIndices {
 };
 
 std::pair<f32, f32> calcNearAndFar(const Vec2f& light_ortho_min,
-                                   const Vec2f& light_ortho_max,
-                                   const std::array<Vec3f, 8>& scene_bbox_corners_lb) {
+                                    const Vec2f& light_ortho_max,
+                                    const std::array<Vec3f, 8>& scene_bbox_corners_lb) {
   // 近远平面分别初始化为最大正数和最小负数。
   f32 near = std::numeric_limits<f32>::max();
   f32 far  = std::numeric_limits<f32>::lowest();
 
   // 遍历场景包围盒的三角形
-  for(size_t i = 0; i < kBBoxTriNum; i++) {
+  for(size_t i = 0; i < kBBoxTriNum; ++i) {
     ClipPolygon clip_poly;
 
     for(size_t j = 0; j < 3; ++j, ++clip_poly.num_verts)
@@ -42,7 +41,7 @@ std::pair<f32, f32> calcNearAndFar(const Vec2f& light_ortho_min,
 
     if(!clip(light_ortho_min, light_ortho_max, clip_poly)) continue;
     
-    for(size_t k = 0; k < clip_poly.num_verts; k++) {
+    for(size_t k = 0; k < clip_poly.num_verts; ++k) {
       if(clip_poly.verts[k].z() < near) near = clip_poly.verts[k].z();
       if(clip_poly.verts[k].z() > far)  far  = clip_poly.verts[k].z();
     }
@@ -52,6 +51,9 @@ std::pair<f32, f32> calcNearAndFar(const Vec2f& light_ortho_min,
 } // calcNearAndFar
 
 } // 匿名命名空间，控制仅单文件可见
+} // namespace Medium
+
+
 
 
 namespace Medium {
@@ -69,7 +71,7 @@ DirectionalViewFit calcDirectionalViewFit(const DirectionalViewFitParams& params
   // ---------- 计算场景AABB在 lb 下的角点
   auto scene_bbox_corners_ws = scene_bbox_ws.corners();
   std::array<Vec3f, 8> scene_bbox_corners_lb;
-  for(int i = 0; i < 8; i++)
+  for(int i = 0; i < 8; ++i)
     scene_bbox_corners_lb[i] = mat_rot_lb * scene_bbox_corners_ws[i];
 
   // ---------- 获取主相机视椎切片的外接球，将其直径作为 light ortho 正方形的边长

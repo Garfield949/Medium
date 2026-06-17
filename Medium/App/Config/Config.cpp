@@ -13,6 +13,8 @@
 #include <fmt/format.h>
 #include <fmt/color.h>
 
+#include "Base/Log.h"
+
 namespace fs = std::filesystem;
 
 namespace Medium {
@@ -33,8 +35,8 @@ AppCfg AppCfg::LoadFromToml(const fs::path& config_dir) {
   // 解析失败原因一般是 toml 语法错误，直接返回默认配置，toml++ 会打印错误原因
   toml::parse_result app_toml = toml::parse_file(toml_path.string());
   if(!app_toml) {
-    fmt::print(fmt::emphasis::bold | fg(fmt::color::red), "\nloadAppConfig - toml++::");
-    fmt::print("{}\n", app_toml.error().description());
+    Log::printLogPrefix("Appcfg", "LoadFromToml", true);
+    fmt::print("toml++::{}\n", app_toml.error().description());
     fmt::print("Falling back to default.\n");
     return app_cfg;
   }

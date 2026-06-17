@@ -38,7 +38,7 @@ bool ShadowManager::init(Camera* camera,
   csm_slices_ = calcCSMSlices(camera_->near(), max_shadow_dist, cascade_count);
 
   // 计算各 tile 视区
-  for(i32 i = 0; i < cascade_cnt_; i++)
+  for(i32 i = 0; i < cascade_cnt_; ++i)
     cascade_viewports_[i] = calcCSMAtlasViewport(i, shadow_map_tile_res);
 
   return true;
@@ -50,7 +50,7 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
   shadow_map_atlas_.clearDepth();
 
   // 计算 CSMFrameCtx 各级联数据。
-  for(i32 i = 0; i < cascade_cnt_; i++) {
+  for(i32 i = 0; i < cascade_cnt_; ++i) {
     f32 fit_near = csm_slices_[i];
     f32 fit_far  = csm_slices_[i + 1];
 
@@ -92,9 +92,9 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
     RenderPassCtx opaque_pass_ctx{
       .render_state = {
         .blend_mode  = BlendMode::Replace,
-        .color_write = false,
-        .depth_write = true,
-        .depth_test  = true
+        .enable_color_write = false,
+        .enable_depth_write = true,
+        .enable_depth_test  = true
       },
       .viewport = cascade_viewports_[i],
       .buffer   = shadow_map_atlas_

@@ -55,7 +55,7 @@ void Mesh::calcTangents() noexcept {
     Vec3f bitangent_f = (-delta_u02 * delta_pos01 + delta_u01 * delta_pos02) * sign;
 
     // 累加到顶点的 T 和 B
-    for(size_t j = 0; j < 3; ++j) {
+    for(auto j = 0; j < 3; ++j) {
       tmp_tangents[indices[f + j]]   += tangent_f;
       tmp_bitangents[indices[f + j]] += bitangent_f;
     }
@@ -87,9 +87,9 @@ void Mesh::calcAABBs() noexcept {
   
   // 在 SubMesh 层级算 AABB
   for(auto& sub_mesh: sub_meshes) {
-    size_t offset = sub_mesh.index_offset;
-    size_t count  = sub_mesh.index_count;
-    for(size_t i = offset; i < offset + count; ++i) {
+    u32 offset = sub_mesh.index_offset;
+    u32 count  = sub_mesh.index_count;
+    for(u32 i = offset; i < offset + count; ++i) {
       sub_mesh.aabb_local.addPoint(vertices[indices[i]].pos);
     }
   }

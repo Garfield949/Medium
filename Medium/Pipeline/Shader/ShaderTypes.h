@@ -1,28 +1,71 @@
 ///
 /// @file   ShaderTypes.h
 /// @author Garfield949
-/// @date   2026/3/2 13:17
+/// @date   2026/6/15 13:25
 /// @brief
 ///
 #pragma once
 
-#include "Base/Types.h"
+#include <array>
+#include <span>
+
 #include "Base/Color.h"
+#include "Base/Types.h"
 
 namespace Medium {
 
+inline constexpr u32 kMaxVaryingScalars = 16;
+
+enum class InterpMode {
+  Perspective,
+  NoPerspective,
+  Flat
+};
+
+struct VaryingField {
+  u32 offset = 0;
+  u32 scalar_cnt = 0;
+  InterpMode interp_mode = InterpMode::Perspective;
+};
+
+struct VaryingLayout {
+  std::span<const VaryingField> fields;
+  u32 scalar_cnt = 0;
+};
+
 struct Varying {
-  Vec2f uv          = Vec2f::Zero();        // 纹理坐标
-  Vec3f normal      = Vec3f::Zero();        // 顶点变到世界空间里的法向
-  Vec4f tangent     = Vec4f::Zero();        // 切线
-  Vec3f pos_world   = Vec3f::Zero();        // 某些计算（比如光照）依赖顶点世界坐标
-  LinearColor color = LinearColor::White(); // 颜色
-  f32   w_inv       = 0.0f;                 // 保存顶点的 1/w
+  void store(const f32* vec_data, u32 offset, u32 scalar_cnt) {
+    for(u32 i = 0; i < scalar_cnt; ++i)
+      scalars[offset + i] = vec_data[i];
+  }
+  std::array<f32, kMaxVaryingScalars> scalars;
+  f32 w_inv = 1.0f; // 不显式指定的话，会退化为线性插值。
 };
 
 struct VSOut {
-  Vec4f   pos_clip = Vec4f::Zero();
-  Varying varying  = {};
+  Vec4f pos_clip;
+  Varying varying;
+};
+
+struct FSPayload {
+  [[nodiscard]] Vec2f getVec2f(u32 offset) const noexcept {
+    return { 
+      scalars_interp[offset + 0], 
+      scalars_interp[offset + 1]
+    };
+  }
+  [[nodiscard]] Vec3f getVec3f(u32 offset) const noexcept {
+    return { 
+      scalars_interp[offset + 0], 
+      scalars_interp[offset + 1], 
+      scalars_interp[offset + 2] 
+    };
+  }
+  [[nodiscard]] f32 getScalar(u32 offset) const noexcept {
+    return scalars_interp[offset];
+  }
+  std::array<f32, kMaxVaryingScalars> scalars_interp;
+  LinearColor frag_color;
 };
 
 } // namespace Medium

@@ -10,6 +10,7 @@
 
 #include "Pipeline/FrameBuffer.h"
 #include "Pipeline/Shader/VariantShader.h"
+#include "Pipeline/Shadow/CSM.h"
 
 namespace Medium {
 
@@ -41,8 +42,8 @@ public:
 private:
   FrameBuffer shadow_map_atlas_{FrameBuffer::Type::DepthOnly};
   
-  std::array<f32, kMaxCSMCascades + 1> csm_slices_{};
-  std::array<RectF, kMaxCSMCascades>   cascade_viewports_{};
+  std::array<f32, kMaxCSMCascades + 1> csm_slices_;
+  std::array<RectF, kMaxCSMCascades>   cascade_viewports_;
 
   CSMSamplingCtx csm_ctx_;
 
