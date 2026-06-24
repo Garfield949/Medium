@@ -11,14 +11,9 @@
 namespace Medium {
 
 struct SubMesh {
-  u32 triangleCount() const noexcept {
-    return index_count / 3;
-  }
-
   u32 index_offset    = 0;
   u32 index_count     = 0;
   i32 material_index  = 0;
-
   AABB3D aabb_local;
 };
 
@@ -28,11 +23,13 @@ struct SubMesh {
 class Mesh {
   friend class AssetCache;
 public:
-  ~Mesh() = default;
+  explicit Mesh() = default;
 
   void calcNormals()  noexcept;
   void calcTangents() noexcept;
   void calcAABBs()    noexcept;
+
+  u32 triangle_count() const noexcept { return indices.size() / 3; }
   
   std::string name;
 
@@ -43,8 +40,6 @@ public:
   std::vector<u32>    indices;  // 索引，存的是对应顶点在 vertices 里的下标
 
   AABB3D aabb_local;
-private:
-  Mesh() = default;
 };
 
 } // namespace

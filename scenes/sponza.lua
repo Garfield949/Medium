@@ -2,12 +2,12 @@
 local camera = {
     fov = 80,
     near = 0.1,
-    position = {0.0, 1.0, 0.0},
-    rotation = {0.0, -90.0, 0.0},
+    position = { 0.5, 2.0, 5.0 },
+    rotation = { 0.0, -135.0, 0.0 },
 }
 
 local light = {
-    direction = {-0.04, -0.3, 0.0}
+    direction = { -0.04, -0.3, 0.0 }
 }
 
 local shadow_config = {
@@ -18,8 +18,8 @@ local shadow_config = {
 local model = {
     name = "Crytek Sponza",
     file = "assets/models/sponza/sponza.obj",
-    position = {0.0, 0.0, 0.0},
-    rotation = {0.0, 90.0, 0.0},
+    position = { 0.0, 0.0, 0.0 },
+    rotation = { 0.0, 90.0, 0.0 },
     scale = 0.006
 }
 

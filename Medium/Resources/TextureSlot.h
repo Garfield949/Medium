@@ -25,7 +25,7 @@ inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv) {
     if (slot.index() == 0) {
       // get 返回一个右值，必须绑定 const 引用。
       const TexturePtr& texture = std::get<0>(slot);
-      return Samplers::NearestRepeat.sampleColor(*texture, uv.x(), uv.y());
+      return Samplers::LinearRepeat.sampleColor(*texture, uv.x(), uv.y());
     }
     return std::get<1>(slot);
 }

@@ -14,9 +14,14 @@ void FPSController::bind(Node *host, const Input *input) noexcept {
   assert(host && input);
   host_  = host;
   input_ = input;
+  bindNewHost(host);
+}
 
+void FPSController::bindNewHost(Node *host) noexcept {
+  assert(host);
+  host_ = host;
   // 场景可能已经定义了相机的旋转，所以从其 Transform 中反解出当前状态的 heading 和 pitch，否则第一次 update 鼠标
-  // 移动时会直接将旋转置为 {0,0,0}. 
+  // 移动时会直接将旋转置为 {0,0,0}.
   Vec3f forward = host_->transform.forward();
   // sin(theta) = y/1 -> theta = asin(y).
   // 注意，当 y 是个负值（左手系里表示向下 pitch），asin(y) 会返回一个负角度，需要取反。
@@ -33,8 +38,8 @@ void FPSController::update(f32 dt) noexcept {
     // 由于 delta 要与灵敏度等参数相乘，所以转为浮点类型
     Vec2f delta = input_->mouse_move_delta().cast<f32>();
 
-    heading_deg_ += delta.x() * mouse_sensitivity_;
-    pitch_deg_   += delta.y() * mouse_sensitivity_;
+    heading_deg_ += delta.x() * mouse_speed_;
+    pitch_deg_   += delta.y() * mouse_speed_;
     pitch_deg_ = std::clamp(pitch_deg_, -kMaxPitchDeg, kMaxPitchDeg);
     
     host_tf.setRotation({pitch_deg_, heading_deg_, 0.0f});

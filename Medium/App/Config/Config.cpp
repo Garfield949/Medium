@@ -51,8 +51,8 @@ AppCfg AppCfg::LoadFromToml(const fs::path& config_dir) {
   if(auto v = window["width"].value<u32>())         app_cfg.window.w = *v;
   if(auto v = window["height"].value<u32>())        app_cfg.window.h = *v;
 
-  auto shadow = toml_app["render"]["shadow"];
-  if(auto v = shadow["resolution"].value<u32>()) app_cfg.render.shadow.shadow_map_res = *v;
+  auto render = toml_app["render"];
+  if(auto v = render["shadow_map_resolution"].value<u32>()) app_cfg.render.shadow_map_res = *v;
 
   return app_cfg.sanitized();
 }  
@@ -66,10 +66,10 @@ std::string AppCfg::toTomlString() const {
   "title = \"{}\"\n"
   "width = {}\n"
   "height = {}\n\n"
-  "[render.shadow]\n"
-  "resolution = {}\n",
+  "[render]\n"
+  "shadow_map_resolution = {}\n",
   window.title, window.w, window.h,
-  render.shadow.shadow_map_res);
+  render.shadow_map_res);
 }
 
 AppCfg AppCfg::sanitized() const noexcept {
@@ -78,8 +78,8 @@ AppCfg AppCfg::sanitized() const noexcept {
   res.window.w = std::max(Config::kMinWindowWidth,  window.w);
   res.window.h = std::max(Config::kMinWindowHeight, window.h);
   
-  res.render.shadow.shadow_map_res =
-    std::max(Config::kMinShadowTileRes, render.shadow.shadow_map_res);
+  res.render.shadow_map_res =
+    std::max(Config::kMinShadowTileRes, res.render.shadow_map_res);
   
   return res;
 }

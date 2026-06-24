@@ -57,8 +57,8 @@ private:
 
   Node root_ = {"Scene Root"};
 
-  Camera* main_camera_ = nullptr;
-  
+  // 相机和方向光是观察指针，实际生命周期由 root_ 持有，root_ 析构时会自动释放。
+  Camera* main_camera_ = nullptr;  
   DirectionalLight* dir_light_ = nullptr;
 
   std::vector<MeshNode*> mesh_nodes_;

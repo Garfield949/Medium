@@ -3,5 +3,5 @@ title = "Medium Canvas"
 width = 1440
 height = 900
 
-[render.shadow]
-resolution = 1024
+[render]
+shadow_map_resolution = 1024

@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.16)
 
-project(Medium DESCRIPTION "CPU Renderer")
+project(MediumCanvas DESCRIPTION "CPU Renderer")
 
 # 开启导出 compile_commands.json，以便 clangd 等索引
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -17,11 +17,20 @@ list(REMOVE_ITEM LUA_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/external/lua/lua.c"
 # Lua 静态编译进二进制
 add_library(lua_static STATIC ${LUA_SOURCES})
 
-# 递归获取 Medium 目录下所有的源文件
-file(GLOB_RECURSE MEDIUM_SOURCES "Medium/*.cpp" "Medium/*.h" "Medium/*.hpp")
+# 生成可执行文件，并顺便指定源文件
+add_executable(${PROJECT_NAME} ${IMGUI_SOURCES})
 
-# 生成可执行文件
-add_executable(${PROJECT_NAME} ${MEDIUM_SOURCES})
+# CMake 会为含 CMakeLists.txt 的子目录分配一个构建文件夹
+add_subdirectory(Medium)
+
+# 向构建目标追加源文件，ImGui 静态编译
+target_sources(${PROJECT_NAME} PRIVATE
+    external/DearImGui/imgui.cpp
+    external/DearImGui/imgui_draw.cpp
+    external/DearImGui/imgui_tables.cpp
+    external/DearImGui/imgui_widgets.cpp
+    external/DearImGui/backend/imgui_impl_sdl3.cpp
+)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 20          # 指定项目使用 C++20
@@ -38,6 +47,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 # 设置包含目录
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Medium)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/DearImGui)
 
 # 定义宏，记录项目的根路径，用于程序内寻找模型文件
 target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/")

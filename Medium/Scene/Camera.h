@@ -22,12 +22,12 @@ public:
 
   static constexpr f32 kMinimumNearPlane = 0.1f;
 
-  enum class Mode { 
+  enum class Mode {
     Perspective, Orthographic
   };
 
-  explicit Camera(std::string name, Mode type)
-    : Node{std::move(name), Type}, mode_{type} {}
+  explicit Camera(std::string name, Mode mode)
+    : Node{std::move(name), Type}, mode_{mode} {}
 
   /// @brief 当构造为一个透视相机时，传入相应参数
   void setPerspParams(f32 fov, f32 near, f32 aspect_ratio) noexcept;
@@ -55,8 +55,14 @@ public:
   Mat4f viewMatrix()        const noexcept;
   Mat4f viewProjMatrix()    const noexcept;
 
+  f32& fov() noexcept { 
+    dirty_proj_matrix_ = true;
+    return fov_y_; 
+  }
+
   /// @brief 返回近平面。
   f32 near() const noexcept { return near_; }
+  
   /// @brief 返回远平面，对于透视投影返回无穷大。
   f32 far()  const noexcept { 
     return mode_ == Mode::Orthographic ? far_ : std::numeric_limits<f32>::infinity();

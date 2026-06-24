@@ -44,7 +44,7 @@ struct CSMCascade {
 struct CSMSamplingCtx {
   std::array<CSMCascade, kMaxCSMCascades> cascades;
   const FrameBuffer* shadow_map_atlas = nullptr;
-  i32 cascade_cnt = 0;
+  u32 cascade_cnt = 0;
 
   struct CascadeQuery {
     const CSMCascade* cascade = nullptr;
@@ -53,7 +53,7 @@ struct CSMSamplingCtx {
 
   // 返回级联本身和所在层级。
   std::optional<CascadeQuery> cascadeQuery(f32 z_view) const noexcept {
-    for(i32 i = 0; i < cascade_cnt; ++i) {
+    for(i32 i = 0; i < static_cast<i32>(cascade_cnt); ++i) {
       const CSMCascade& c = cascades[i];
       if(z_view >= c.slice_near && z_view <= c.slice_far) return CascadeQuery{&c, i};
     }
@@ -76,6 +76,6 @@ std::array<f32, kMaxCSMCascades + 1> calcCSMSlices(f32 camera_near,
                                                    u32 cascade_cnt);
 
 /// @brief 计算 CSM 级联的视口。
-RectF calcCSMAtlasViewport(i32 cascade_index, u32 tile_res);
+RectF calcCSMAtlasViewport(u32 cascade_index, u32 tile_res);
 
 } // namespace Medium

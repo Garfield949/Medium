@@ -10,13 +10,24 @@
 
 #include "Base/Log.h"
 #include "Config/Config.h"
+#include "SDL3/SDL_video.h"
 
 namespace Medium {
 
-std::pair<i32, i32> WindowManager::physicalExtent() const {
+Vec2i WindowManager::physicalExtent() const {
   i32 w = 0, h = 0;
   SDL_GetWindowSizeInPixels(sdl_window_, &w, &h);
   return { w, h };
+}
+
+u32 WindowManager::physicalPixelCount() const {
+  auto extent = physicalExtent();
+  return static_cast<u32>(extent.x()) * static_cast<u32>(extent.y());
+}
+
+f32 WindowManager::aspectRatio() const noexcept {
+  auto extent = physicalExtent();
+  return static_cast<f32>(extent.x()) / static_cast<f32>(extent.y());
 }
 
 WindowManager::~WindowManager() {
@@ -95,10 +106,9 @@ bool WindowManager::createSDLWindow(const WindowCfg& cfg_window) {
   // 一个 2880x1800 的屏幕缓冲：
   // 1. 假设设备屏幕本身就有 2880x1800 个物理像素，便可做到 2x2 的物理像素对应一个逻辑像素；
   // 2. 假设设备屏幕只有 1440x900 个物理像素，SDL 只会给一个相同尺寸的缓冲。
-  auto [w_physical, h_physical] = physicalExtent();
-  if(static_cast<u32>(w_physical) > cfg_window.w || static_cast<u32>(h_physical) > cfg_window.h) {
+  if(SDL_GetWindowPixelDensity(sdl_window_) > 1) {
     Log::printLogPrefix("WindowManager", "createSDLWindow", true);
-    fmt::print("HiDPI enabled\n");
+    fmt::print("Scale enabled\n");
   }
 
   return true;
@@ -121,14 +131,14 @@ bool WindowManager::createSDLRenderer() {
 }
 
 bool WindowManager::createSDLTexture() {
-  auto [w_physical, h_physical] = physicalExtent();
+  auto extent = physicalExtent();
 
   SDL_Texture* new_texture = SDL_CreateTexture(
     sdl_renderer_,
     SDL_PIXELFORMAT_ABGR8888,
     SDL_TEXTUREACCESS_STREAMING, // 材质作为颜色缓冲区会频繁变换，使用 STREAMING 而非 STATIC.
-    w_physical,
-    h_physical
+    extent.x(),
+    extent.y()
   );
 
   if(!new_texture) {

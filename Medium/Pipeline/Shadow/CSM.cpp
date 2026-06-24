@@ -6,10 +6,7 @@
 ///
 #include "CSM.h"
 
-#include <fmt/color.h>
-
 #include "Base/Math/Math.h"
-#include "Base/Log.h"
 
 //   [ 透视畸变 Perspective Aliasing ]
 // - 平行光的阴影贴图是均匀、精度有限的；
@@ -49,7 +46,7 @@ std::array<f32, kMaxCSMCascades + 1> calcCSMSlices(f32 camera_near,
   slices[0] = camera_near;
 
   // lambda 决定均匀划分的贡献，取值 0 ~ 1. 越大均匀划分贡献越低，近处范围越小，精度越高。
-  const f32 lambda = 0.65f;
+  constexpr f32 lambda = 0.65f;
   const f32 k = max_shadow_dist / camera_near;
   // cascade_cnt = 1 时循环不会执行，可正确处理。
   for(u32 i = 1; i < cascade_cnt; ++i) {
@@ -66,29 +63,18 @@ std::array<f32, kMaxCSMCascades + 1> calcCSMSlices(f32 camera_near,
   }
 
   slices[cascade_cnt] = max_shadow_dist;
-
-  fmt::print(fmt::emphasis::bold | fg(fmt::color::green), "\nCSM cascade slicing input:\n");
-  fmt::print("Camera Near        : {}\n"
-             "Max Shadow Distance: {}\n"
-             "Cascade Count      : {}\n", camera_near, max_shadow_dist, cascade_cnt);
-
-  fmt::print(fmt::emphasis::bold | fg(fmt::color::green), "\nCSM cascade slicing output:\n");
-  for(u32 i = 0; i < cascade_cnt; ++i) {
-    fmt::print("Cascade {}: [{:.1f} ~ {:.1f}]\n", i, slices[i], slices[i+1]);
-  }
-  fmt::print("\n");
-
+  
   return slices;
 }
 
 // CSM0, CSM1, CSM2, CSM3 依次占用 CSM Atlas 的左上角、右上角、左下角、右下角。
-RectF calcCSMAtlasViewport(i32 cascade_index, u32 tile_res) {
+RectF calcCSMAtlasViewport(u32 cascade_index, u32 tile_res) {
   f32 tile_res_f = static_cast<f32>(tile_res);
   switch(cascade_index) {
-  case 0:  return {0.0f      , tile_res_f, tile_res_f, tile_res_f}; // 左上 tile
-  case 1:  return {tile_res_f, tile_res_f, tile_res_f, tile_res_f}; // 右上 tile
-  case 2:  return {0.0f      , 0.0f      , tile_res_f, tile_res_f}; // 左下 tile
-  default: return {tile_res_f, 0.0f      , tile_res_f, tile_res_f}; // 右下 tile
+  case 0:  return {.x = 0.0f      , .y = tile_res_f, .w = tile_res_f, .h = tile_res_f}; // 左上 tile
+  case 1:  return {.x = tile_res_f, .y = tile_res_f, .w = tile_res_f, .h = tile_res_f}; // 右上 tile
+  case 2:  return {.x = 0.0f      , .y = 0.0f      , .w = tile_res_f, .h = tile_res_f}; // 左下 tile
+  default: return {.x = tile_res_f, .y = 0.0f      , .w = tile_res_f, .h = tile_res_f}; // 右下 tile
   }
 }
 

@@ -11,7 +11,7 @@ local light = {
 
 local shadow_config = {
     max_shadow_distance = 5.0,
-    csm_cascade_count = 2
+    csm_cascade_count = 3
 }
 
 local model = {

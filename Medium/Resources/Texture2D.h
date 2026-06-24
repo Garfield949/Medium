@@ -46,6 +46,7 @@ public:
   Texture2D& operator=(Texture2D&&) noexcept = default;
 
   // 调用方必须显式手动进行 resize 来分配空间，并进行错误处理。
+  // 当 Texture2D 作为 U32 Packed 颜色缓冲时，从中读出一个 LinearColor 需用到 ColorSpace 参数进行解码。
   explicit Texture2D(PixelFormat format, ColorSpace space)
     : pixel_format_{format}, color_space_{space} {}
 
@@ -79,21 +80,29 @@ public:
     return y * w_ + x;
   }
 
-  // 读取 stbi 贴图原始颜色并转入线性空间。
-  LinearColor readColor(i32 x, i32 y) const noexcept {
-    assert(this->pixel_format_ == PixelFormat::ABGR8);
-    
-    Color abgr = reinterpret_cast<Color*>(data_.get())[index(x, y)];
+  // ---------- Packed Argb8
 
+  // 用途：读取 present 颜色缓冲。
+  LinearColor readPackedAbgrToLinear(size_t index) const noexcept {
+    assert(this->pixel_format_ == PixelFormat::ABGR8);
+    Color abgr = reinterpret_cast<Color*>(data_.get())[index];
     return abgr.toLinear(this->color_space_);
+  }
+
+  // 用途：读取 stbi 贴图原始颜色。
+  LinearColor readPackedAbgrToLinear(i32 x, i32 y) const noexcept {
+    assert(this->pixel_format_ == PixelFormat::ABGR8);
+    return readPackedAbgrToLinear(index(x, y));
   }
 
   /// @brief 颜色写入，U32 Color 专用。
   /// @details index 必须由 screenIndex() 或 index() 计算得到。
-  void writeColor(size_t index, u32 packed_abgr8) {
+  void writePackedAbgr(size_t index, u32 packed_abgr8) {
     assert(this->pixel_format_ == PixelFormat::ABGR8);
     reinterpret_cast<u32*>(data_.get())[index] = packed_abgr8;
   }
+
+  // ---------- LinearColor
 
   LinearColor readLinearColor(size_t index) const noexcept {
     assert(this->pixel_format_ == PixelFormat::RGBA32F);
@@ -106,6 +115,8 @@ public:
     assert(this->pixel_format_ == PixelFormat::RGBA32F);
     reinterpret_cast<LinearColor*>(data_.get())[index] = color;
   }
+
+  // ---------- Depth
 
   // 用于深度缓冲取值 & Shadow Map 采样。
   // 注：Shadow Pass 和 Main Pass走的一个管线，rasterizer 里都要通过 getIndex() 进行索引，而这个索引是针对屏幕

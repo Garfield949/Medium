@@ -11,10 +11,8 @@
 #include "Resources/Material.h"
 
 namespace Medium {
-  struct ShaderBindCtx;
-}
 
-namespace Medium {
+struct ShaderBindCtx;
 
 struct DepthShader {
   struct Uniform {
@@ -45,7 +43,6 @@ struct DepthShader {
     vs_out.pos_clip = uniforms.wvp_light * vert.pos.homogeneous();
     vs_out.varying.w_inv = 1.0f; // 走透视投影插值也可以，w 设为 1 就退化为线性插值了。
     vs_out.varying.store(vert.uv.data(), kOffsetUV, 2);
-    
     return vs_out;
   }
 
@@ -57,7 +54,7 @@ struct DepthShader {
   
     // Alpha Test
     if(mat->surface_mode == Material::SurfaceMode::Masked) {
-      f32 value = sampleSlot(mat->diss_slot, frag_uv).R;
+      f32 value = sampleSlot(mat->diff_slot, frag_uv).A;
       if(value < Material::kAlphaCutoff) return true;
     }
   

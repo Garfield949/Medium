@@ -9,48 +9,62 @@
 #include "Scene/Light/DirectionalLight.h"
 #include "Pipeline/Shadow/CSM.h"
 #include "Pipeline/Shadow/DirectionalViewFit.h"
+#include "Pipeline/RenderStat.h"
 #include "Pipeline/Pipeline.h"
 #include "Pipeline/RenderContext.h"
 #include "Pipeline/RenderQueue.h"
 
 namespace Medium {
 
-bool ShadowManager::init(Camera* camera, 
+bool ShadowManager::init(Camera* camera,
                          DirectionalLight* dir_light,
-                         u32 shadow_map_tile_res,
+                         u32 csm_tile_res,
                          f32 max_shadow_dist,
-                         i32 cascade_count)
-{  
-  camera_    = camera;
-  dir_light_ = dir_light;
-
-  cascade_cnt_         = cascade_count;
-  max_shadow_dist_     = max_shadow_dist;
-  shadow_map_tile_res_ = shadow_map_tile_res;
-
+                         u32 cascade_count)
+{
   // shadow_map_res 是单级 tile 的分辨率。
-  if(!shadow_map_atlas_.resize(shadow_map_tile_res * 2)) return false;
+  if(!shadow_map_atlas_.resize(csm_tile_res * 2)) return false;
 
-  csm_ctx_.cascade_cnt      = cascade_cnt_;
   csm_ctx_.shadow_map_atlas = &shadow_map_atlas_;
 
-  // 计算级联切片逻辑范围。
-  csm_slices_ = calcCSMSlices(camera_->near(), max_shadow_dist, cascade_count);
-
-  // 计算各 tile 视区
-  for(i32 i = 0; i < cascade_cnt_; ++i)
-    cascade_viewports_[i] = calcCSMAtlasViewport(i, shadow_map_tile_res);
+  csm_tile_res_ = csm_tile_res;
+  
+  attach(camera, dir_light, max_shadow_dist, cascade_count);
 
   return true;
 }
 
+void ShadowManager::attach(Camera* camera,
+            DirectionalLight* dir_light,
+            f32 max_shadow_dist,
+            u32 cascade_count) noexcept {
+  camera_ = camera;
+  dir_light_ = dir_light;
+  updateCSMSlices(max_shadow_dist, cascade_count);
+}
+
+void ShadowManager::updateCSMSlices(f32 max_shadow_dist, u32 cascade_count) noexcept {
+  if(max_shadow_dist == max_shadow_dist_ && cascade_count == cascade_cnt_) 
+    return;
+  
+  cascade_cnt_ = cascade_count;
+  max_shadow_dist_ = max_shadow_dist;
+  csm_ctx_.cascade_cnt = cascade_count;
+  
+  csm_slices_ = calcCSMSlices(camera_->near(), max_shadow_dist, cascade_count);
+  // 计算各 tile 视区
+  for(u32 i = 0; i < cascade_cnt_; ++i)
+    cascade_viewports_[i] = calcCSMAtlasViewport(i, csm_tile_res_);
+}
+
 void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
-                           const AABB3D& bbox_scene_ws)
+                           const AABB3D& bbox_scene_ws,
+                           RenderStat& stat)
 {
   shadow_map_atlas_.clearDepth();
 
   // 计算 CSMFrameCtx 各级联数据。
-  for(i32 i = 0; i < cascade_cnt_; ++i) {
+  for(i32 i = 0; i < static_cast<i32>(cascade_cnt_); ++i) {
     f32 fit_near = csm_slices_[i];
     f32 fit_far  = csm_slices_[i + 1];
 
@@ -60,7 +74,7 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
     DirectionalViewFitParams fit_params{
       .camera        = camera_,
       .light_dir     = dir_light_->dir,
-      .shadow_res    = shadow_map_tile_res_,
+      .shadow_res    = csm_tile_res_,
       .slice_near    = fit_near,
       .slice_far     = fit_far,
       .scene_bbox_ws = bbox_scene_ws
@@ -91,10 +105,11 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
 
     RenderPassCtx opaque_pass_ctx{
       .render_state = {
-        .blend_mode  = BlendMode::Replace,
-        .enable_color_write = false,
+        .enable_depth_test  = true,
         .enable_depth_write = true,
-        .enable_depth_test  = true
+        .enable_color_write = false,
+        .cull_mode  = CullMode::CullBack,
+        .blend_mode = BlendMode::Replace
       },
       .viewport = cascade_viewports_[i],
       .buffer   = shadow_map_atlas_
@@ -106,6 +121,14 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
     queue.sort();
 
     Pipeline::executeCommands(queue.commands(), shader_ctx, opaque_pass_ctx, depth_shader_);
+
+    // 收集不透明 pass draw calls.
+    stat.statistics.shadow_opaque_draw_calls += queue.commands().size();
+
+    // 收集 CSM 信息.
+    stat.csm.max_shadow_distance = max_shadow_dist_;
+    stat.csm.cascade_count       = cascade_cnt_;
+    stat.csm.csm_slices          = csm_slices_;
   }
 }
 

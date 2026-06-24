@@ -48,15 +48,26 @@ public:
   }
   
   /// @brief 向 HDR 缓冲写入颜色。
-  void writeColor(size_t index, const LinearColor& hdr) noexcept {
+  void writeHDRColor(size_t index, const LinearColor& color) noexcept {
     assert(this->type_ == Type::ColorDepth);
-    buf_HDR_.writeLinearColor(index, hdr);
+    buf_HDR_.writeLinearColor(index, color);
   }
 
-  void writeColorPremultiplied(size_t index, const LinearColor& hdr_src) noexcept {
+  void writeHDRColorPremult(size_t index, const LinearColor& src) noexcept {
     assert(this->type_ == Type::ColorDepth);
-    LinearColor hdr_dst = buf_HDR_.readLinearColor(index);
-    buf_HDR_.writeLinearColor(index, LinearColor::PremulOver(hdr_src, hdr_dst));
+    LinearColor dst = buf_HDR_.readLinearColor(index);
+    writeHDRColor(index, LinearColor::PremulOver(src, dst));
+  }
+
+  void writePresentColor(size_t index, const LinearColor& color) {
+    assert(this->type_ == Type::ColorDepth);
+    buf_present_.writePackedAbgr(index, color.toColor(ColorSpace::SRGB).data);
+  }
+
+  void writePresentColorPremult(size_t index, const LinearColor& src) {
+    assert(this->type_ == Type::ColorDepth);
+    LinearColor dst = buf_present_.readPackedAbgrToLinear(index);
+    writePresentColor(index, LinearColor::PremulOver(src, dst));
   }
 
   void clearDepth() { buf_depth_.fill(kDepthClearVal); }
@@ -89,7 +100,7 @@ public:
       u32 abgr8 = buf_HDR_.readLinearColor(i)
                           .toneMapped()
                           .toColor(ColorSpace::SRGB).data;
-      buf_present_.writeColor(i, abgr8);
+      buf_present_.writePackedAbgr(i, abgr8);
     }
   }
 

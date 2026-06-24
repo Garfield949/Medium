@@ -69,7 +69,7 @@ public:
   /// @return 返回挂载节点的裸观察指针
   template<typename NodeT>
   NodeT* attachChild(std::unique_ptr<NodeT>&& child) {
-    static_assert(std::is_base_of<Node, NodeT>::value, "NodeT must derive from Node");
+    static_assert(std::is_base_of_v<Node, NodeT>, "NodeT must derive from Node");
     assert(child && "Cannot attach a null child.");
 
     NodeT *ptr = child.get();

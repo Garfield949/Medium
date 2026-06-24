@@ -47,7 +47,6 @@ VSOut BlinnShader::vertex(const Vertex& vert) const noexcept {
   vs_out.varying.store(vert_t_world.data(), kOffsetTangent, 3);
   vs_out.varying.store(&vert.tangent.w()  , kOffsetDet    , 1);
   vs_out.varying.store(vert_p_world.data(), kOffsetPos    , 3);
-
   return vs_out;
 }
 
@@ -60,16 +59,16 @@ bool BlinnShader::fragment(FSPayload& fs_payload) const noexcept
 
   const Material* mat = uniforms.material;
 
+  LinearColor diffuse = sampleSlot(mat->diff_slot, frag_uv);
+
   f32 frag_alpha = 1.0f;
   if(mat->surface_mode == Material::SurfaceMode::Masked) { // Alpha Test
-    f32 value = Samplers::NearestClamp.sampleColor(*mat->diss_slot, frag_uv.x(), frag_uv.y()).R;
+    f32 value = diffuse.A;
     if(value < Material::kAlphaCutoff) return true;
   }
   else if(mat->surface_mode == Material::SurfaceMode::Transparent) {
     frag_alpha = mat->params.d;
   }
-
-  LinearColor diffuse = sampleSlot(mat->diff_slot, frag_uv);
 
   // N dot L, 无 Normal Mapping 扰动。
   const f32 nl = frag_n.dot(uniforms.light_dir_inv);

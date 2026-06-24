@@ -21,12 +21,17 @@ public:
 
   void bind(Node* host, const Input* input) noexcept;
 
+  void bindNewHost(Node* host) noexcept;
+
   void update(f32 dt) noexcept;
+
+  f32& moveSpeed()  noexcept { return move_speed_; }
+  f32& mouseSpeed() noexcept { return mouse_speed_; }
 
 private:
   // 世界单位/s
-  f32 move_speed_ = 1.5f;
-  f32 mouse_sensitivity_ = 0.2f;
+  f32 move_speed_  = 1.5f;
+  f32 mouse_speed_ = 0.2f;
 
   // 由控制器维护相机的绝对旋转状态。
   f32 heading_deg_ = 0.0f;

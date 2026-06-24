@@ -19,6 +19,7 @@
 #include "Scene/MeshNode.h"
 #include "Pipeline/Shadow/CSM.h"
 #include "Resources/AssetCache.h"
+#include "lua/lua.h"
 
 namespace Medium {
 namespace {
@@ -34,8 +35,6 @@ Vec3f readVec3f(const luabridge::LuaRef& tbl, std::string_view key) {
 
 } // 匿名命名空间，控制仅单文件可见
 } // namespace Medium
-
-
 
 
 // TODO: 鲁棒性处理（不过只要场景脚本写对也没啥大问题）
@@ -123,14 +122,19 @@ std::unique_ptr<Scene> Scene::LoadFromLua(const std::filesystem::path& lua_path,
     return nullptr;
   }
 
-  // LuaRef 是一种任意值类型
-  luabridge::LuaRef tbl_scene = luabridge::LuaRef::fromStack(L, -1);
-  
-  SceneLoader::SetupCamera(tbl_scene, scene.get(), aspect_ratio);
-  SceneLoader::SetupLight (tbl_scene, scene.get());
-  SceneLoader::ReadShadowCfg(tbl_scene, scene.get());
-  if(!SceneLoader::SetupModels(tbl_scene, scene.get()))
-    return nullptr;
+  { // 注：LuaRef 本身依赖 lua_State，若不加一个局部作用域的话， tbl_scene 只会在 return scene 后被析构，而
+    // 在 return 之前已调用过一次 lua_close，此时 tbl_scene 持有的 lua_State 已被释放，再次析构会导致 UB.
+    // LuaRef 是一种任意值类型
+    luabridge::LuaRef tbl_scene = luabridge::LuaRef::fromStack(L, -1);
+    
+    SceneLoader::SetupCamera(tbl_scene, scene.get(), aspect_ratio);
+    SceneLoader::SetupLight (tbl_scene, scene.get());
+    SceneLoader::ReadShadowCfg(tbl_scene, scene.get());
+    if(!SceneLoader::SetupModels(tbl_scene, scene.get()))
+      return nullptr;
+  }
+
+  lua_close(L);
 
   return scene;
 }

@@ -103,9 +103,8 @@ void parseSubMeshesFromShapes(MeshPtr& mesh_new, const attrib_t& attrib, const s
   // 3. 因此在组装 SubMesh 时，若 shape 只对应一个材质，则将其整体转为一个 SubMesh 即可；若单 shape 对应多个材质，则需拆分
   //    为若干 SubMesh 并指定相应材质。
   for(const auto& shape: shapes) {
-    FacesByMatMap faces_by_mat = getFacesByMatIDMap(shape);
     // 将单 shape 中材质相同的面组装为一个 SubMesh.
-    for(const auto& [mat_id, face_indices]: faces_by_mat) {
+    for(const auto& [mat_id, face_indices]: getFacesByMatIDMap(shape)) {
       SubMesh sub_mesh;
       sub_mesh.index_offset   = mesh_new->indices.size();
       sub_mesh.index_count    = face_indices.size();
@@ -148,8 +147,6 @@ void meshPostProcess(MeshPtr& mesh_new, bool no_normals) {
 
 } // 匿名命名空间，控制仅单文件可见
 } // namespace Medium
-
-
 
 
 namespace Medium {
@@ -211,7 +208,7 @@ MeshPtr AssetCache::loadFromObj(const fs::path& obj_path) {
     total_indices += shape.mesh.indices.size();
 
   // Mesh 的构造函数为私有，第三方模板函数 std::make_shared 无法访问
-  MeshPtr mesh_new{new Mesh};
+  MeshPtr mesh_new = std::make_shared<Mesh>();
   mesh_new->name = obj_path_norm.filename();
   mesh_new->indices.reserve(total_indices);
   mesh_new->vertices.reserve(total_indices / 3); // 顶点数一般是索引数的 1/3，参考一个正方体。

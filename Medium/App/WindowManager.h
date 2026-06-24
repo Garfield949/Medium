@@ -23,11 +23,17 @@ public:
 
   bool init(const WindowCfg& cfg_window);
 
-  std::pair<i32, i32> physicalExtent() const;
+  Vec2i physicalExtent() const;
+
+  u32 physicalPixelCount() const;
+
+  f32 aspectRatio() const noexcept;
 
   bool onResize();
 
   void commitBuffer(const u32* packed_abgr8_buffer, u32 buffer_width, u32 buffer_height);
+
+  SDL_Window* SDLWindowHandler() const noexcept { return sdl_window_; }
 
 private:
   bool createSDLWindow(const WindowCfg& cfg_window);

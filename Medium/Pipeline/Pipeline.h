@@ -6,41 +6,56 @@
 ///
 #pragma once
 
-#include "Pipeline/RenderCommand.h"
-#include "Pipeline/Shader/ShaderTypes.h"
+#include <span>
+
 #include "Pipeline/Shader/VariantShader.h"
 
 namespace Medium {
 class  FrameBuffer;
-class  Mesh;
-struct SubMesh;
 struct ShaderBindCtx;
 struct RenderPassCtx;
 struct RectF;
 struct RenderState;
 struct VaryingLayout;
+struct RenderCommand;
 }
 
 namespace Medium::Pipeline {
 
+struct DrawView {
+  std::span<const Vertex> vertices;
+  std::span<const u32>    indices;
+  u32 index_offset;
+  u32 index_count;   
+  u32 vertex_offset;
+  // ImGui 的新增支持项，给定一个 vertices 的基偏移量，例子如下（可能是 ImGui 的特殊索引机制，管它呢）：
+  // vertices: [0 ... 999], indices: {0, 1, 2}, vertex_offset = 500.
+  // 那么 indices 指代的三角形为：
+  // Tri = vertices[500 + 0 = 500], vertices[500 + 1 = 501], vertices[500 + 2 = 502]. 
+};
+
+/// @brief 执行各 Pass 所组织 RenderQueue 吐出的命令队列。
 void executeCommands(const std::vector<RenderCommand>& cmds,
                      const ShaderBindCtx& shader_ctx,
                      const RenderPassCtx& pass_ctx,
                      VariantShader&       shader);
 
-void draw(const Mesh&        mesh,
-          const SubMesh&     sub_mesh,
+/// @brief Drawcall 实现，移除 SubMesh 抽象。
+void draw(const DrawView&    draw_view,
           const RenderState& render_state,
           const RectF&       viewport,
           FrameBuffer&       buffer,
-          VariantShader&     shader);
+          VariantShader&     shader,
+          RenderStat*        render_status);
 
-void rasterize(const std::array<Vec4f, 3>&   tri_viewport,
+/// @brief 光栅化实现，Edge Equation.
+void rasterize(const std::array<Vec4f, 3>&   triangle,
                const std::array<Varying, 3>& varyings,
                const VaryingLayout& varying_layout,
                const RenderState&   render_state,
                const RectF&   viewport,
                FrameBuffer&   buffer,
-               VariantShader& shader);
+               VariantShader& shader,
+               RenderStat*    render_status);
   
 } // namespace Medium::Pipeline

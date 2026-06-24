@@ -22,12 +22,8 @@ struct WindowCfg {
   }
 };
 
-struct ShadowCfg {
-  u32 shadow_map_res = Config::kDefaultShadowTileRes;
-};
-
 struct RenderCfg {
-  ShadowCfg shadow{};
+  u32 shadow_map_res = Config::kDefaultShadowTileRes;
 };
 
 struct AppCfg {

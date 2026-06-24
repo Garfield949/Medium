@@ -120,7 +120,7 @@ inline f32 queryCSMVisibility(const CSMSamplingCtx* csm_ctx,
     f32 blend_end = cascade->slice_far;
 
     // 非尾级联且在混合带里。
-    if(index + 1 < csm_ctx->cascade_cnt && frag_z_view >= blend_start && frag_z_view <= blend_end) {
+    if(index + 1 < static_cast<i32>(csm_ctx->cascade_cnt) && frag_z_view >= blend_start && frag_z_view <= blend_end) {
       f32 blend_offset = frag_z_view - blend_start;
       f32 t = blend_offset / band_width;
 

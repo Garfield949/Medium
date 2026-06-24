@@ -1,5 +1,5 @@
 ///
-/// @file   ForwardRenderer.h
+/// @file   SceneRenderer.h
 /// @author Garfield949
 /// @date   2026/5/27 20:40
 /// @brief  
@@ -16,23 +16,25 @@ namespace Medium {
 
 class Camera;
 class MeshNode;
+struct RenderStat;
+
 struct CSMSamplingCtx;
 
-class ForwardRenderer {
+class SceneRenderer {
 public:
-  explicit ForwardRenderer() = default;
+  explicit SceneRenderer() = default;
 
   [[nodiscard]]
-  bool init(u32 window_width, 
-            u32 window_height, 
-            Camera* camera, 
-            Vec3f light_dir);
+  bool init(const Vec2i& buffer_extent_physical, Camera* camera, const Vec3f& light_dir);
+
+  void bind(Camera* camera, const Vec3f& light_dir) noexcept;
 
   void render(std::span<const MeshNode* const> scene_mesh_nodes,
-              const CSMSamplingCtx* csm_data);
+              const CSMSamplingCtx* csm_data,
+              RenderStat& stat);
 
-  FrameBuffer* frameBuffer() noexcept {
-    return &frame_buffer_;
+  FrameBuffer& frameBuffer() noexcept {
+    return frame_buffer_;
   }
 
 private:

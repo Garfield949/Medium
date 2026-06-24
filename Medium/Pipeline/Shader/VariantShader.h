@@ -10,9 +10,10 @@
 
 #include "BlinnShader.h"
 #include "DepthShader.h"
+#include "ImGuiShader.h"
 
 namespace Medium {
 
-using VariantShader = std::variant<BlinnShader, DepthShader>;
+using VariantShader = std::variant<BlinnShader, DepthShader, ImGuiShader>;
 
 } // namespace Medium

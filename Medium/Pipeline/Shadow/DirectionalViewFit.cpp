@@ -54,8 +54,6 @@ std::pair<f32, f32> calcNearAndFar(const Vec2f& light_ortho_min,
 } // namespace Medium
 
 
-
-
 namespace Medium {
 
 DirectionalViewFit calcDirectionalViewFit(const DirectionalViewFitParams& params) {

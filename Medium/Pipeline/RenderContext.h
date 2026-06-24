@@ -7,13 +7,13 @@
 #pragma once
 
 #include "Base/Geometry/Rect.h"
-#include "Base/Types.h"
 #include "Base/Geometry/Frustum.h"
+#include "Base/Types.h"
+#include "Pipeline/RenderStat.h"
 
 namespace Medium {
 
-class FrameBuffer;
-class DirectionalLight;
+class  FrameBuffer;
 struct RectF;
 struct CSMSamplingCtx;
 
@@ -42,11 +42,21 @@ enum class BlendMode {
   Replace, PremultipliedOver
 };
 
+enum class CullMode {
+  CullOff, CullFront, CullBack
+};
+
+enum class ColorWriteTarget {
+  HDR, Present
+};
+
 struct RenderState {
-  BlendMode blend_mode = BlendMode::Replace;
-  bool enable_color_write = true;
-  bool enable_depth_write = true;
   bool enable_depth_test  = true;
+  bool enable_depth_write = true;
+  bool enable_color_write = true;
+  CullMode  cull_mode  = CullMode::CullBack;
+  BlendMode blend_mode = BlendMode::Replace;
+  ColorWriteTarget color_write_target = ColorWriteTarget::HDR;
   Rect scissor{}; // 默认为一个非法 scissor，即不启用 scissor test.
 };
 
@@ -56,6 +66,7 @@ struct RenderPassCtx {
   const RenderState& render_state;
   const RectF&       viewport;
   FrameBuffer&       buffer;
+  RenderStat*        render_status = nullptr;
 };
 
 } // namespace Medium

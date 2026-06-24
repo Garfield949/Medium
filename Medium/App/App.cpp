@@ -6,148 +6,127 @@
 
 #include <fmt/base.h>
 #include <SDL3/SDL_events.h>
+#include <DearImGui/backend/imgui_impl_sdl3.h>
+
+#include "ImGuiImpl/imgui_impl_medium.h"
+#include "ImGuiImpl/ImGuiInspector.h"
 
 #include "App/Config/Config.h"
 #include "Base/Log.h"
 #include "Scene/Scene.h"
-#include "Scene/Light/DirectionalLight.h"
-#include "Pipeline/RenderStat.h"
+#include "Scene/Camera.h"
 
 namespace Medium {
 
-namespace fs = std::filesystem;
+void App::initImGui() {
+  f32 main_scale = SDL_GetWindowDisplayScale(window_manager_.SDLWindowHandler());
+  
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  
+  // 绘制样式应用缩放。
+  ImGui::StyleColorsDark();
+  ImGuiStyle& style = ImGui::GetStyle();
+  style.ScaleAllSizes(main_scale);
+  style.FontScaleDpi = main_scale;
+  
+  // 自定义渲染后端选这个接口。一般情况会是 OpenGL, DirectX 等。
+  ImGui_ImplSDL3_InitForOther(window_manager_.SDLWindowHandler()); 
+  ImGui_ImplMedium_Init();
 
-void App::loadConfig() {
-  app_config_ = AppCfg::LoadFromToml(fs::path(PROJECT_ROOT_DIR) / Config::kConfigDirName);
-}
-
-bool App::loadScene() {
-  const WindowCfg& cfg_window = app_config_.window;
-
-  auto lua_path = fs::path(PROJECT_ROOT_DIR) / "scenes"
-    / "minecraft_2.lua";
-
-  active_scene_ = Scene::LoadFromLua(lua_path, cfg_window.aspectRatio());
-
-  if(!active_scene_) {
-    Log::printLogPrefix("App", "loadScene", true);
-    fmt::print("Initialize Failed\n");
-    return false;
-  }
-
-  return true;
-}
-
-void App::setupTools() noexcept {
-  controller_.bind(active_scene_->camera(), &input_);
-  profiler_.setReportInterval(1.0f);
+  imgui_inspector_.controller     = &controller_;
+  imgui_inspector_.window_manager = &window_manager_;
+  imgui_inspector_.scene_manager  = &scene_manager_;
+  imgui_inspector_.render_manager = &render_manager_;
 }
 
 bool App::init() {
-  loadConfig();
+  app_config_ = AppCfg::LoadFromToml(
+    std::filesystem::path(PROJECT_ROOT_DIR) / Config::kConfigDirName
+  );
 
-  if(!window_manager_.init(app_config_.window)) return false;
+  if(!window_manager_.init(app_config_.window))
+    return false;
 
-  if(!loadScene()) return false;
+  if(!scene_manager_.init(app_config_.window))
+    return false;
 
-  setupTools();
+  if(!render_manager_.init(scene_manager_.activeScene(), app_config_.render, window_manager_.physicalExtent()))
+    return false;
 
-  if(!shadow_manager_.init(active_scene_->camera(),
-                           active_scene_->dirLight(),
-                           app_config_.render.shadow.shadow_map_res,
-                           active_scene_->shadowCfg().max_shadow_dist,
-                           active_scene_->shadowCfg().csm_cascade_cnt)) return false;
+  controller_.bind(scene_manager_.activeScene()->camera(), &input_);
 
-  auto [width_physical, height_physical] = window_manager_.physicalExtent();
-  
-  if(!forward_renderer_.init(width_physical,
-                             height_physical,
-                             active_scene_->camera(),
-                             active_scene_->dirLight()->dir)) return false;
+  initImGui();
 
   return true;
 }
 
 void App::loop() {
   while(true) {
-    // 使用一个循环不断从事件队列中取出并消费下一个事件，非阻塞。
     SDL_Event e;
+    // 使用一个循环不断从事件队列中取出并消费下一个事件，非阻塞。
     while(SDL_PollEvent(&e)) {
+      // 将事件先喂给 ImGui，因为它覆盖在上面。
+      ImGui_ImplSDL3_ProcessEvent(&e);
       switch(e.type) {
-      case SDL_EVENT_QUIT:
-        return;
-      case SDL_EVENT_KEY_DOWN:
-        if(e.key.key == SDLK_ESCAPE) return;
+      case SDL_EVENT_QUIT: return;
+      case SDL_EVENT_KEY_DOWN: if(e.key.key == SDLK_ESCAPE) return; 
         break;
-      case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-        if(!onWindowResize()) return;
+      case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: if(!onWindowResize()) return; 
         break;
       default: break;
       }
     }
-
-    onUpdate(frame_timer_.tick());
+    onUpdate();
     onRender();
   }
 }
 
-void App::onUpdate(const f32 dt) {
+void App::onUpdate() {
   input_.update();
-  profiler_.update(dt);
-  controller_.update(dt);
+  controller_.update(ImGui::GetIO().DeltaTime);
 }
 
 void App::onRender() {
-  RenderStat render_stat{};
+  render_manager_.render();
+  
+  // ---------- ImGui ----------
+  ImGui_ImplMedium_NewFrame();  // Dummy.
+  ImGui_ImplSDL3_NewFrame();    // SDL 后端每帧把窗口/输入状态同步给 ImGui，注释掉的话 ui 没法显示。
+  ImGui::NewFrame();
 
-  // ---------- Shadow Pass ----------
-  shadow_manager_.render(active_scene_->meshNodes(),
-                         active_scene_->worldAABB());
-
-  // 临时输出场景的 XZ 轴尺寸。
-  // auto aabb = active_scene_->worldAABB();
-  // std::cout << "Extent X: " << aabb.max.x() - aabb.min.x() << std::endl;
-  // std::cout << "Extent Z: " << aabb.max.z() - aabb.min.z() << std::endl;
-
-  // ---------- Main Pass ----------
-  forward_renderer_.render(active_scene_->meshNodes(),
-                           shadow_manager_.CSMData());
-
-  const FrameBuffer* fb = forward_renderer_.frameBuffer();
-
-  window_manager_.commitBuffer(fb->presentColorBuffer(), fb->width(), fb->height());
+  imgui_inspector_.show();
+  
+  ImGui::Render();
+  ImGui_ImplMedium_RenderDrawData(ImGui::GetDrawData(), render_manager_.frameBuffer());
+  
+  // ---------- ImGui ----------
+  auto& fb = render_manager_.frameBuffer();
+  window_manager_.commitBuffer(fb.presentColorBuffer(), fb.width(), fb.height());
 }
 
 [[nodiscard]]
 bool App::onWindowResize() {
-  auto [w_physical, h_physical] = window_manager_.physicalExtent();
+  Vec2i extent_physical = window_manager_.physicalExtent();
 
-  FrameBuffer* fb = forward_renderer_.frameBuffer();
-  if(static_cast<u32>(w_physical) == fb->width() && static_cast<u32>(h_physical) == fb->height())
-    return true;
-
-  // 测试过，窗口手动拉伸的最小尺寸是有下限的。出现 0 只能说明出现异常。
-  if(w_physical <= 0 || h_physical <= 0) {
+  // 测试过窗口手动的最小尺寸为 1，出现 0 只能说明出现异常。
+  if(extent_physical.x() <= 0 || extent_physical.y() <= 0) {
     Log::printLogPrefix("App", "onWindowResize", true);
-    fmt::print("Invalid window size: [{} x {}]\n", w_physical, h_physical);
+    fmt::print("Invalid window size: [{} x {}]\n", extent_physical.x(), extent_physical.y());
     return false;
   }
 
-  if(!forward_renderer_.frameBuffer()->resize(w_physical, h_physical)) {
-    Log::printLogPrefix("App", "onWindowResize", true);
-    fmt::print("Failed\n", w_physical, h_physical);
-    return false;
-  }
+  if(!render_manager_.onResize(extent_physical)) return false;
 
-  // 注：更改 aspect ratio 后，相机视椎形状会变，进而使阴影拟合产生变化
-  active_scene_->camera()->setAspectRatio(static_cast<f32>(w_physical) / static_cast<f32>(h_physical));
+  if(!window_manager_.onResize()) return false;
 
-  window_manager_.onResize();
+  scene_manager_.onResize(extent_physical);
 
   return true;
 }
 
-void App::quit() {
+void App::quit() const {
+  ImGui_ImplMedium_Shutdown();
   app_config_.saveToTomlFile();
 }
 

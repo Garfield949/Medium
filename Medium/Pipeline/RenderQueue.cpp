@@ -6,10 +6,12 @@
 ///
 #include "RenderQueue.h"
 
+#include "Base/Types.h"
 #include "Scene/MeshNode.h"
 #include "Resources/Mesh.h"
 #include "Resources/Material.h"
 #include "Pipeline/RenderContext.h"
+#include "Pipeline/RenderCommand.h"
 
 namespace Medium {
 
@@ -32,12 +34,17 @@ void RenderQueue::build(std::span<const MeshNode* const> mesh_nodes, const Camer
         
         AABB3D bbox_world = sub_mesh.aabb_local.toWorldAABB(world);
         if(!frustum.intersects(bbox_world)) continue;
+
+        f32 max_z_view = std::numeric_limits<f32>::lowest();
+        for(auto& corner: bbox_world.corners())
+          max_z_view = std::max(max_z_view, (view_ctx.view * corner.homogeneous()).z());
+
         cmds_.emplace_back(
           mesh.get(),
           &sub_mesh,
           material,
           world,
-          (view_ctx.view * bbox_world.center().homogeneous()).z()
+          max_z_view
         );
       }
     }
@@ -52,14 +59,12 @@ void RenderQueue::sort() {
 }
 
 void RenderQueue::sortOpaque() {
-  // TODO: 配置一个合理的 sort key.
   std::sort(cmds_.begin(), cmds_.end(), [](const RenderCommand& a, const RenderCommand& b) {
-    return a.sort_key > b.sort_key;
+    return a.sort_key < b.sort_key;
   });
 }
 
 void RenderQueue::sortTransparent() {
-  // TODO: 配置一个合理的 sort key.
   std::sort(cmds_.begin(), cmds_.end(), [](const RenderCommand& a, const RenderCommand& b) {
     return a.sort_key > b.sort_key;
   });

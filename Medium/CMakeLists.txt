@@ -1,0 +1,33 @@
+# 被上一级 CMakeLists.txt 通过 add_subdirectory 添加后，会自动检测到上一级定义的 ${PROJECT_NAME}.
+target_sources(${PROJECT_NAME} PRIVATE
+    App/Config/Config.cpp
+    App/ImGuiImpl/imgui_impl_medium.cpp
+    App/ImGuiImpl/ImGuiInspector.cpp
+    App/App.cpp
+    App/main.cpp
+    App/FPSController.cpp
+    App/WindowManager.cpp
+    Base/Geometry/AABB3D.cpp
+    Base/Math/RotationMatrix.cpp
+    Pipeline/Shader/BlinnShader.cpp
+    Pipeline/Shader/DepthShader.cpp
+    Pipeline/Shader/ImGuiShader.cpp
+    Pipeline/Shadow/CSM.cpp
+    Pipeline/Shadow/DirectionalViewFit.cpp
+    Pipeline/Shadow/ShadowManager.cpp
+    Pipeline/Pipeline.cpp
+    Pipeline/RenderManager.cpp
+    Pipeline/SceneRenderer.cpp
+    Pipeline/RenderQueue.cpp
+    Platform/Input.cpp
+    Platform/Timer.cpp
+    Resources/AssetCache.cpp
+    Resources/Material.cpp
+    Resources/Mesh.cpp
+    Scene/Light/DirectionalLight.cpp
+    Scene/Camera.cpp
+    Scene/MeshNode.cpp
+    Scene/Scene.cpp
+    Scene/SceneManager.cpp
+    Scene/Transform.cpp
+)

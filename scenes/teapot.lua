@@ -15,7 +15,7 @@ local shadow_config = {
 }
 
 local model = {
-    name = "Dragon",
+    name = "teapot",
     file = "assets/models/teapot/teapot.obj",
     position = {0.0, 0.0, 0.0},
     rotation = {0.0, 0.0, 0.0},

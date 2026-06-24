@@ -2,7 +2,7 @@
 /// @file   Sampler.h
 /// @author Garfield949
 /// @date   2026/6/8 14:25
-/// @brief  
+/// @brief
 ///
 #pragma once
 
@@ -31,7 +31,7 @@ public:
   constexpr Sampler(FilterMode filter_mode, AddressMode address_mode_u, AddressMode address_mode_v)
     : filter_mode_{filter_mode}, address_mode_u_{address_mode_u}, address_mode_v_{address_mode_v} {}
 
-  LinearColor sampleColor(const Texture2D& tex, f32 u, f32 v) const {    
+  LinearColor sampleColor(const Texture2D& tex, f32 u, f32 v) const {
     return filter_mode_ == FilterMode::Nearest ? sampleColorNearest(tex, u, v)
                                                : sampleColorBilinear(tex, u, v);
   }
@@ -44,7 +44,7 @@ private:
     x = interpretCoord(x, tex.width(),  address_mode_u_);
     y = interpretCoord(y, tex.height(), address_mode_v_);
 
-    return tex.readColor(x, y);
+    return tex.readPackedAbgrToLinear(x, y);
   }
 
   LinearColor sampleColorBilinear(const Texture2D& tex, f32 u, f32 v) const {
@@ -62,24 +62,27 @@ private:
     i32 px = static_cast<i32>(std::floor(x));
     i32 py = static_cast<i32>(std::floor(y));
 
+    u32 w_tex = tex.width();
+    u32 h_tex = tex.height();
+
     // 计算 wrap 后的左下角和右上角像素坐标。
-    i32 x0 = interpretCoord(px    , tex.width() , address_mode_u_);
-    i32 y0 = interpretCoord(py    , tex.height(), address_mode_v_);
-    i32 x1 = interpretCoord(px + 1, tex.width() , address_mode_u_);
-    i32 y1 = interpretCoord(py + 1, tex.height(), address_mode_v_);
+    i32 x0 = interpretCoord(px    , w_tex, address_mode_u_);
+    i32 y0 = interpretCoord(py    , h_tex, address_mode_v_);
+    i32 x1 = interpretCoord(px + 1, w_tex, address_mode_u_);
+    i32 y1 = interpretCoord(py + 1, h_tex, address_mode_v_);
 
     // 获得四个角的像素颜色。
-    LinearColor bl = tex.readColor(x0, y0), br = tex.readColor(x1, y0);
-    LinearColor tl = tex.readColor(x0, y1), tr = tex.readColor(x1, y1);
+    LinearColor bl = tex.readPackedAbgrToLinear(x0, y0), br = tex.readPackedAbgrToLinear(x1, y0);
+    LinearColor tl = tex.readPackedAbgrToLinear(x0, y1), tr = tex.readPackedAbgrToLinear(x1, y1);
 
     // 插值系数：距离未 wrap 前的左边界和下边界的偏移。
     f32 t1 = x - static_cast<f32>(px);
     f32 t2 = y - static_cast<f32>(py);
-    
+
     // 水平混合。
     LinearColor bottom = Math::lerp(bl, br, t1);
     LinearColor top    = Math::lerp(tl, tr, t1);
-    
+
     // 垂直混合。
     return Math::lerp(bottom, top, t2);
   }
@@ -127,5 +130,5 @@ inline constexpr Sampler LinearClamp{
   AddressMode::Clamp,
   AddressMode::Clamp
 };
-  
+
 } // namespace Medium::Samplers

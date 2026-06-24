@@ -61,6 +61,14 @@ struct FSPayload {
       scalars_interp[offset + 2] 
     };
   }
+  [[nodiscard]] LinearColor getLinearColor(u32 offset) const noexcept {
+    return {
+      scalars_interp[offset + 0], 
+      scalars_interp[offset + 1], 
+      scalars_interp[offset + 2],
+      scalars_interp[offset + 3] 
+    };
+  }
   [[nodiscard]] f32 getScalar(u32 offset) const noexcept {
     return scalars_interp[offset];
   }
