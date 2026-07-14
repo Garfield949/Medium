@@ -1,9 +1,10 @@
 /.cache
 /.idea
 /.zed
+/.vscode
+/.obsidian
 /assets
 /build
-/.vscode
 .DS_Store
 .imgui.ini
 .clangd
