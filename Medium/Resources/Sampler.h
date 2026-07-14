@@ -62,8 +62,8 @@ private:
     i32 px = static_cast<i32>(std::floor(x));
     i32 py = static_cast<i32>(std::floor(y));
 
-    u32 w_tex = tex.width();
-    u32 h_tex = tex.height();
+    i32 w_tex = tex.width();
+    i32 h_tex = tex.height();
 
     // 计算 wrap 后的左下角和右上角像素坐标。
     i32 x0 = interpretCoord(px    , w_tex, address_mode_u_);
@@ -87,14 +87,13 @@ private:
     return Math::lerp(bottom, top, t2);
   }
 
-  static i32 interpretCoord(i32 coord, u32 size, AddressMode mode) {
+  static i32 interpretCoord(i32 coord, i32 size, AddressMode mode) {
     assert(size > 0);
-    i32 isize = static_cast<i32>(size);
     if(mode == AddressMode::Clamp)
-      return std::clamp(coord, 0, isize - 1);
+      return std::clamp(coord, 0, size - 1);
     // 负数 coord 映射到 [0, size).
-    i32 mod = coord % isize;
-    return mod < 0 ? mod + isize : mod;
+    i32 mod = coord % size;
+    return mod < 0 ? mod + size : mod;
   }
 
   FilterMode filter_mode_     = FilterMode::Nearest;

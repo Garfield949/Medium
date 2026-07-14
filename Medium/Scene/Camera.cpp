@@ -8,16 +8,14 @@
 
 namespace Medium {
 
-void Camera::setPerspParams(f32 fov, f32 near, f32 aspect_ratio) noexcept {
+void Camera::setPerspParams(f32 fov, f32 aspect_ratio) noexcept {
   fov_y_             = std::clamp(fov, 1.0f, 179.0f);
-  near_              = std::max(near, kMinimumNearPlane);
   aspect_ratio_      = aspect_ratio;
   dirty_proj_matrix_ = true;
 }
 
-void Camera::setOrthoParams(f32 near, f32 far, f32 width, f32 height) noexcept {
-  near_    = std::max(near, kMinimumNearPlane);
-  far_     = std::max(far, near_ + Math::KINDA_SMALL_NUMBER);
+void Camera::setOrthoParams(f32 far, f32 width, f32 height) noexcept {
+  far_     = std::max(far, kNearPlane + Math::KindaSmallNumber);
   w_ortho_ = width;
   h_ortho_ = height;
   dirty_proj_matrix_ = true;
@@ -29,14 +27,19 @@ void Camera::setAspectRatio(f32 aspect_ratio_new) noexcept {
   dirty_proj_matrix_ = true;
 }
 
+void Camera::setFOV(f32 fov) noexcept {
+  fov_y_ = fov;
+  dirty_proj_matrix_ = true;
+}
+
 Mat4f Camera::viewMatrix() const noexcept {
   return transform.worldMatrixInverse();
 }
 
 // TODO: 目前这个方法仅适用于透视相机
 Sphere Camera::slicedFrustumCircumSphereWorld(f32 slice_near, f32 slice_far) const noexcept {
-  slice_near = std::max(slice_near, near_);
-  slice_far  = std::max(slice_far,  slice_near + Math::KINDA_SMALL_NUMBER);
+  slice_near = std::max(slice_near, kNearPlane);
+  slice_far  = std::max(slice_far,  slice_near + Math::KindaSmallNumber);
   
   const Sphere sphere_local = slicedFrustumCircumSphereLocal(slice_near, slice_far);
 
@@ -48,8 +51,8 @@ Sphere Camera::slicedFrustumCircumSphereWorld(f32 slice_near, f32 slice_far) con
 }
 
 std::array<Vec3f, 8> Camera::slicedFrustumCornersWorld(f32 slice_near, f32 slice_far) const noexcept {
-  slice_near = std::max(slice_near, near_);
-  slice_far  = std::max(slice_far,  slice_near + Math::KINDA_SMALL_NUMBER);
+  slice_near = std::max(slice_near, kNearPlane);
+  slice_far  = std::max(slice_far,  slice_near + Math::KindaSmallNumber);
   
   const auto corners_local = slicedFrustumCornersLocal(slice_near, slice_far);
 
@@ -85,22 +88,22 @@ void Camera::updateMatProj() const noexcept {
     // A = -Near / (Far-Near);
     // B = (Near*Far) / (Far-Near);
     // Far 设为了无限远处，故 A 退化为 0，B 退化为 Near
-    matrix_projection_.row(0) << zoomx, 0, 0, 0;
-    matrix_projection_.row(1) << 0, zoomy, 0, 0;
-    matrix_projection_.row(2) << 0, 0, 0, near_;
-    matrix_projection_.row(3) << 0, 0, 1,     0;
+    matrix_projection_.row(0) << zoomx, 0    , 0, 0;
+    matrix_projection_.row(1) << 0    , zoomy, 0, 0;
+    matrix_projection_.row(2) << 0    , 0    , 0, kNearPlane;
+    matrix_projection_.row(3) << 0    , 0    , 1, 0;
   }
   else {
     // 正交投影同样使用翻转 z: Near -> 1.0f, Far -> 0.0f
     // 目的：管线中深度测试的逻辑是按照翻转 z 设置的，这里是为了配合。正交投影的 Zndc 是线性的，不会出现分布不均。
     f32 zoomx = 2.0f / w_ortho_;
     f32 zoomy = 2.0f / h_ortho_;
-    f32 A =  1.0f / (near_ - far_);
-    f32 B = -far_ / (near_ - far_);
-    matrix_projection_.row(0) << zoomx, 0, 0, 0;
-    matrix_projection_.row(1) << 0, zoomy, 0, 0;
-    matrix_projection_.row(2) << 0, 0,     A, B;
-    matrix_projection_.row(3) << 0, 0,     0, 1;
+    f32 A =  1.0f / (kNearPlane - far_);
+    f32 B = -far_ / (kNearPlane - far_);
+    matrix_projection_.row(0) << zoomx, 0    , 0, 0;
+    matrix_projection_.row(1) << 0    , zoomy, 0, 0;
+    matrix_projection_.row(2) << 0    , 0    , A, B;
+    matrix_projection_.row(3) << 0    , 0    , 0, 1;
   }
 }
 
@@ -122,10 +125,10 @@ std::array<Vec3f, 8> Camera::slicedFrustumCornersLocal(f32 slice_near, f32 slice
   // 3. 如果 T 是简单的 POD 类型，则允许类似 std::array<int, 3> a{1, 2, 3} 这样的初始化。
   return std::array<Vec3f, 8>{{
     {-near_x,  near_y, near_z}, {near_x,  near_y, near_z},
-    {-near_x, -near_y, near_z}, {near_x, -near_y, near_z},
+    {near_x, -near_y, near_z} , {-near_x, -near_y, near_z},
 
     {-far_x,  far_y, far_z}, {far_x,  far_y, far_z},
-    {-far_x, -far_y, far_z}, {far_x, -far_y, far_z}
+    {far_x, -far_y, far_z} , {-far_x, -far_y, far_z},
   }};
 }
 

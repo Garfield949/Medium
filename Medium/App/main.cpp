@@ -2,7 +2,6 @@
 /// @file main.cpp
 /// @brief 程序主入口
 ///
-
 #include "App.h"
 
 int main() {

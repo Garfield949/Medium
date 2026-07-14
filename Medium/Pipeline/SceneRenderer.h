@@ -2,48 +2,75 @@
 /// @file   SceneRenderer.h
 /// @author Garfield949
 /// @date   2026/5/27 20:40
-/// @brief  
+/// @brief  场景渲染管理器
 ///
 #pragma once
 
 #include <span>
 
-#include "Base/Types.h"
-#include "Pipeline/FrameBuffer.h"
+#include "Pipeline/RenderContext.h"
+#include "Pipeline/RenderQueue.h"
 #include "Pipeline/Shader/VariantShader.h"
 
 namespace Medium {
-
 class Camera;
 class MeshNode;
-struct RenderStat;
+class DirectionalLight;
+class RenderManager;
+class FrameBuffer;
+struct RenderStatus;
+struct CSMContext;
+}
 
-struct CSMSamplingCtx;
+namespace Medium {
+
+struct SceneDrawListView {
+  std::span<const RenderCommand> opaque;
+  std::span<const RenderCommand> transparent;
+};
 
 class SceneRenderer {
 public:
   explicit SceneRenderer() = default;
 
   [[nodiscard]]
-  bool init(const Vec2i& buffer_extent_physical, Camera* camera, const Vec3f& light_dir);
+  bool init(const Camera* camera, const DirectionalLight* dir_light);
 
-  void bind(Camera* camera, const Vec3f& light_dir) noexcept;
+  /// @brief 绑定新的上下文。
+  void bind(const Camera* camera, const DirectionalLight* dir_light) noexcept;
 
+  /// @brief 渲染场景。
   void render(std::span<const MeshNode* const> scene_mesh_nodes,
-              const CSMSamplingCtx* csm_data,
-              RenderStat& stat);
+              const CSMContext* csm_ctx,
+              FrameBuffer&  frame_buffer,
+              RenderStatus& render_status);
 
-  FrameBuffer& frameBuffer() noexcept {
-    return frame_buffer_;
+  // ---------- Setters ----------
+  /// @brief 设置不透明和透明 pass 走哪个绘制分支。
+  void setDrawMode(DrawMode mode) noexcept {
+    opaque_render_state_.draw_mode = mode;
+    transp_render_state_.draw_mode = mode;
+  }
+
+  // ---------- Getters ----------
+  SceneDrawListView drawListView() const noexcept {
+    return {
+      .opaque      = opaque_queue_.commands(),
+      .transparent = transp_queue_.commands()
+    };
   }
 
 private:
-  FrameBuffer frame_buffer_{FrameBuffer::Type::ColorDepth};
-
-  const Camera* camera_ = nullptr;
-  Vec3f light_dir_;
-
   VariantShader blinn_shader_ = BlinnShader{};
+
+  const Camera* main_camera_ = nullptr;
+  const DirectionalLight* dir_light_ = nullptr;
+
+  RenderState opaque_render_state_;
+  RenderState transp_render_state_;
+
+  RenderQueue opaque_queue_{RenderQueue::Type::OpaqueQueue};
+  RenderQueue transp_queue_{RenderQueue::Type::TransparentQueue};
 };
 
 } // Medium

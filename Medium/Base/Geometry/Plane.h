@@ -21,12 +21,12 @@ namespace Medium {
 ///                即可，也就是 dist = np + D.
 class Plane {
 public:
-  Plane() = default;
+  explicit Plane() = default;
 
-  Plane(Vec3f normal, f32 D)
+  explicit Plane(Vec3f normal, f32 D)
     : N{std::move(normal)}, D{D} {}
 
-  Plane(const Vec4f& ABCD)
+  explicit Plane(const Vec4f& ABCD)
     : Plane(ABCD.head<3>(), ABCD.w()) {}
 
   void normalize() noexcept {

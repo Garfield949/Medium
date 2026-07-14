@@ -48,10 +48,6 @@ public:
   void rotate(const Vec3f& axis, f32 euler_degree, Space space = Space::Self) noexcept;
 
   // ---------- Getters: 获取状态
-  const Vec3f& position() const noexcept { return pos_local_; }
-  const Quatf& rotation() const noexcept { return rot_local_; }
-  f32          scale()    const noexcept { return scale_local_; }
-
   Vec3f worldPosition() const noexcept;
   Quatf worldRotation() const noexcept;
   f32   worldScale()    const noexcept;
@@ -69,7 +65,7 @@ private:
   void updateLocalMatrix() const noexcept; // 实际计算局部矩阵
   void updateWorldMatrix() const noexcept; // 实际计算世界矩阵
 
-  Node *belong_to_; // 附属节点指针，用于遍历其子节点
+  Node* belong_to_; // 附属节点指针，用于遍历其子节点
 
   // 父节点空间下的 TRS 数据
   Vec3f pos_local_   = Vec3f::Zero();
@@ -77,8 +73,8 @@ private:
   f32   scale_local_ = 1.0f;
 
   // Transform 的矩阵缓存
-  mutable Mat4f matrix_local_ = Mat4f::Identity(); // 局部矩阵
-  mutable Mat4f matrix_world_ = Mat4f::Identity(); // 世界矩阵
+  mutable Mat4f mat_local_ = Mat4f::Identity(); // 局部矩阵
+  mutable Mat4f mat_world_ = Mat4f::Identity(); // 世界矩阵
 
   mutable bool dirty_local_ = true; // 局部矩阵更新脏标记
   mutable bool dirty_world_ = true; // 世界矩阵更新脏标记

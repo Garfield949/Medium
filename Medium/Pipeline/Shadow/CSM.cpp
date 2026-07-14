@@ -39,7 +39,7 @@ namespace Medium {
 // - cascade_cnt 已在场景读取阶段被钳制到 1 ~ 4.
 std::array<f32, kMaxCSMCascades + 1> calcCSMSlices(f32 camera_near,
                                                    f32 max_shadow_dist,
-                                                   u32 cascade_cnt)
+                                                   i32 cascade_cnt)
 {
   std::array<f32, kMaxCSMCascades + 1> slices;
 
@@ -47,15 +47,16 @@ std::array<f32, kMaxCSMCascades + 1> calcCSMSlices(f32 camera_near,
 
   // lambda 决定均匀划分的贡献，取值 0 ~ 1. 越大均匀划分贡献越低，近处范围越小，精度越高。
   constexpr f32 lambda = 0.65f;
+  // 不会发生除零，Camera::kNearPlane = 0.1f.
   const f32 k = max_shadow_dist / camera_near;
   // cascade_cnt = 1 时循环不会执行，可正确处理。
-  for(u32 i = 1; i < cascade_cnt; ++i) {
+  for(i32 i = 1; i < cascade_cnt; ++i) {
     f32 t = static_cast<f32>(i) / static_cast<f32>(cascade_cnt);
 
     // 均匀划分
     f32 uniform_slice = Math::lerp(camera_near, max_shadow_dist, t);
 
-    // 对数划分，不会发生除零，相机的 near 最低被钳制到 0.1.
+    // 对数划分
     f32 log_slice = camera_near * std::pow(k, t);
 
     // 混合划分
@@ -68,7 +69,7 @@ std::array<f32, kMaxCSMCascades + 1> calcCSMSlices(f32 camera_near,
 }
 
 // CSM0, CSM1, CSM2, CSM3 依次占用 CSM Atlas 的左上角、右上角、左下角、右下角。
-RectF calcCSMAtlasViewport(u32 cascade_index, u32 tile_res) {
+RectF getCascadeViewport(i32 cascade_index, i32 tile_res) {
   f32 tile_res_f = static_cast<f32>(tile_res);
   switch(cascade_index) {
   case 0:  return {.x = 0.0f      , .y = tile_res_f, .w = tile_res_f, .h = tile_res_f}; // 左上 tile

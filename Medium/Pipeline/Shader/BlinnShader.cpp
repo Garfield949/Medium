@@ -6,6 +6,11 @@
 ///
 #include "BlinnShader.h"
 
+#include <array>
+
+#include "Base/Color.h"
+#include "Base/Types.h"
+#include "Pipeline/Shadow/CSM.h"
 #include "Resources/Vertex.h"
 #include "Resources/Material.h"
 #include "Resources/Sampler.h"
@@ -14,31 +19,33 @@
 
 namespace Medium {
   
-void BlinnShader::bind(const ShaderBindCtx& bind_ctx, const Mat4f& world, const Material* mat) noexcept {
-  const CameraCtx*   cam_ctx      = bind_ctx.camera_ctx;
-  const LightingCtx* lighting_ctx = bind_ctx.lighting_ctx;
+void BlinnShader::bind(const ShaderBindContext& bind_ctx, const Mat4f& world, const Material* mat) noexcept {
+  const CameraContext* cam_ctx = bind_ctx.camera_ctx;
+  const LightingContext* lighting_ctx = bind_ctx.lighting_ctx;
 
   this->uniforms = {
     .camera_pos    = cam_ctx->cam_pos,
-    .view          = cam_ctx->view,
-    .wvp           = cam_ctx->vp * world,
-    .world         = world,
+    .mat_wvp       = cam_ctx->mat_vp * world,
+    .mat_world     = world,
     .material      = mat,
+
     .light_dir_inv = -lighting_ctx->light_dir,
-    .csm_ctx      =  lighting_ctx->csm_data
+    .light_color   = lighting_ctx->light_color,
+    
+    .csm_ctx = lighting_ctx->csm_ctx,
   };
 }
 
 VSOut BlinnShader::vertex(const Vertex& vert) const noexcept {
   // 只表示方向的向量变换到世界空间只需应用旋转。
-  Mat3f rot_world = uniforms.world.topLeftCorner(3, 3);  
+  Mat3f rot_world = uniforms.mat_world.topLeftCorner(3, 3);  
   
   Vec3f vert_n_world = (rot_world * vert.normal).normalized();
   Vec3f vert_t_world =  rot_world * vert.tangent.head<3>();
-  Vec3f vert_p_world = (uniforms.world * vert.pos.homogeneous()).head<3>();
+  Vec3f vert_p_world = (uniforms.mat_world * vert.pos.homogeneous()).head<3>();
 
   VSOut vs_out;
-  vs_out.pos_clip      = uniforms.wvp * vert.pos.homogeneous();
+  vs_out.pos_clip      = uniforms.mat_wvp * vert.pos.homogeneous();
   vs_out.varying.w_inv = 1.0f / vs_out.pos_clip.w();
   // tangent 的 w 分量（手性）也一并 smooth 插值，测试过值也只会是 1 或 -1 没有问题；
   // 测试过手动一个一个填 scalar，性能无差异。
@@ -65,9 +72,46 @@ bool BlinnShader::fragment(FSPayload& fs_payload) const noexcept
   if(mat->surface_mode == Material::SurfaceMode::Masked) { // Alpha Test
     f32 value = diffuse.A;
     if(value < Material::kAlphaCutoff) return true;
-  }
-  else if(mat->surface_mode == Material::SurfaceMode::Transparent) {
+  } else if(mat->surface_mode == Material::SurfaceMode::Transparent) {
     frag_alpha = mat->params.d;
+  }
+
+  const auto csm_ctx = uniforms.csm_ctx;
+
+  f32 frag_z_view;
+  if(csm_ctx) frag_z_view = (csm_ctx->mat_view_snapshot * frag_pos.homogeneous()).z();
+
+  // Cascade Band View.
+  // csm_ctx 理论上只会在 ImGui 设置 Draw Mode 为 Wireframe 或者方向光取消 Cast Shadows 时，才会被 RenderManager
+  // 传一个 nullptr 表示禁用 Shadow Query.
+  if(csm_ctx && csm_ctx->cascade_band_view_enabled) {
+    auto cascade_query = csm_ctx->cascadeQuery(frag_z_view);
+    // 不在级联范围内的 frag 会进入下方的正常着色逻辑。
+    if(cascade_query) {
+      auto [cascade, index] = cascade_query.value();
+
+      static constexpr std::array colors = {
+        LinearColor::Red(), LinearColor::Green(), LinearColor::Blue(), LinearColor::Pink()
+      };
+
+      fs_payload.frag_color = colors[index];
+
+      f32 band_width  = csm_ctx->blendBandWidth(index);
+      f32 blend_start = cascade->slice_far - band_width;
+      f32 blend_end   = cascade->slice_far;
+
+      // 非尾级联且在混合带里。
+      if(index + 1 < csm_ctx->cascade_cnt && frag_z_view >= blend_start && frag_z_view <= blend_end) {
+        f32 blend_offset = frag_z_view - blend_start;
+        f32 t = blend_offset / band_width;
+
+        fs_payload.frag_color = Math::lerp(colors[index], colors[index + 1], t);
+      }
+
+      fs_payload.frag_color.A = frag_alpha;
+
+      return false;
+    }
   }
 
   // N dot L, 无 Normal Mapping 扰动。
@@ -75,11 +119,12 @@ bool BlinnShader::fragment(FSPayload& fs_payload) const noexcept
 
   // 该值为 1.0 代表当前 frag 不在阴影当中。
   f32 frag_visibility = 1.0f;
-  if(nl <= 0.0f) {
-    frag_visibility = 0.3f; // 背对光源则直接判定处于阴影中。
-  } else {
-    f32 frag_z_view = (uniforms.view * frag_pos.homogeneous()).z();
-    frag_visibility = queryCSMVisibility(uniforms.csm_ctx, nl, frag_pos, frag_n, frag_z_view);
+  if(csm_ctx) {
+    if(nl <= 0.0f) {
+      frag_visibility = 0.3f; // 背对光源则直接判定处于阴影中。
+    } else {
+      frag_visibility = queryCSMVisibility(csm_ctx, nl, frag_pos, frag_n, frag_z_view);
+    }
   }
 
   if(mat->enable_norm) {
@@ -114,7 +159,7 @@ bool BlinnShader::fragment(FSPayload& fs_payload) const noexcept
 
     Vec3f h = (view_dir + uniforms.light_dir_inv).normalized();
 
-    f32 spec = std::powf(std::max(frag_n.dot(h), 0.0f), mat->params.Ns) * frag_visibility;
+    f32 spec = std::powf(std::max(frag_n.dot(h), 0.0f), mat->params.Ns);
 
     specular = sampleSlot(mat->spec_slot, frag_uv) * spec;
   }
@@ -124,7 +169,7 @@ bool BlinnShader::fragment(FSPayload& fs_payload) const noexcept
 
   f32 diff = half_lambert * half_lambert;
 
-  fs_payload.frag_color = (diffuse * diff + specular) * frag_visibility;
+  fs_payload.frag_color = (diffuse * diff + specular) * uniforms.light_color * frag_visibility;
 
   fs_payload.frag_color.A = frag_alpha;
 

@@ -17,7 +17,7 @@ void FPSController::bind(Node *host, const Input *input) noexcept {
   bindNewHost(host);
 }
 
-void FPSController::bindNewHost(Node *host) noexcept {
+void FPSController::bindNewHost(Node* host) noexcept {
   assert(host);
   host_ = host;
   // 场景可能已经定义了相机的旋转，所以从其 Transform 中反解出当前状态的 heading 和 pitch，否则第一次 update 鼠标
@@ -25,9 +25,9 @@ void FPSController::bindNewHost(Node *host) noexcept {
   Vec3f forward = host_->transform.forward();
   // sin(theta) = y/1 -> theta = asin(y).
   // 注意，当 y 是个负值（左手系里表示向下 pitch），asin(y) 会返回一个负角度，需要取反。
-  pitch_deg_ = -Math::rad_to_deg(std::asin(forward.y()));
+  pitch_deg_   = -Math::rad_to_deg(std::asin(forward.y()));
   // atan2(a,b) = arctan(a/b) -> tan(theta) = x/z -> theta = atan2(x, z).
-  heading_deg_ = Math::rad_to_deg(std::atan2(forward.x(), forward.z()));
+  heading_deg_ =  Math::rad_to_deg(std::atan2(forward.x(), forward.z()));
 }
 
 void FPSController::update(f32 dt) noexcept {
@@ -40,7 +40,7 @@ void FPSController::update(f32 dt) noexcept {
 
     heading_deg_ += delta.x() * mouse_speed_;
     pitch_deg_   += delta.y() * mouse_speed_;
-    pitch_deg_ = std::clamp(pitch_deg_, -kMaxPitchDeg, kMaxPitchDeg);
+    pitch_deg_    = std::clamp(pitch_deg_, -kMaxPitchDeg, kMaxPitchDeg);
     
     host_tf.setRotation({pitch_deg_, heading_deg_, 0.0f});
   }

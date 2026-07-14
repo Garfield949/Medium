@@ -43,7 +43,7 @@ struct ImGuiShader {
   }
 
   // Dummy.
-  void bind(const ShaderBindCtx&, const Mat4f&, const Material*) noexcept {}
+  void bind(const ShaderBindContext&, const Mat4f&, const Material*) noexcept {}
 
   void bind(Vec2f display_pos, Vec2f display_size, const Texture2D* texture) noexcept;
 

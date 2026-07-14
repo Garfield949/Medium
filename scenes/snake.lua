@@ -1,6 +1,5 @@
 local camera = {
     fov = 75,
-    near = 0.01,
     position = {0.0, 2.0, -4.5},
     rotation = {0.0, 0.0, 0.0},
 }

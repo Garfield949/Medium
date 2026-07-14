@@ -6,9 +6,9 @@
 ///
 #pragma once
 
-#include "Scene/Node.h"
 #include "Base/Geometry/AABB3D.h"
-#include "Resources/Forwards.h"
+#include "Scene/Node.h"
+#include "Resources/Mesh.h"
 
 namespace Medium {
   
@@ -18,17 +18,17 @@ class MeshNode : public Node {
 public:
   static constexpr NodeType Type = NodeType::MeshInstance;
 
-  explicit MeshNode(std::string name, MeshPtr mesh)
-    : Node{std::move(name), Type}, mesh_{std::move(mesh)} {}
+  explicit MeshNode(std::string name, const Mesh* mesh)
+    : Node{std::move(name), Type}, mesh_{mesh} {}
 
   AABB3D localAABB() const noexcept;
 
   AABB3D worldAABB() const noexcept;
   
-  const MeshPtr& mesh() const noexcept;
+  const Mesh* mesh() const noexcept;
 
 private:
-  MeshPtr mesh_;
+  const Mesh* mesh_ = nullptr;
 };
 
 } // namespace Medium

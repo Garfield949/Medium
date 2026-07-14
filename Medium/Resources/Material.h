@@ -7,7 +7,7 @@
 #pragma once
 
 #include "Base/Color.h"
-#include "Resources/Forwards.h"
+#include "Resources/Texture2D.h"
 #include "Resources/TextureSlot.h"
 
 namespace Medium {
@@ -43,12 +43,7 @@ public:
   // map_d 一般是一张非黑即白的二值图，所以 alpha test 的阈值设为该值即可；cut off 是切断、截止的意思。
   static constexpr f32 kAlphaCutoff = 0.5f;
   
-  Material(std::string mat_name = "Default") : name{std::move(mat_name)} {}
-
-  [[nodiscard]]
-  static std::shared_ptr<Material> Default() {
-    return std::make_shared<Material>();
-  }
+  explicit Material(std::string mat_name = "Default") : name{std::move(mat_name)} {}
 
   void setAttributes() noexcept;
 
@@ -64,8 +59,9 @@ public:
   TextureSlot diff_slot = LinearColor::Green();
   TextureSlot spec_slot = LinearColor::Black();
 
-  TexturePtr diss_slot = nullptr;
-  TexturePtr norm_slot = nullptr;
+  // 注：目前着色器是用漫反射的 alpha 通道做 alpha test，这个槽暂时没用上。
+  Texture2D* diss_slot = nullptr;
+  Texture2D* norm_slot = nullptr;
 };
 
 } // Medium

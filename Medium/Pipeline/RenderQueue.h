@@ -13,24 +13,29 @@
 namespace Medium {
 
 class MeshNode;
-struct CameraCtx;
+struct CameraContext;
 
 /// @class RenderQueue
 /// @brief 渲染队列，在每个 pass 收集渲染命令
 class RenderQueue {
 public:
+  // 通过队列类型觉得排序方式。
   enum class Type {
     OpaqueQueue,
     TransparentQueue
   };
 
-  explicit RenderQueue(Type type) : type_{type} {}
+  explicit RenderQueue(Type type) : queue_type_{type} {}
+
+  void clear() { cmds_.clear(); }
   
-  void build(std::span<const MeshNode* const> mesh_nodes, const CameraCtx& view_ctx);
+  void build(std::span<const MeshNode* const> mesh_nodes, 
+             const CameraContext& cam_ctx);
 
   void sort();
-  
-  const std::vector<RenderCommand>& commands() const noexcept {
+
+  /// @brief 吐给 Pipeline::executeCommands
+  std::span<const RenderCommand> commands() const noexcept {
     return cmds_;
   }
 
@@ -38,7 +43,7 @@ private:
   void sortOpaque();
   void sortTransparent();
 
-  Type type_;
+  Type queue_type_;
   std::vector<RenderCommand> cmds_;
 };
 

@@ -28,7 +28,7 @@ TODO
 
 - 设计 Plane 类型，可为 dragon 这种模型提供一个地面
 
-- 搞清楚 RenderQueue 排序的策略、sort key 的计算策略
+- 搞清楚 RenderQueue 排序的策略、sort key 的计算策略 : Done
 
 - 优化 VariantShader 的分发策略
 
@@ -38,4 +38,4 @@ TODO
 
 - 环境光遮蔽
 
-- License 署名
+- License 署名 : Done

@@ -8,10 +8,10 @@
 
 namespace Medium::Math {
 
-inline constexpr f32 MEDIUM_PI          = 3.141592653f;
-inline constexpr f32 KINDA_SMALL_NUMBER = 1e-4f;
-inline constexpr f32 VERY_SMALL_NUMBER  = 1e-6f;
-inline constexpr f32 KINDA_LIKE_ONE     = 0.999f;
+inline constexpr f32 MediumPi         = 3.141592653f;
+inline constexpr f32 KindaSmallNumber = 1e-4f;
+inline constexpr f32 VerySmallNumber  = 1e-6f;
+inline constexpr f32 KindaLikeOne     = 0.999f;
 
 } // namespace Medium::Math
 
@@ -20,12 +20,12 @@ namespace Medium::Math {
 // 判定浮点数是否接近零
 // std::abs 在 C++23 才是 constexpr.
 [[nodiscard]]
-inline bool isNearlyZero(f32 value, f32 tolerance = VERY_SMALL_NUMBER) noexcept {
+inline bool isNearlyZero(f32 value, f32 tolerance = VerySmallNumber) noexcept {
   return std::abs(value) <= tolerance;
 }
 
 [[nodiscard]]
-inline constexpr bool isNearlyOne(f32 value, f32 tolerance = KINDA_LIKE_ONE) noexcept {
+constexpr bool isNearlyOne(f32 value, f32 tolerance = KindaLikeOne) noexcept {
   return value >= tolerance;
 }
 
@@ -37,14 +37,14 @@ bool isBetween(T val, T min, T max) noexcept {
 
 /// @brief 度数转弧度
 [[nodiscard]]
-inline constexpr f32 deg_to_rad(f32 deg) noexcept {
-  return MEDIUM_PI * deg / 180.0f;
+constexpr f32 deg_to_rad(f32 deg) noexcept {
+  return MediumPi * deg / 180.0f;
 }
 
 /// @brief 弧度转度数
 [[nodiscard]]
-inline constexpr f32 rad_to_deg(f32 rad) noexcept {
-  return rad * 180.0f / MEDIUM_PI;
+constexpr f32 rad_to_deg(f32 rad) noexcept {
+  return rad * 180.0f / MediumPi;
 }
 
 /// @brief 浮点向量叉积；

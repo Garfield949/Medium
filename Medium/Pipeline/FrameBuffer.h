@@ -27,11 +27,6 @@ public:
 
   explicit FrameBuffer(Type type) : type_{type} {}
 
-  u32 width()   const noexcept { return w_; }
-  u32 height()  const noexcept { return h_; }
-  f32 widthF()  const noexcept { return static_cast<f32>(w_); }
-  f32 heightF() const noexcept { return static_cast<f32>(h_); }
-
   /// @brief 获取屏幕坐标对应的视区缓冲下标。
   /// @details NDCToViewport 的逻辑是将 NDC 坐标映射到 [0, width] [0, height]，即将视区左下角作为原点；而
   ///          屏幕坐标系是定义在左上角（想象将缓冲区展开，从屏幕顶端左上角起一行一行地对应）。+y 指向下的，故需翻
@@ -46,7 +41,7 @@ public:
     assert(this->type_ == Type::ColorDepth);
     buf_HDR_.fill(linear); 
   }
-  
+
   /// @brief 向 HDR 缓冲写入颜色。
   void writeHDRColor(size_t index, const LinearColor& color) noexcept {
     assert(this->type_ == Type::ColorDepth);
@@ -94,18 +89,8 @@ public:
     return buf_depth_.readDepth(getIndex(px, py));
   }
 
-  void toneMap() noexcept {
-    assert(this->type_ == Type::ColorDepth);
-    for(size_t i = 0; i < buf_present_.pixelCount(); ++i) {
-      u32 abgr8 = buf_HDR_.readLinearColor(i)
-                          .toneMapped()
-                          .toColor(ColorSpace::SRGB).data;
-      buf_present_.writePackedAbgr(i, abgr8);
-    }
-  }
-
   [[nodiscard]]
-  bool resize(u32 new_width, u32 new_height) {
+  bool resize(i32 new_width, i32 new_height) {
     if(!buf_depth_.resize(new_width, new_height)) return false;
     
     if(type_ == Type::ColorDepth) 
@@ -122,20 +107,34 @@ public:
   }
 
   [[nodiscard]]
-  bool resize(u32 resolution) { return resize(resolution, resolution); }
+  bool resize(i32 resolution) { return resize(resolution, resolution); }
+
+  // ---------- Getters ----------
+  i32 width()   const noexcept { return w_; }
+  i32 height()  const noexcept { return h_; }
+  f32 widthF()  const noexcept { return static_cast<f32>(w_); }
+  f32 heightF() const noexcept { return static_cast<f32>(h_); }
 
   [[nodiscard]]
-  u32* presentColorBuffer() const { return buf_present_.packedAbgr8Data(); }
+  const Texture2D& depthBuffer() const { return buf_depth_; }
+
+  [[nodiscard]]
+  const Texture2D& hdrBuffer() const { return buf_HDR_; }
+
+  [[nodiscard]]
+  Texture2D& presentBuffer() { return buf_present_; }
+
+  Type type() const noexcept { return type_; }
 
 private:
   Type type_;
 
-  u32 w_ = 0;
-  u32 h_ = 0;
+  i32 w_ = 0;
+  i32 h_ = 0;
 
   Texture2D buf_HDR_{PixelFormat::RGBA32F, ColorSpace::Linear};  // 线性空间，RGBAF32 LinearColor;
   Texture2D buf_present_{PixelFormat::ABGR8, ColorSpace::SRGB};  // SDL 绘制交付格式，ABGR8 packed U32;
   Texture2D buf_depth_{PixelFormat::R32F, ColorSpace::Linear};   // R32F.
 };
 
-}; // namespace Medium
+} // namespace Medium

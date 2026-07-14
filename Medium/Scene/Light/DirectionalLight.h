@@ -6,6 +6,7 @@
 ///
 #pragma once
 
+#include "Base/Types.h"
 #include "Light.h"
 #include "Scene/Camera.h"
 
@@ -21,8 +22,8 @@ public:
     attachChild(std::make_unique<Camera>("Orthographic Camera", Camera::Mode::Orthographic));
   }
 
-  void setOrthoParams(f32 near, f32 far, f32 width, f32 height) const noexcept {
-    ortho_camera_->setOrthoParams(near, far, width, height);
+  void setOrthoParams(f32 far, f32 ortho_width, f32 ortho_height) const noexcept {
+    ortho_camera_->setOrthoParams(far, ortho_width, ortho_height);
   }
 
   Mat4f viewProjMatrix() const noexcept {
@@ -39,7 +40,13 @@ public:
 
   void applyViewFit(const DirectionalViewFit& fit);
 
-  Vec3f dir;
+  Vec3f dir() const noexcept { return transform.forward(); }
+
+  void setDir(const Vec3f& new_dir) noexcept {
+    if(new_dir.isZero()) return;
+    // 注意 lookAt 传的参数是一个点。
+    transform.lookAt(transform.worldPosition() + new_dir.normalized());
+  }
 
 private:
   Camera* ortho_camera_ = nullptr;

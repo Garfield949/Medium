@@ -35,6 +35,8 @@ void Transform::setRotation(const Vec3f& euler_deg) noexcept {
 //                          2. 当 forward 与 up_ref 重合时等价于垂直向上看，right 叉积结果将为 (0,0,0)，归一化会发生除零。
 void Transform::lookAt(const Vec3f& target_world, const Vec3f& up_ref) noexcept {
   Vec3f forward_world = target_world - worldPosition();
+  
+  if(forward_world.isZero()) return;
 
   Mat3f rot_world = RotationMatrix::MakeFromForward(forward_world, up_ref);
 
@@ -73,7 +75,9 @@ void Transform::rotate(const Vec3f& euler_degrees, Space space) noexcept {
 }
 
 void Transform::rotate(const Vec3f& axis, f32 euler_degree, Space space) noexcept {
-  Quatf delta{Eigen::AngleAxisf(Math::deg_to_rad(euler_degree), axis)};
+  if(axis.isZero()) return;
+  
+  Quatf delta{Eigen::AngleAxisf(Math::deg_to_rad(euler_degree), axis.normalized())};
 
   rot_local_ = (space == Space::Self) ? (rot_local_ * delta) : (delta * rot_local_);
   rot_local_.normalize();
@@ -86,7 +90,7 @@ const Mat4f& Transform::localMatrix() const noexcept {
     updateLocalMatrix();
     dirty_local_ = false;
   }
-  return matrix_local_;
+  return mat_local_;
 }
 
 Vec3f Transform::worldPosition() const noexcept {
@@ -110,7 +114,7 @@ const Mat4f& Transform::worldMatrix() const noexcept {
     updateWorldMatrix();
     dirty_world_ = false;
   }
-  return matrix_world_;
+  return mat_world_;
 }
 
 Mat4f Transform::worldMatrixInverse() const noexcept {
@@ -132,7 +136,7 @@ Mat4f Transform::worldMatrixInverse() const noexcept {
 
   // 平移的逆 (T^-1) = (S^-1)(R^-1)(-T)
   Vec3f T = mat_world.topRightCorner<3, 1>();
-  Vec3f T_inv = RS_inv * (-T);
+  Vec3f T_inv = RS_inv * -T;
 
   Mat4f matrix_world_inv = Mat4f::Identity();
   matrix_world_inv.topLeftCorner<3, 3>() = RS_inv;
@@ -164,18 +168,18 @@ void Transform::updateDirtyFlags() noexcept {
 // 填充左上角 3 x 3 旋转 + 缩放部分、右上角平移部分
 void Transform::updateLocalMatrix() const noexcept {
   Mat3f R = rot_local_.toRotationMatrix();
-  matrix_local_.setIdentity();
-  matrix_local_.col(0).head<3>() = R.col(0) * scale_local_;
-  matrix_local_.col(1).head<3>() = R.col(1) * scale_local_;
-  matrix_local_.col(2).head<3>() = R.col(2) * scale_local_;
-  matrix_local_.topRightCorner<3, 1>() = pos_local_;
+  mat_local_.setIdentity();
+  mat_local_.col(0).head<3>() = R.col(0) * scale_local_;
+  mat_local_.col(1).head<3>() = R.col(1) * scale_local_;
+  mat_local_.col(2).head<3>() = R.col(2) * scale_local_;
+  mat_local_.topRightCorner<3, 1>() = pos_local_;
 }
 
 void Transform::updateWorldMatrix() const noexcept {
   if(const auto ptr = belong_to_->parent_)
-    matrix_world_ = ptr->transform.worldMatrix() * localMatrix();
+    mat_world_ = ptr->transform.worldMatrix() * localMatrix();
   else
-    matrix_world_ = localMatrix();
+    mat_world_ = localMatrix();
 }
 
 } // namespace Medium

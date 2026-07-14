@@ -15,7 +15,7 @@ namespace Medium::Subpixel {
 inline constexpr i32 kBits  = 4;
 
 // 单个像素的边长细分为 2 ^ Bits 格，这里为 2 ^ 4 = 16 格。
-inline constexpr i32 kScale = (1 << kBits);
+inline constexpr i32 kScale = 1 << kBits;
 
 // 定义像素中心偏移为 8 (原像素中心 +0.5f，乘 16 后变成 8)
 inline constexpr i32 kHalf  = kScale >> 1;

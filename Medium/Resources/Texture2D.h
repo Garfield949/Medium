@@ -8,12 +8,10 @@
 
 #include <algorithm>
 #include <cstring>
-#include <cstdlib>
 #include <cassert>
 #include <cstddef>
 
 #include <fmt/base.h>
-#include <fmt/color.h>
 
 #include "Base/Log.h"
 #include "Base/Types.h"
@@ -51,7 +49,7 @@ public:
     : pixel_format_{format}, color_space_{space} {}
 
   // 接管传入的裸指针。用在 AssetCache 读入 stbi 裸 unsigned char*.
-  explicit Texture2D(u32 width, u32 height, PixelFormat format, ColorSpace space, void* data) 
+  explicit Texture2D(i32 width, i32 height, PixelFormat format, ColorSpace space, void* data)
   : Texture2D{format, space} {
     assert(data);
     w_ = width;
@@ -67,8 +65,8 @@ public:
     }
   }
 
-  u32 width()   const noexcept { return w_; }
-  u32 height()  const noexcept { return h_; }
+  i32 width()   const noexcept { return w_; }
+  i32 height()  const noexcept { return h_; }
   f32 widthF()  const noexcept { return static_cast<f32>(w_); }
   f32 heightF() const noexcept { return static_cast<f32>(h_); }
 
@@ -78,6 +76,11 @@ public:
   size_t index(i32 x, i32 y) const noexcept {
     assert(x >= 0 && x < w_ && y >= 0 && y < h_);
     return y * w_ + x;
+  }
+
+  size_t indexFlippedY(i32 x, i32 y) const noexcept {
+    assert(x >= 0 && x < w_ && y >= 0 && y < h_);
+    return (h_ - 1 - y) * w_ + x;
   }
 
   // ---------- Packed Argb8
@@ -162,17 +165,17 @@ public:
   }
 
   [[nodiscard]]
-  bool resize(u32 new_width, u32 new_height) {
+  bool resize(i32 new_width, i32 new_height) {
     if(new_width == w_ && new_height == h_) return true;
 
-    if(new_width == 0 || new_height == 0) {
+    if(new_width <= 0 || new_height <= 0) {
       Log::printLogPrefix("Texture2D", "resize", true);
       fmt::print("Invalid size [{} x {}]\n", new_width, new_height);
       return false;
     }
 
-    size_t w = static_cast<size_t>(new_width);
-    size_t h = static_cast<size_t>(new_height);
+    size_t w = new_width;
+    size_t h = new_height;
     size_t bpp = BytesPerPixel(this->pixel_format_);
     size_t max_size = std::numeric_limits<size_t>::max();
 
@@ -214,9 +217,12 @@ public:
     return true;
   }
 
+  [[nodiscard]]
+  bool resize(i32 resolution) { return resize(resolution, resolution); }
+
 private:
-  u32 w_ = 0;
-  u32 h_ = 0;
+  i32 w_ = 0;
+  i32 h_ = 0;
 
   PixelFormat pixel_format_;
   ColorSpace color_space_; // 该参数目前仅当 Texture2D 作为 stbi 贴图时有用。

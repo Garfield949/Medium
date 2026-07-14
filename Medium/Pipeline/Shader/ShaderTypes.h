@@ -14,7 +14,7 @@
 
 namespace Medium {
 
-inline constexpr u32 kMaxVaryingScalars = 16;
+inline constexpr i32 kMaxVaryingScalars = 16;
 
 enum class InterpMode {
   Perspective,
@@ -23,19 +23,19 @@ enum class InterpMode {
 };
 
 struct VaryingField {
-  u32 offset = 0;
-  u32 scalar_cnt = 0;
+  i32 offset = 0;
+  i32 scalar_cnt = 0;
   InterpMode interp_mode = InterpMode::Perspective;
 };
 
 struct VaryingLayout {
   std::span<const VaryingField> fields;
-  u32 scalar_cnt = 0;
+  i32 scalar_cnt = 0;
 };
 
 struct Varying {
-  void store(const f32* vec_data, u32 offset, u32 scalar_cnt) {
-    for(u32 i = 0; i < scalar_cnt; ++i)
+  void store(const f32* vec_data, i32 offset, i32 scalar_cnt) {
+    for(i32 i = 0; i < scalar_cnt; ++i)
       scalars[offset + i] = vec_data[i];
   }
   std::array<f32, kMaxVaryingScalars> scalars;
@@ -48,20 +48,20 @@ struct VSOut {
 };
 
 struct FSPayload {
-  [[nodiscard]] Vec2f getVec2f(u32 offset) const noexcept {
+  [[nodiscard]] Vec2f getVec2f(i32 offset) const noexcept {
     return { 
       scalars_interp[offset + 0], 
       scalars_interp[offset + 1]
     };
   }
-  [[nodiscard]] Vec3f getVec3f(u32 offset) const noexcept {
+  [[nodiscard]] Vec3f getVec3f(i32 offset) const noexcept {
     return { 
       scalars_interp[offset + 0], 
       scalars_interp[offset + 1], 
       scalars_interp[offset + 2] 
     };
   }
-  [[nodiscard]] LinearColor getLinearColor(u32 offset) const noexcept {
+  [[nodiscard]] LinearColor getLinearColor(i32 offset) const noexcept {
     return {
       scalars_interp[offset + 0], 
       scalars_interp[offset + 1], 
@@ -69,7 +69,7 @@ struct FSPayload {
       scalars_interp[offset + 3] 
     };
   }
-  [[nodiscard]] f32 getScalar(u32 offset) const noexcept {
+  [[nodiscard]] f32 getScalar(i32 offset) const noexcept {
     return scalars_interp[offset];
   }
   std::array<f32, kMaxVaryingScalars> scalars_interp;

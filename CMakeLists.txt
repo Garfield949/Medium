@@ -56,8 +56,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3 fmt::fmt lua_static)
 
 # 开启高性能优化开关
 target_compile_options(${PROJECT_NAME} PRIVATE
-    $<$<CONFIG:Release>:-O3 -march=native>
-    $<$<CONFIG:Debug>:-O0 -g>
+    $<$<CONFIG:Release>:-O3>           # 高级别优化
+    $<$<CONFIG:Release>:-march=native> # 根据当前机器 CPU 启用对应指令集和架构优化
+    $<$<CONFIG:Debug>:-O0>             # 禁用优化
+    $<$<CONFIG:Debug>:-g>              # 启用调试信息
 )
 
 # 优化选项，让源文件在链接阶段也能参与内联

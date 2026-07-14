@@ -5,7 +5,6 @@
 /// @brief
 ///
 #include "AssetCache.h"
-#include "fmt/base.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -88,7 +87,7 @@ FacesByMatMap getFacesByMatIDMap(const shape_t& shape) {
 }
 
 using VertByIndexMap = std::unordered_map<index_t, size_t, IndexHash, IndexEqual>;
-void parseSubMeshesFromShapes(MeshPtr& mesh_new, const attrib_t& attrib, const std::vector<shape_t>& shapes) {
+void parseSubMeshesFromShapes(Mesh* mesh_new, const attrib_t& attrib, const std::vector<shape_t>& shapes) {
   // 负责存储 index_t -> 对应顶点在 mesh.vertices 中的下标。
   VertByIndexMap vert_pos_by_index_t;
   // 1. shape 为 obj 中 o 或 g 开头的面 f 分组，比如：
@@ -105,30 +104,31 @@ void parseSubMeshesFromShapes(MeshPtr& mesh_new, const attrib_t& attrib, const s
   for(const auto& shape: shapes) {
     // 将单 shape 中材质相同的面组装为一个 SubMesh.
     for(const auto& [mat_id, face_indices]: getFacesByMatIDMap(shape)) {
-      SubMesh sub_mesh;
-      sub_mesh.index_offset   = mesh_new->indices.size();
-      sub_mesh.index_count    = face_indices.size();
-      sub_mesh.material_index = mat_id;
+      SubMesh submesh;
+      submesh.index_offset   = mesh_new->indices.size();
+      submesh.index_count    = face_indices.size();
+      submesh.material_index = mat_id;
       // 将每个 SubMesh 顶点去重并计算顶点索引，并更新 index_map
       for(const index_t& index : face_indices) {
-        if(vert_pos_by_index_t.count(index) == 0) {  // count 只能返回 0 或 1.
+        auto it = vert_pos_by_index_t.find(index);
+        if(it == vert_pos_by_index_t.end()) {
           // 原地构造一个 Vertex 对象。
           mesh_new->vertices.emplace_back(extractToVec3f(attrib.vertices,  index.vertex_index),
                                           extractToVec3f(attrib.normals,   index.normal_index),
                                           extractToVec2f(attrib.texcoords, index.texcoord_index));
 
-          size_t new_vert_pos = mesh_new->vertices.size() - 1;     // 获得最新存入顶点的下标（即 vector 尾部）
-          vert_pos_by_index_t[index] = new_vert_pos;               // unordered_map 存入键值对
-          mesh_new->indices.push_back(new_vert_pos);               // Mesh 的索引数组存入对应顶点在 mesh_new.vertices 中的下标
+          size_t new_vert_pos = mesh_new->vertices.size() - 1;  // 获得最新存入顶点的下标（即 vector 尾部）
+          vert_pos_by_index_t[index] = new_vert_pos;            // unordered_map 存入键值对
+          mesh_new->indices.push_back(new_vert_pos);            // Mesh 的索引数组存入对应顶点在 mesh_new.vertices 中的下标
         } else
-          mesh_new->indices.push_back(vert_pos_by_index_t[index]); // 已存在则直接存入对应顶点在 mesh_new.vertices 中的下标
+          mesh_new->indices.push_back(it->second);              // 已存在则直接存入对应顶点在 mesh_new.vertices 中的下标
       }
-      mesh_new->sub_meshes.push_back(sub_mesh);
+      mesh_new->sub_meshes.push_back(submesh);
     }
   }
 }
 
-void meshPostProcess(MeshPtr& mesh_new, bool no_normals) {
+void meshPostProcess(Mesh* mesh_new, bool no_normals) {
   // 若模型不自带法线就手动计算。
   if(no_normals) {
     Log::printLogPrefix("AssetCache", "loadFromObj", false);
@@ -137,7 +137,7 @@ void meshPostProcess(MeshPtr& mesh_new, bool no_normals) {
   }
   // 只要有任何一个 SubMesh 的材质启用了法线贴图，就计算整个网格的顶点切线
   for(const auto& mat: mesh_new->materials)
-    if(mat->enable_norm) {
+    if(mat.enable_norm) {
       mesh_new->calcTangents();
       break;
     }
@@ -151,7 +151,10 @@ void meshPostProcess(MeshPtr& mesh_new, bool no_normals) {
 
 namespace Medium {
 
-MeshPtr AssetCache::loadFromObj(const fs::path& obj_path) {
+AssetCache::AssetCache()  = default;
+AssetCache::~AssetCache() = default;
+
+const Mesh* AssetCache::loadFromObj(const fs::path& obj_path) {
   // 1. lexically_normal() 将类似 home/user/../docs/./notes.txt 的路径转为 home/docs/notes.txt,
   //    并根据平台自动转换所有间隔符，如 windows 为 '\' , macos 为 '/';
   // 2. generic_string 将 path 转为字符串的同时，强制将间隔符转为 windows 与类 unix 环境通用的 '/'.
@@ -159,13 +162,12 @@ MeshPtr AssetCache::loadFromObj(const fs::path& obj_path) {
   const auto  obj_path_str  = obj_path_norm.generic_string();
   const auto& mesh_key      = obj_path_str;
 
-  // 网格缓存查询
+  // 若迭代器 == mesh_cache_.end()，说明并不存在 key 对应的值。
   if(auto it = mesh_cache_.find(mesh_key); it != mesh_cache_.end()) {
-    // 检查资源是否存在，是就提升为 shared_ptr，否则 lock 返回 nullptr
-    if(auto mesh_cached = it->second.lock())
-      return mesh_cached;
-    // Key 存在，但对应 value 已被析构，则删掉键值对
-    mesh_cache_.erase(it);
+    Log::printLogPrefix("AssetCache", "loadFromObj", false);
+    fmt::print("[{}] cached\n", obj_path_str);
+    Mesh* mesh_cached = it->second.get();
+    return mesh_cached;
   }
 
   ObjReaderConfig config;
@@ -193,7 +195,7 @@ MeshPtr AssetCache::loadFromObj(const fs::path& obj_path) {
   const std::vector<shape_t>&    shapes    = reader.GetShapes();
   const std::vector<material_t>& materials = reader.GetMaterials();
 
-  Log::printLogPrefix("AssetCache", "loadFromObj", false);
+  Log::printLogPrefix("\nAssetCache", "loadFromObj", false);
   fmt::print("[{}]\n", obj_path_str);
   fmt::print("Vertices : {}\n"
              "Normals  : {}\n"
@@ -207,53 +209,43 @@ MeshPtr AssetCache::loadFromObj(const fs::path& obj_path) {
   for(const auto& shape: shapes)
     total_indices += shape.mesh.indices.size();
 
-  // Mesh 的构造函数为私有，第三方模板函数 std::make_shared 无法访问
-  MeshPtr mesh_new = std::make_shared<Mesh>();
-  mesh_new->name = obj_path_norm.filename();
-  mesh_new->indices.reserve(total_indices);
-  mesh_new->vertices.reserve(total_indices / 3); // 顶点数一般是索引数的 1/3，参考一个正方体。
+  // 创建一个 Mesh 强缓存。
+  std::unique_ptr<Mesh> mesh_owned = std::make_unique<Mesh>();
+  mesh_owned->name = obj_path_norm.filename();
+  mesh_owned->indices.reserve(total_indices);
+  mesh_owned->vertices.reserve(total_indices / 3); // 顶点数一般是索引数的 1/3，参考一个正方体。
 
   // 解析 MTL，先将所有材质从前到后灌入 Mesh->materials
-  parseMTL(mesh_new, materials, obj_path_norm);
+  parseMTL(mesh_owned.get(), materials, obj_path_norm);
   // 将材质相同的面组为一个子网格，并进行顶点去重生成 Vertex 和顶点索引数组存入 Mesh
-  parseSubMeshesFromShapes(mesh_new, attrib, shapes);
+  parseSubMeshesFromShapes(mesh_owned.get(), attrib, shapes);
   // 依据情况计算 Mesh 的顶点法线、切线以及包围盒
-  meshPostProcess(mesh_new, attrib.normals.empty());
+  meshPostProcess(mesh_owned.get(), attrib.normals.empty());
 
-  mesh_cache_[mesh_key] = mesh_new;
-  return mesh_new;
+  auto it = mesh_cache_.emplace(mesh_key, std::move(mesh_owned)).first;
+  return it->second.get();
 }
 
-void AssetCache::parseMTL(const MeshPtr& mesh_new,
+void AssetCache::parseMTL(Mesh* mesh_new,
                           const std::vector<material_t>& tiny_materials,
-                          const fs::path& obj_path)
+                          const std::filesystem::path& obj_path)
 {
   // Mesh 的材质数组第一个位置放置默认材质（绿色纯色）
-  mesh_new->materials.push_back(Material::Default());
+  mesh_new->materials.push_back(Material{});
 
   for(const auto& mat_t: tiny_materials) {
-    // 材质缓存查询，key 为 obj 路径 + 材质名称
-    if(auto it = material_cache_.find(obj_path.generic_string() + mat_t.name); it != material_cache_.end()) {
-      if(auto mat_cached = it->second.lock()) {
-        // mat_cached 是由 lock 新构造的，所以完全可以 move
-        mesh_new->materials.push_back(std::move(mat_cached));
-        continue;
-      }
-      material_cache_.erase(it);
-    }
-    
-    MaterialPtr mat_new = std::make_shared<Material>(mat_t.name);
+    Material mat_new{mat_t.name};
 
-    // 将 TinyObjLoader 读取的原始材质参数装入自定义结构
-    MaterialParams& mat_new_params = mat_new->params;
+    // 将 TinyObjLoader 读取的原始材质参数装入自定义结构。
     // 总是认为 MTL 里定义的 Kd 漫反射纯色是一个归一化的 Srgb 值，虽然各种模型都不太规范就是了。
-    mat_new_params.Kd    = LinearColor::FromNormalizedSRGB(mat_t.diffuse[0],  mat_t.diffuse[1],  mat_t.diffuse[2], 1.0f);
-    mat_new_params.Ks    = LinearColor{mat_t.specular[0], mat_t.specular[1], mat_t.specular[2]};
-    mat_new_params.Ns    = mat_t.shininess;
-    mat_new_params.d     = mat_t.dissolve;
-    mat_new_params.illum = mat_t.illum;
+    MaterialParams& mat_params = mat_new.params;
+    mat_params.Kd    = LinearColor::FromNormalizedSRGB(mat_t.diffuse[0],  mat_t.diffuse[1],  mat_t.diffuse[2], 1.0f);
+    mat_params.Ks    = LinearColor{mat_t.specular[0], mat_t.specular[1], mat_t.specular[2]};
+    mat_params.Ns    = mat_t.shininess;
+    mat_params.d     = mat_t.dissolve;
+    mat_params.illum = mat_t.illum;
 
-    auto fetchTexPtr = [&](const fs::path& tex_path, ColorSpace space) -> TexturePtr {
+    auto fetchTexPtr = [&](const fs::path& tex_path, ColorSpace space) -> Texture2D* {
       // 材质的某些通道（如漫反射）可能是不含材质图片的纯色，直接返回对应的空贴图指针即可；用 loadTexture 返回 nullptr 也行，但
       // 其会输出非法路径的错误信息，与语义不合。
       if(tex_path.empty()) return nullptr;
@@ -263,35 +255,30 @@ void AssetCache::parseMTL(const MeshPtr& mesh_new,
       return loadTexture(full_path, space);
     };
 
-    mat_new->diff_slot = makeSlot(fetchTexPtr(mat_t.diffuse_texname,  ColorSpace::SRGB),   mat_new_params.Kd);
-    mat_new->spec_slot = makeSlot(fetchTexPtr(mat_t.specular_texname, ColorSpace::Linear), mat_new_params.Ks);
-    mat_new->diss_slot = fetchTexPtr(mat_t.alpha_texname,  ColorSpace::Linear);
-    mat_new->norm_slot = fetchTexPtr(mat_t.normal_texname, ColorSpace::Linear);
+    mat_new.diff_slot = makeSlot(fetchTexPtr(mat_t.diffuse_texname,  ColorSpace::SRGB),   mat_params.Kd);
+    mat_new.spec_slot = makeSlot(fetchTexPtr(mat_t.specular_texname, ColorSpace::Linear), mat_params.Ks);
+    mat_new.diss_slot = fetchTexPtr(mat_t.alpha_texname,  ColorSpace::Linear);
+    mat_new.norm_slot = fetchTexPtr(mat_t.normal_texname, ColorSpace::Linear);
 
-    mat_new->setAttributes();
+    mat_new.setAttributes();
 
     mesh_new->materials.push_back(mat_new);
-
-    // 不同模型的 MTL 里完全可能会有相同的材质名，用 filepath + name 作为 key
-    material_cache_[obj_path.generic_string() + mat_t.name] = mat_new;
   }
 }
 
-TexturePtr AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& color_space) {
+Texture2D* AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& color_space) {
   const std::string tex_path_str = tex_path.generic_string();
   const std::string tex_key = fmt::format("{}#colorspace={}", tex_path_str, static_cast<i32>(color_space));
-  // 纹理缓存查询
+
   if(auto it = texture_cache_.find(tex_key); it != texture_cache_.end()) {
-    if(auto tex_cached = it->second.lock()) {
-      Log::printLogPrefix("AssetCache", "loadTexture", false);
-      fmt::print("[{}] cached\n", tex_path_str);
-      return tex_cached;
-    }
-    texture_cache_.erase(it);
+    Texture2D* tex_cached = it->second.get();
+    Log::printLogPrefix("AssetCache", "loadTexture", false);
+    fmt::print("[{}] cached\n", tex_path_str);
+    return tex_cached;
   }
 
-  i32 width, height, channels;
   // 纹理图的存储默认原点在左上角。
+  i32 width, height, channels;
   stbi_set_flip_vertically_on_load(true);
   unsigned char* raw = stbi_load(tex_path_str.c_str(),
                                  &width,
@@ -305,10 +292,13 @@ TexturePtr AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& c
     return nullptr;
   }
 
-  TexturePtr tex_new = std::make_shared<Texture2D>(width, height, PixelFormat::ABGR8, color_space, raw);
+  auto texture_owned 
+    = std::make_unique<Texture2D>(width, height, PixelFormat::ABGR8, color_space, raw);
 
-  texture_cache_[tex_key] = tex_new;
-  return tex_new;
+  // try_emplace: 先看 key 是否存在，再决定是否构造 value. 
+  // emplace 返回一个 std::pair<iterator, bool>，其中 bool 指示 key 是否已存在。
+  auto it = texture_cache_.emplace(tex_key, std::move(texture_owned)).first;
+  return it->second.get();
 }
 
 } // namespace Medium

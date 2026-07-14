@@ -7,7 +7,6 @@
 #include "DirectionalViewFit.h"
 
 #include "Base/Math/RotationMatrix.h"
-#include "Scene/Light/DirectionalLight.h"
 #include "Scene/Camera.h"
 #include "DirectionalViewClip.h"
 
@@ -17,17 +16,18 @@ namespace {
 // 场景包围盒三角形索引表
 constexpr size_t kBBoxTriNum = 12;
 constexpr std::array<u8, kBBoxTriNum * 3> kSceneBBoxTriIndices {
-  0, 1, 2,  2, 1, 3, // 前
-  6, 4, 2,  4, 0, 2, // 左
-  3, 1, 5,  3, 5, 7, // 右
-  0, 4, 5,  5, 1, 0, // 上
-  6, 2, 3,  6, 3, 7, // 下
-  7, 4, 6,  5, 4, 7, // 后
+  0, 1, 2,  0, 2, 3,
+  4, 5, 6,  4, 6, 7,
+  0, 3, 7,  0, 7, 4,
+  1, 2, 6,  1, 6, 5,
+  0, 1, 5,  0, 5, 4,
+  3, 2, 6,  3, 6, 7,
 };
 
 std::pair<f32, f32> calcNearAndFar(const Vec2f& light_ortho_min,
-                                    const Vec2f& light_ortho_max,
-                                    const std::array<Vec3f, 8>& scene_bbox_corners_lb) {
+                                   const Vec2f& light_ortho_max,
+                                   const std::array<Vec3f, 8>& scene_bbox_corners_lb)
+{
   // 近远平面分别初始化为最大正数和最小负数。
   f32 near = std::numeric_limits<f32>::max();
   f32 far  = std::numeric_limits<f32>::lowest();
@@ -37,7 +37,7 @@ std::pair<f32, f32> calcNearAndFar(const Vec2f& light_ortho_min,
     ClipPolygon clip_poly;
 
     for(size_t j = 0; j < 3; ++j, ++clip_poly.num_verts)
-      clip_poly.verts[j] = scene_bbox_corners_lb[kSceneBBoxTriIndices[(i * 3) + j]];
+      clip_poly.verts[j] = scene_bbox_corners_lb[kSceneBBoxTriIndices[i * 3 + j]];
 
     if(!clip(light_ortho_min, light_ortho_max, clip_poly)) continue;
     
@@ -69,7 +69,7 @@ DirectionalViewFit calcDirectionalViewFit(const DirectionalViewFitParams& params
   // ---------- 计算场景AABB在 lb 下的角点
   auto scene_bbox_corners_ws = scene_bbox_ws.corners();
   std::array<Vec3f, 8> scene_bbox_corners_lb;
-  for(int i = 0; i < 8; ++i)
+  for(i32 i = 0; i < 8; ++i)
     scene_bbox_corners_lb[i] = mat_rot_lb * scene_bbox_corners_ws[i];
 
   // ---------- 获取主相机视椎切片的外接球，将其直径作为 light ortho 正方形的边长
@@ -106,13 +106,11 @@ DirectionalViewFit calcDirectionalViewFit(const DirectionalViewFitParams& params
   // ---------- 构建光源在 light basis 下的位置
   Vec3f light_pos_lb;
   light_pos_lb.head<2>() = light_ortho_center_snapped;
-  light_pos_lb.z() = near - Camera::kMinimumNearPlane;
+  light_pos_lb.z() = near - Camera::kNearPlane;  // 将光相机放在 near 再往后退 0.1.
 
-  // 将平行光相机特化为 near 固定为 0.1.
   return {
     .light_pos_ws         = mat_light_rot_world * light_pos_lb,
-    .ortho_near           = Camera::kMinimumNearPlane,
-    .ortho_far            = far - near,
+    .ortho_far            = far - near + Camera::kNearPlane,
     .ortho_width          = circumsphere_diameter,
     .ortho_height         = circumsphere_diameter,
     .shadow_texel_size_ws = world_units_per_texel

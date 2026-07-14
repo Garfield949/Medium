@@ -9,18 +9,17 @@
 #include <filesystem>
 
 #include "Base/Log.h"
-#include "App/Config/Config.h"
 #include "Scene/Camera.h"
 
 namespace Medium {
 
-bool SceneManager::init(const WindowCfg& cfg_window) {
-  return switchScene("sponza", cfg_window.aspectRatio());
+bool SceneManager::init(f32 aspect_ratio) {
+  return switchScene("sponza.lua", aspect_ratio);
 }
 
-bool SceneManager::switchScene(std::string_view scene_name, f32 aspect_ratio) {
+bool SceneManager::switchScene(std::string_view lua_file_name, f32 aspect_ratio) {
   auto scene_lua = std::filesystem::path(PROJECT_ROOT_DIR) / "scenes"
-    / (std::string{scene_name} + ".lua");
+    / lua_file_name;
 
   auto new_scene = Scene::LoadFromLua(scene_lua, aspect_ratio);
   if(!new_scene) {
@@ -36,7 +35,7 @@ bool SceneManager::switchScene(std::string_view scene_name, f32 aspect_ratio) {
 
 void SceneManager::onResize(const Vec2i& buffer_extent_physical) const {
   // 注：更改 aspect ratio 后，相机视椎形状会变，进而使阴影拟合产生变化
-  active_scene_->camera()->setAspectRatio(
+  active_scene_->mainCamera()->setAspectRatio(
     static_cast<f32>(buffer_extent_physical.x()) / static_cast<f32>(buffer_extent_physical.y())
   );
 }

@@ -8,8 +8,8 @@
 
 #include <SDL3/SDL.h>
 
+#include "App/WindowDefaults.h"
 #include "Base/Log.h"
-#include "Config/Config.h"
 #include "SDL3/SDL_video.h"
 
 namespace Medium {
@@ -20,9 +20,9 @@ Vec2i WindowManager::physicalExtent() const {
   return { w, h };
 }
 
-u32 WindowManager::physicalPixelCount() const {
+i32 WindowManager::physicalPixelCount() const {
   auto extent = physicalExtent();
-  return static_cast<u32>(extent.x()) * static_cast<u32>(extent.y());
+  return extent.x() * extent.y();
 }
 
 f32 WindowManager::aspectRatio() const noexcept {
@@ -39,7 +39,7 @@ WindowManager::~WindowManager() {
   SDL_Quit();
 }
 
-bool WindowManager::init(const WindowCfg& cfg_window) {
+bool WindowManager::init() {
   // SDL_INIT_VIDEO 启用 SDL 与桌面显示环境相关的子系统，该标志位隐式地启动 SDL_INIT_EVENTS.
   if(!SDL_Init(SDL_INIT_VIDEO)) {
     Log::printLogPrefix("WindowManager", "init", true);
@@ -47,7 +47,7 @@ bool WindowManager::init(const WindowCfg& cfg_window) {
     return false;
   }
 
-  if(!createSDLWindow(cfg_window)) return false;
+  if(!createSDLWindow()) return false;
   if(!createSDLRenderer()) return false;
   if(!createSDLTexture()) return false;
 
@@ -58,7 +58,7 @@ bool WindowManager::onResize() {
   return createSDLTexture();
 }
 
-void WindowManager::commitBuffer(const u32* packed_abgr8_buffer, u32 buffer_width, u32 buffer_height) {
+void WindowManager::commitBuffer(const u32* packed_abgr8_buffer, i32 buffer_width, i32 buffer_height) {
   size_t bytes_cnt_row   = buffer_width  * sizeof(u32);
   size_t bytes_cnt_total = buffer_height * bytes_cnt_row;
 
@@ -74,10 +74,13 @@ void WindowManager::commitBuffer(const u32* packed_abgr8_buffer, u32 buffer_widt
     if(static_cast<size_t>(row_pitch) == bytes_cnt_row)
       std::memcpy(dst, packed_abgr8_buffer, bytes_cnt_total);
     else // 否则一行一行写入。
-      for(u32 y = 0; y < buffer_height; ++y) // void 指针不支持算术运算，因为类型未知无法计算步长，需转型一下。
-        std::memcpy(static_cast<std::byte*>(dst) + y * row_pitch,
-                    packed_abgr8_buffer + y * buffer_width,
-                    bytes_cnt_row);
+      for(i32 y = 0; y < buffer_height; ++y)
+        std::memcpy(
+          // void 指针不支持算术运算，因为类型未知无法计算步长，需转型一下。
+          static_cast<std::byte*>(dst) + y * row_pitch,
+          packed_abgr8_buffer + y * buffer_width,
+          bytes_cnt_row
+        );
     
     SDL_UnlockTexture(sdl_texture_present_);
   }
@@ -87,11 +90,11 @@ void WindowManager::commitBuffer(const u32* packed_abgr8_buffer, u32 buffer_widt
   SDL_RenderPresent(sdl_renderer_);
 }
 
-bool WindowManager::createSDLWindow(const WindowCfg& cfg_window) {
+bool WindowManager::createSDLWindow() {
   sdl_window_ = SDL_CreateWindow(
-    cfg_window.title.c_str(),
-    cfg_window.w,
-    cfg_window.h,
+    WindowDefaults::kDefaultWindowTitle,
+    WindowDefaults::kDefaultWindowWidth,
+    WindowDefaults::kDefaultWindowHeight,
     // SDL_WINDOW_HIGH_PIXEL_DENSITY: 尽可能让窗口适配高 DPI.
     SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY
   );
@@ -106,7 +109,7 @@ bool WindowManager::createSDLWindow(const WindowCfg& cfg_window) {
   // 一个 2880x1800 的屏幕缓冲：
   // 1. 假设设备屏幕本身就有 2880x1800 个物理像素，便可做到 2x2 的物理像素对应一个逻辑像素；
   // 2. 假设设备屏幕只有 1440x900 个物理像素，SDL 只会给一个相同尺寸的缓冲。
-  if(SDL_GetWindowPixelDensity(sdl_window_) > 1) {
+  if(SDL_GetWindowDisplayScale(sdl_window_) > 1) {
     Log::printLogPrefix("WindowManager", "createSDLWindow", true);
     fmt::print("Scale enabled\n");
   }

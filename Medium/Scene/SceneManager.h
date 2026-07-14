@@ -10,18 +10,21 @@
 
 namespace Medium {
 
-struct WindowCfg;
-
 class SceneManager {
 public:
   explicit SceneManager() = default;
 
-  bool init(const WindowCfg& cfg_window);
+  bool init(f32 aspect_ratio);
 
-  bool switchScene(std::string_view scene_name, f32 aspect_ratio);
+  /// @brief 切换场景
+  /// @params lua_file_name 场景 lua 文件名。
+  /// @params aspect_ratio 窗口宽高比，用于调整场景相机视椎。
+  bool switchScene(std::string_view lua_file_name, f32 aspect_ratio);
 
+  /// @brief 窗口大小变化回调，调整场景相机视椎。
   void onResize(const Vec2i& buffer_extent_physical) const;
 
+  /// @brief 获取当前激活场景句柄。
   Scene* activeScene() const noexcept { return active_scene_.get(); }
 
 private:

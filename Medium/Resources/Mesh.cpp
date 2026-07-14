@@ -3,8 +3,6 @@
 ///
 #include "Mesh.h"
 
-#include <fmt/base.h>
-
 namespace Medium {
 
 // 面积加权平均法线 Area-weighted vertex normals. 对于每个三角面片，计算其法向，并累加到三个顶点的法向上。
@@ -48,7 +46,7 @@ void Mesh::calcTangents() noexcept {
     f32 delta_v01 = uv1.y() - uv0.y();
     f32 delta_v02 = uv2.y() - uv0.y();
 
-    f32 sign = (delta_u01 * delta_v02 - delta_u02 * delta_v01) < 0 ? -1.0f : 1.0f;
+    f32 sign = delta_u01 * delta_v02 - delta_u02 * delta_v01 < 0 ? -1.0f : 1.0f;
 
     // 计算三角面层级的 T 和 B
     Vec3f tangent_f   =  (delta_v02 * delta_pos01 - delta_v01 * delta_pos02) * sign;
@@ -68,7 +66,7 @@ void Mesh::calcTangents() noexcept {
     const Vec3f& B = tmp_bitangents[i];
 
     // 施密特正交化
-    T = (T - (T.dot(vertex.normal) * vertex.normal)).normalized();
+    T = (T - T.dot(vertex.normal) * vertex.normal).normalized();
 
     f32 det = 1.0f;
     if(T.cross(vertex.normal).dot(B) < 0)
@@ -80,18 +78,20 @@ void Mesh::calcTangents() noexcept {
 }
 
 void Mesh::calcAABBs() noexcept {
-  // 在整个 Mesh 上算 AABB
-  // TODO: 先算 SubMesh 的 AABB，再 merge 为整体的 AABB
-  for(const auto& v: vertices)
-    aabb_local.addPoint(v.pos);
+  this->aabb_local.reset();
   
-  // 在 SubMesh 层级算 AABB
-  for(auto& sub_mesh: sub_meshes) {
-    u32 offset = sub_mesh.index_offset;
-    u32 count  = sub_mesh.index_count;
-    for(u32 i = offset; i < offset + count; ++i) {
-      sub_mesh.aabb_local.addPoint(vertices[indices[i]].pos);
-    }
+  // 在 SubMesh 层级算 AABB，再合并到 Mesh 层级。
+  for(auto& submesh: sub_meshes) {
+    submesh.aabb_local.reset();
+    
+    u32 offset = submesh.index_offset;
+    u32 count  = submesh.index_count; 
+    for(u32 i = offset; i < offset + count; ++i)
+      submesh.aabb_local.addPoint(vertices[indices[i]].pos);
+    
+    // 加个保险。
+    if(submesh.aabb_local.valid())
+      this->aabb_local.merge(submesh.aabb_local);
   }
 }
 

@@ -20,7 +20,7 @@ Mat3f RotationMatrix::MakeFromForward(const Vec3f& forward, const Vec3f& up_ref)
   // 向，视角会发生跳变，但至少保证不会崩溃；使用了 std::fabs，也囊括了垂直向下看的情况。
   Vec3f U = up_ref.isZero() ? Vec3f::UnitY() : up_ref.normalized();
   if(Math::isNearlyOne(std::fabs(U.dot(F))))
-    U = Vec3f::UnitX(); // 回退方案 Fallback.
+    U = Vec3f::UnitX(); // Fallback.
 
   Vec3f R = U.cross(F).normalized();
   Vec3f U_actual = F.cross(R);

@@ -21,9 +21,7 @@ struct SubMesh;
 ///          4. 提交 SubMesh 所属 MeshNode 的世界矩阵，用于后续计算；
 ///          5. 渲染队列根据实际情况将 sort_key 作为条件进行指令排序；
 struct RenderCommand {
-  // C++ 20 支持在 emplace_back 中进行聚合初始化，删除构造函数也行。
-  RenderCommand(const Mesh* m, const SubMesh* sm, const Material* mat, Mat4f mw, f32 sk)
-    : mesh{m}, submesh{sm}, material{mat}, mat_world{std::move(mw)}, sort_key{sk} {}
+  // 注意，下列指针均为底层 const，修饰的是它们指向的对象而非它们自身，所以编译器不会删除默认赋值运算符。
   const Mesh*     mesh     = nullptr;
   const SubMesh*  submesh  = nullptr;
   const Material* material = nullptr;

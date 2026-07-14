@@ -20,7 +20,7 @@ AABB3D MeshNode::worldAABB() const noexcept {
   );
 }
 
-const MeshPtr& MeshNode::mesh() const noexcept {
+const Mesh* MeshNode::mesh() const noexcept {
   return mesh_;
 }
 

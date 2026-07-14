@@ -4,7 +4,6 @@
 ///
 #pragma once
 
-#include "Config/Config.h"
 #include "App/FPSController.h"
 #include "App/WindowManager.h"
 #include "Platform/Input.h"
@@ -24,12 +23,15 @@ public:
 
 private:
   void initImGui();
-
-  bool onWindowResize();
+  bool onProcessEvent();
   void onUpdate();
   void onRender();
+  bool windowResizeEvent();
 
-  AppCfg        app_config_;
+private:
+  bool imgui_init_succeed_ = false;
+  
+private:
   Input         input_;
   FPSController controller_;
 

@@ -16,7 +16,7 @@ class Camera;
 struct DirectionalViewFitParams {
   const Camera* camera = nullptr;
   Vec3f light_dir;
-  u32 shadow_res;
+  i32 shadow_res;
   f32 slice_near;
   f32 slice_far;
   AABB3D scene_bbox_ws;
@@ -26,7 +26,6 @@ struct DirectionalViewFitParams {
 /// @brief  平行光阴影拟合结果
 struct DirectionalViewFit {
   Vec3f light_pos_ws;
-  f32 ortho_near;
   f32 ortho_far;
   f32 ortho_width;
   f32 ortho_height;

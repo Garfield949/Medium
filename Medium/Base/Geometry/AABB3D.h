@@ -44,7 +44,7 @@ struct AABB3D {
   /// @brief 依据传入的世界矩阵将自身转换为一个世界空间 AABB 并返回。
   AABB3D toWorldAABB(const Mat4f& mat_world) const noexcept;
 
-  /// @brief 返回包围盒的 8 个轴对齐角点：Zmin -> Zmax, left -> right, top -> bottom.
+  /// @brief 返回包围盒的 8 个轴对齐角点：Zmin -> Zmax, left -> right, top -> bottom, 逆时针。
   std::array<Vec3f, 8> corners() const noexcept;
 
   Vec3f min;

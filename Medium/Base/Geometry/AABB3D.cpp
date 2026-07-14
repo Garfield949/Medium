@@ -15,8 +15,8 @@ AABB3D AABB3D::toWorldAABB(const Mat4f& mat_world) const noexcept {
 
   for(i32 i = 0; i < 3; ++i) {
     for(i32 j = 0; j < 3; ++j) {
-      f32 a = mat_world(i, j) * min(j);
-      f32 b = mat_world(i, j) * max(j);
+      const f32 a = mat_world(i, j) * min(j);
+      const f32 b = mat_world(i, j) * max(j);
       if(a > b) {
         bbox_world.max(i) += a;
         bbox_world.min(i) += b;
@@ -36,8 +36,8 @@ std::array<Vec3f, 8> AABB3D::corners() const noexcept {
   f32 min_x = min.x(), min_y = min.y(), min_z = min.z();
   f32 max_x = max.x(), max_y = max.y(), max_z = max.z();
   return std::array<Vec3f, 8> {{
-    {min_x, max_y, min_z}, {max_x, max_y, min_z}, {min_x, min_y, min_z}, {max_x, min_y, min_z},
-    {min_x, max_y, max_z}, {max_x, max_y, max_z}, {min_x, min_y, max_z}, {max_x, min_y, max_z}
+    {min_x, max_y, min_z}, {max_x, max_y, min_z}, {max_x, min_y, min_z}, {min_x, min_y, min_z},
+    {min_x, max_y, max_z}, {max_x, max_y, max_z}, {max_x, min_y, max_z}, {min_x, min_y, max_z}, 
   }};
 }
 

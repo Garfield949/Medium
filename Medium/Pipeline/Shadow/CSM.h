@@ -14,6 +14,8 @@ namespace Medium {
 
 class FrameBuffer;
 
+inline constexpr i32 kDefaultCascadeTileRes = 1024;
+inline constexpr i32 kMinCSMCascades = 1;
 inline constexpr i32 kMaxCSMCascades = 4;
 
 /// @struct CSMCascade
@@ -29,9 +31,10 @@ struct CSMCascade {
   f32 fit_far  = 0.0f;
 
   // 各级联在光空间中的 ViewFit 不同，故各自绑定对应的变换矩阵。
-  Mat4f light_vp;
-  RectF viewport;
+  Mat4f mat_vp_light;
+  RectF viewport_atlas;
 
+  // 记录各级联纹素对应的世界空间单位。
   f32 texel_size_ws = 0.0f;
 
   f32 width() const noexcept {
@@ -39,21 +42,17 @@ struct CSMCascade {
   }
 };
 
-/// @struct CSMSamplingCtx
-/// @brief 存储级联数据的结构体，用于 fragment 查询阶段。
-struct CSMSamplingCtx {
-  std::array<CSMCascade, kMaxCSMCascades> cascades;
-  const FrameBuffer* shadow_map_atlas = nullptr;
-  u32 cascade_cnt = 0;
-
+/// @struct CSMContext
+/// @brief 存储级联数据的上下文，用于 fragment 查询阶段。
+struct CSMContext {
   struct CascadeQuery {
     const CSMCascade* cascade = nullptr;
-    int index = 0;
+    i32 index = 0;
   };
 
   // 返回级联本身和所在层级。
   std::optional<CascadeQuery> cascadeQuery(f32 z_view) const noexcept {
-    for(i32 i = 0; i < static_cast<i32>(cascade_cnt); ++i) {
+    for(i32 i = 0; i < cascade_cnt; ++i) {
       const CSMCascade& c = cascades[i];
       if(z_view >= c.slice_near && z_view <= c.slice_far) return CascadeQuery{&c, i};
     }
@@ -64,6 +63,15 @@ struct CSMSamplingCtx {
     f32 blend_factor = 0.2f;
     return blend_factor * cascades[cascade_index].width();
   }
+
+  const FrameBuffer* csm_atlas = nullptr;
+  
+  std::array<CSMCascade, kMaxCSMCascades> cascades;
+  i32 cascade_cnt = 0;
+
+  Mat4f mat_view_snapshot;
+
+  bool cascade_band_view_enabled = false;
 };
 
 /// @brief 计算各级联的切片逻辑范围。
@@ -73,9 +81,9 @@ struct CSMSamplingCtx {
 ///          需存储 3 个切分点 camera_near, slice_far0, max_shadow_dist. 故返回的数组长度为 kMaxCSMCascades + 1.
 std::array<f32, kMaxCSMCascades + 1> calcCSMSlices(f32 camera_near,
                                                    f32 max_shadow_dist,
-                                                   u32 cascade_cnt);
+                                                   i32 cascade_cnt);
 
 /// @brief 计算 CSM 级联的视口。
-RectF calcCSMAtlasViewport(u32 cascade_index, u32 tile_res);
+RectF getCascadeViewport(i32 cascade_index, i32 tile_res);
 
 } // namespace Medium

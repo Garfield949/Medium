@@ -11,7 +11,7 @@
 namespace Medium {
 
 class RenderQueue;
-struct CameraCtx;
+struct CameraContext;
 
 // 用于 cast_to 进行类型识别
 enum class NodeType { Vanilla, MeshInstance, Light, Camera };
@@ -22,7 +22,7 @@ public:
   NodeType  node_type;
   Transform transform;
 
-  Node(std::string name = "Node", NodeType type = NodeType::Vanilla)
+  explicit Node(std::string name = "Node", NodeType type = NodeType::Vanilla)
     : node_type{type}, transform{this}, name_{std::move(name)} {}
 
   virtual ~Node() = default;

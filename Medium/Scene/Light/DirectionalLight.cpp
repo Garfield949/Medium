@@ -12,7 +12,7 @@ namespace Medium {
 
 void DirectionalLight::applyViewFit(const DirectionalViewFit& fit) {
   transform.setPosition(fit.light_pos_ws);
-  setOrthoParams(fit.ortho_near, fit.ortho_far, fit.ortho_width, fit.ortho_height);
+  setOrthoParams(fit.ortho_far, fit.ortho_width, fit.ortho_height);
 }
 
 } // namespace Medium

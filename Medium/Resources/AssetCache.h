@@ -6,9 +6,8 @@
 ///
 #pragma once
 
+#include <memory>
 #include <filesystem>
-
-#include "Forwards.h"
 
 namespace tinyobj {
 struct material_t;
@@ -17,31 +16,34 @@ struct material_t;
 namespace Medium {
 
 enum class ColorSpace;
+class Mesh;
+class Texture2D;
 
 class AssetCache {
 public:
-  ~AssetCache() = default;
+  // Mesh 是前向声明，而 unique_ptr 的删除器要求 Mesh 是个完整类型。在头文件隐式生成的析构函数看不到 Mesh 的完
+  // 整定义，clangd 会报错。解决方案是将构造函数和析构函数的定义放在 cpp，在那里包含 Mesh.h 析构函数就能看到了。
+  AssetCache();
+  ~AssetCache();
 
+  /// @brief 获取单例。
   static AssetCache& instance() {
     static AssetCache cache;
     return cache;
   }
 
   // 加载 Wavefront OBJ 模型文件
-  [[nodiscard]] MeshPtr loadFromObj (const std::filesystem::path& path_obj);
+  [[nodiscard]] const Mesh* loadFromObj (const std::filesystem::path& obj_path);
 
 private:
-  AssetCache() = default;
+  void parseMTL(Mesh* mesh_new,
+                const std::vector<tinyobj::material_t>& tiny_materials,
+                const std::filesystem::path& obj_path);
 
-  void parseMTL(const MeshPtr &mesh, const std::vector<tinyobj::material_t>& tiny_materials,
-                const std::filesystem::path& path_obj);
+  Texture2D* loadTexture(const std::filesystem::path& filepath, const ColorSpace& color_space);
 
-  TexturePtr loadTexture(const std::filesystem::path& filepath, const ColorSpace& color_space);
-
-  // 使用 weak_ptr 进行观察，不增加引用计数
-  std::unordered_map<std::string, std::weak_ptr<Mesh>>      mesh_cache_{};
-  std::unordered_map<std::string, std::weak_ptr<Texture2D>> texture_cache_{};
-  std::unordered_map<std::string, std::weak_ptr<Material>>  material_cache_{};
+  std::unordered_map<std::string, std::unique_ptr<Mesh>>      mesh_cache_;
+  std::unordered_map<std::string, std::unique_ptr<Texture2D>> texture_cache_;
 };
 
 } // Medium

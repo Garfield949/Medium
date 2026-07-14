@@ -10,12 +10,12 @@
 
 namespace Medium {
   
-void DepthShader::bind(const ShaderBindCtx& bind_ctx, const Mat4f& world, const Material* mat) noexcept {
-  const CameraCtx* cam_ctx = bind_ctx.camera_ctx;
+void DepthShader::bind(const ShaderBindContext& bind_ctx, const Mat4f& world, const Material* mat) noexcept {
+  const CameraContext* cam_ctx = bind_ctx.camera_ctx;
 
   this->uniforms = {
-    .wvp_light = cam_ctx->vp * world,
-    .material  = mat,
+    .mat_wvp_light = cam_ctx->mat_vp * world,
+    .material = mat,
   };
 }
 

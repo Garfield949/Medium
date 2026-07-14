@@ -1,6 +1,5 @@
 local camera = {
     fov = 80,
-    near = 0.1,
     position = {0.0, 12.0, 0.0},
     rotation = {0.0, 135.0, 0.0},
 }
@@ -10,8 +9,8 @@ local light = {
 }
 
 local shadow_config = {
-    max_shadow_distance = 50.0,
-    csm_cascade_count = 4
+    max_shadow_distance = 35.0,
+    csm_cascade_count = 3
 }
 
 local model = {

@@ -4,8 +4,6 @@
 ///
 #pragma once
 
-#include <array>
-
 #include "Base/Types.h"
 #include "Base/Geometry/Frustum.h"
 #include "Base/Geometry/Sphere.h"
@@ -16,28 +14,30 @@ namespace Medium {
 /// @class Camera
 /// @brief 相机类型
 /// @details 管理与构造视图矩阵、投影矩阵相关的变量
-class Camera : public Node{
+class Camera : public Node {
 public:
   static constexpr NodeType Type = NodeType::Camera;
 
-  static constexpr f32 kMinimumNearPlane = 0.1f;
+  // near 固定为 0.1. 其实正交投影可直接将 near 设为 0，因为 “透视除法” 阶段顶点的 w 永远是 1，
+  // 不会发生除零，这里是为了兼容透视投影。
+  static constexpr f32 kNearPlane = 0.1f;
 
-  enum class Mode {
-    Perspective, Orthographic
-  };
+  enum class Mode { Perspective, Orthographic };
 
   explicit Camera(std::string name, Mode mode)
     : Node{std::move(name), Type}, mode_{mode} {}
 
   /// @brief 当构造为一个透视相机时，传入相应参数
-  void setPerspParams(f32 fov, f32 near, f32 aspect_ratio) noexcept;
+  void setPerspParams(f32 fov, f32 aspect_ratio) noexcept;
   
   /// @brief 当构造为一个正交相机时，传入相应参数
-  /// @details 正交投影可直接将 near 设为 0，因为 “透视除法” 阶段顶点的 w 永远是 1，不会发生除零。
-  void setOrthoParams(f32 near, f32 far, f32 width, f32 height) noexcept;
+  void setOrthoParams(f32 far, f32 width, f32 height) noexcept;
   
   /// @brief 修改视区宽高比，通常用于窗口缩放
   void setAspectRatio(f32 aspect_ratio) noexcept;
+
+  /// @brief 修改 field of view.
+  void setFOV(f32 fov) noexcept;
   
   /// @brief 返回相机所属的视椎体，由相机的 view_projection 矩阵构建
   Frustum frustum() const noexcept {
@@ -55,13 +55,7 @@ public:
   Mat4f viewMatrix()        const noexcept;
   Mat4f viewProjMatrix()    const noexcept;
 
-  f32& fov() noexcept { 
-    dirty_proj_matrix_ = true;
-    return fov_y_; 
-  }
-
-  /// @brief 返回近平面。
-  f32 near() const noexcept { return near_; }
+  f32 fov() noexcept { return fov_y_; }
   
   /// @brief 返回远平面，对于透视投影返回无穷大。
   f32 far()  const noexcept { 
@@ -82,10 +76,9 @@ private:
   Mode mode_;
 
   // 透视投影视椎属性
-  // 透视投影默认 far 是无限远，near 与正交投影共享
+  // 透视投影默认 far 是无限远.
   f32 fov_y_        = 0.0f;
   f32 aspect_ratio_ = 0.0f;
-  f32 near_         = 0.0f;
 
   // 正交投影视椎属性
   f32 far_     = 0.0f;

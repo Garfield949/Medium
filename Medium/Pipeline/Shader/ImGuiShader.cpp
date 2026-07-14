@@ -10,8 +10,8 @@
 namespace Medium {
 
 void ImGuiShader::bind(Vec2f display_pos,Vec2f display_size, const Texture2D* texture) noexcept {
-  uniform.display_pos  = display_pos;
-  uniform.display_size = display_size;
+  uniform.display_pos  = std::move(display_pos);
+  uniform.display_size = std::move(display_size);
   uniform.texture      = texture;
 }
 

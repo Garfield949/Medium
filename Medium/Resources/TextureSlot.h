@@ -7,24 +7,28 @@
 ///
 #pragma once
 
-#include "Forwards.h"
+#include <variant>
+
 #include "Sampler.h"
 
 namespace Medium {
+  class Texture2D;
+}
 
-using TextureSlot = std::variant<TexturePtr, LinearColor>;
+namespace Medium {
 
-// loadTex 返回一个右值，所以直接移动
-inline TextureSlot makeSlot(TexturePtr map, const LinearColor& soild_color) {
-  if(map) return std::move(map);
-  return soild_color;
+using TextureSlot = std::variant<Texture2D*, LinearColor>;
+
+inline TextureSlot makeSlot(Texture2D* map, const LinearColor& solid_color) {
+  if(map) return map;
+  return solid_color;
 }
 
 inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv) {
     // 0 对应 TexturePtr, 1 对应 LinearColor
     if (slot.index() == 0) {
       // get 返回一个右值，必须绑定 const 引用。
-      const TexturePtr& texture = std::get<0>(slot);
+      const Texture2D* texture = std::get<0>(slot);
       return Samplers::LinearRepeat.sampleColor(*texture, uv.x(), uv.y());
     }
     return std::get<1>(slot);

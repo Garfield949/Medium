@@ -1,13 +1,12 @@
 -- camear, light, model 为 table 类型，成员均为键值对。
 local camera = {
     fov = 80,
-    near = 0.1,
     position = { 0.5, 2.0, 5.0 },
     rotation = { 0.0, -135.0, 0.0 },
 }
 
 local light = {
-    direction = { -0.04, -0.3, 0.0 }
+    direction = { -2.0, -15.0, 0.0 }
 }
 
 local shadow_config = {

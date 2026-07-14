@@ -36,7 +36,6 @@ using Vec4f = Eigen::Vector4f;
 using Vec3i = Eigen::Vector3i;
 using Vec2f = Eigen::Vector2f;
 using Vec2i = Eigen::Matrix<i32, 2, 1>;
-using Vec2u = Eigen::Matrix<u32, 2, 1>;
 using Quatf = Eigen::Quaternionf;
 
 } // namespace Medium

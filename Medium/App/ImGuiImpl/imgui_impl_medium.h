@@ -17,10 +17,12 @@ namespace Medium {
   class Texture2D;
 }
 
-IMGUI_IMPL_API bool ImGui_ImplMedium_Init();
+IMGUI_IMPL_API void ImGui_ImplMedium_Init();
 IMGUI_IMPL_API void ImGui_ImplMedium_Shutdown();
 IMGUI_IMPL_API void ImGui_ImplMedium_NewFrame();
-IMGUI_IMPL_API void ImGui_ImplMedium_RenderDrawData(ImDrawData* draw_data,
-                                                    Medium::FrameBuffer& framebuffer);
+IMGUI_IMPL_API void ImGui_ImplMedium_RenderDrawData(ImDrawData* draw_data, Medium::FrameBuffer& framebuffer);
+
+ImTextureID ImGui_ImplMedium_Texture2DPtrToImTextureID(const Medium::Texture2D* ptr);
+const Medium::Texture2D* ImGui_ImplMedium_ImTextureIDtoTexture2DPtr(ImTextureID id);
 
 #endif // #ifndef IMGUI_DISABLE

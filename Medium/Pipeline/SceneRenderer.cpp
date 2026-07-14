@@ -7,95 +7,104 @@
 #include "SceneRenderer.h"
 
 #include "Pipeline/Shadow/CSM.h"
-#include "Pipeline/RenderContext.h"
 #include "Pipeline/RenderQueue.h"
-#include "Pipeline/RenderStat.h"
-#include "Pipeline/Pipeline.h"
+#include "Pipeline/RenderStatus.h"
+#include "Pipeline/DrawCore.h"
+#include "Pipeline/FrameBuffer.h"
 #include "Scene/Camera.h"
+#include "Scene/MeshNode.h"
+#include "Scene/Light/DirectionalLight.h"
 
 namespace Medium {
 
-bool SceneRenderer::init(const Vec2i& buffer_extent_physical, Camera* camera, const Vec3f& light_dir) {
-  if(!frame_buffer_.resize(buffer_extent_physical.x(), buffer_extent_physical.y())) return false;
+bool SceneRenderer::init(const Camera* camera, const DirectionalLight* dir_light)
+{
+  bind(camera, dir_light);
 
-  bind(camera, light_dir);
+  opaque_render_state_ = {
+    .enable_depth_test  = true,
+    .enable_depth_write = true,
+    .enable_color_write = true,
+    .draw_mode          = DrawMode::Shaded,
+    .cull_mode          = CullMode::CullBack,
+    .blend_mode         = BlendMode::Replace,
+    .color_write_target = ColorWriteTarget::HDR
+  };
+
+  transp_render_state_ = {
+    .enable_depth_test  = true,
+    .enable_depth_write = false, // 透明队列关闭深度写入，否则在前面的透明物体会占用深度缓冲，导致后面的透明物体直接被丢弃无法参与正常混合。
+    .enable_color_write = true,
+    .draw_mode          = DrawMode::Shaded,
+    .cull_mode          = CullMode::CullBack,
+    .blend_mode         = BlendMode::PremultipliedOver,
+    .color_write_target = ColorWriteTarget::HDR
+  };
 
   return true;
 }
 
-void SceneRenderer::bind(Camera *camera, const Vec3f& light_dir) noexcept {
-  camera_ = camera;
-  light_dir_ = light_dir;
+void SceneRenderer::bind(const Camera *camera, const DirectionalLight* dir_light) noexcept {
+  main_camera_ = camera;
+  dir_light_   = dir_light;
 }
 
 void SceneRenderer::render(std::span<const MeshNode* const> scene_mesh_nodes,
-                           const CSMSamplingCtx* csm_data,
-                           RenderStat& stat)
+                           const CSMContext* csm_ctx,
+                           FrameBuffer&  frame_buffer,
+                           RenderStatus& render_status)
 {
-  frame_buffer_.clearColor();
-  frame_buffer_.clearDepth();
+  frame_buffer.clearColor();
+  frame_buffer.clearDepth();
+  
+  opaque_queue_.clear();
+  transp_queue_.clear();
 
-  CameraCtx cam_ctx {
-    .cam_pos = camera_->transform.worldPosition(),
-    .view    = camera_->viewMatrix(),
-    .vp      = camera_->viewProjMatrix(),
-    .frustum = camera_->frustum()
+  CameraContext cam_ctx {
+    .cam_pos  = main_camera_->transform.worldPosition(),
+    .mat_view = main_camera_->viewMatrix(),
+    .mat_vp   = main_camera_->viewProjMatrix(),
+    .frustum  = main_camera_->frustum()
   };
 
-  LightingCtx lighting_ctx {
-    .light_dir = light_dir_,
-    .csm_data  = csm_data
+  LightingContext lighting_ctx {
+    .light_dir   = dir_light_->dir(),
+    .light_color = dir_light_->color,
+    .csm_ctx     = csm_ctx
   };
 
-  ShaderBindCtx shader_ctx{
+  ShaderBindContext shader_ctx{
     .camera_ctx   = &cam_ctx,
-    .lighting_ctx = &lighting_ctx,
+    .lighting_ctx = &lighting_ctx
   };
 
+  // ---------- Opaque Pass
   RenderPassCtx opaque_pass_ctx{
-    .render_state = {
-      .enable_depth_test  = true,
-      .enable_depth_write = true,
-      .enable_color_write = true,
-      .cull_mode  = CullMode::CullBack,
-      .blend_mode = BlendMode::Replace,
-      .color_write_target = ColorWriteTarget::HDR
-    },
-    .viewport = {0, 0, frame_buffer_.widthF(), frame_buffer_.heightF()},
-    .buffer   = frame_buffer_,
-    .render_status = &stat
+    .render_state  = opaque_render_state_,
+    .viewport      = {0, 0, frame_buffer.widthF(), frame_buffer.heightF()},
+    .buffer        = frame_buffer,
+    .render_status = &render_status
   };
 
-  RenderQueue opaque_queue{RenderQueue::Type::OpaqueQueue};
-  opaque_queue.build(scene_mesh_nodes, cam_ctx);
-  opaque_queue.sort();
-  Pipeline::executeCommands(opaque_queue.commands(), shader_ctx, opaque_pass_ctx, blinn_shader_);
+  opaque_queue_.build(scene_mesh_nodes, cam_ctx);
+  opaque_queue_.sort();
+  Pipeline::executeCommands(opaque_queue_.commands(), shader_ctx, opaque_pass_ctx, blinn_shader_);
 
+  // ---------- Transparent Pass
   RenderPassCtx transparent_pass_ctx{
-    .render_state = {
-      .enable_depth_test  = true,
-      .enable_depth_write = false, // 透明队列关闭深度写入，否则在前面的透明物体会占用深度缓冲，导致后面的透明物体直接被丢弃无法参与正常混合。
-      .enable_color_write = true,
-      .cull_mode  = CullMode::CullBack,
-      .blend_mode = BlendMode::PremultipliedOver,
-      .color_write_target = ColorWriteTarget::HDR
-    },
-    .viewport = {0, 0, frame_buffer_.widthF(), frame_buffer_.heightF()},
-    .buffer   = frame_buffer_,
-    .render_status = &stat
+    .render_state  = transp_render_state_,
+    .viewport      = {0, 0, frame_buffer.widthF(), frame_buffer.heightF()},
+    .buffer        = frame_buffer,
+    .render_status = &render_status
   };
 
-  RenderQueue transparent_queue{RenderQueue::Type::TransparentQueue};
-  transparent_queue.build(scene_mesh_nodes, cam_ctx);
-  transparent_queue.sort();
-  Pipeline::executeCommands(transparent_queue.commands(), shader_ctx, transparent_pass_ctx, blinn_shader_);
+  transp_queue_.build(scene_mesh_nodes, cam_ctx);
+  transp_queue_.sort();
+  Pipeline::executeCommands(transp_queue_.commands(), shader_ctx, transparent_pass_ctx, blinn_shader_);
 
   // 统计不透明 & 不透明 pass draw calls.
-  stat.statistics.scene_opaque_draw_calls += opaque_queue.commands().size();
-  stat.statistics.scene_transp_draw_calls += transparent_queue.commands().size();
-
-  // ---------- Post Process ----------
-  frame_buffer_.toneMap();
+  render_status.statistics.scene_opaque_draw_calls += opaque_queue_.commands().size();
+  render_status.statistics.scene_transp_draw_calls += transp_queue_.commands().size();
 }
 
-} // Medium
+} // namespace Medium

@@ -11,7 +11,6 @@
 #include "ImGuiImpl/imgui_impl_medium.h"
 #include "ImGuiImpl/ImGuiInspector.h"
 
-#include "App/Config/Config.h"
 #include "Base/Log.h"
 #include "Scene/Scene.h"
 #include "Scene/Camera.h"
@@ -19,20 +18,20 @@
 namespace Medium {
 
 void App::initImGui() {
-  f32 main_scale = SDL_GetWindowDisplayScale(window_manager_.SDLWindowHandler());
-  
+  // 检查两类问题：
+  // 1. 检查 imgui.h 和 imgui.cpp 是否同属一个发布版本;
+  // 2. 检查 ImGui 内部类型的结构体布局是否正确。
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  
-  // 绘制样式应用缩放。
   ImGui::StyleColorsDark();
-  ImGuiStyle& style = ImGui::GetStyle();
-  style.ScaleAllSizes(main_scale);
-  style.FontScaleDpi = main_scale;
-  
+  ImGui::GetStyle().WindowRounding = 5.0f;  // 窗口圆角半径
+
   // 自定义渲染后端选这个接口。一般情况会是 OpenGL, DirectX 等。
-  ImGui_ImplSDL3_InitForOther(window_manager_.SDLWindowHandler()); 
+  ImGui_ImplSDL3_InitForOther(window_manager_.SDLWindowHandler());
   ImGui_ImplMedium_Init();
+
+  // 禁止 ImGui 写 imgui.ini 配置文件。
+  ImGui::GetIO().IniFilename = nullptr;
 
   imgui_inspector_.controller     = &controller_;
   imgui_inspector_.window_manager = &window_manager_;
@@ -41,45 +40,51 @@ void App::initImGui() {
 }
 
 bool App::init() {
-  app_config_ = AppCfg::LoadFromToml(
-    std::filesystem::path(PROJECT_ROOT_DIR) / Config::kConfigDirName
-  );
-
-  if(!window_manager_.init(app_config_.window))
+  if(!window_manager_.init())
     return false;
 
-  if(!scene_manager_.init(app_config_.window))
+  if(!scene_manager_.init(window_manager_.aspectRatio()))
     return false;
 
-  if(!render_manager_.init(scene_manager_.activeScene(), app_config_.render, window_manager_.physicalExtent()))
+  if(!render_manager_.init(scene_manager_.activeScene(), window_manager_.physicalExtent()))
     return false;
 
-  controller_.bind(scene_manager_.activeScene()->camera(), &input_);
+  controller_.bind(scene_manager_.activeScene()->mainCamera(), &input_);
 
+  // 需在 window_manager_ 初始化后调用。
   initImGui();
+
+  imgui_init_succeed_ = true;
 
   return true;
 }
 
 void App::loop() {
   while(true) {
-    SDL_Event e;
-    // 使用一个循环不断从事件队列中取出并消费下一个事件，非阻塞。
-    while(SDL_PollEvent(&e)) {
-      // 将事件先喂给 ImGui，因为它覆盖在上面。
-      ImGui_ImplSDL3_ProcessEvent(&e);
-      switch(e.type) {
-      case SDL_EVENT_QUIT: return;
-      case SDL_EVENT_KEY_DOWN: if(e.key.key == SDLK_ESCAPE) return; 
-        break;
-      case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED: if(!onWindowResize()) return; 
-        break;
-      default: break;
-      }
-    }
+    if(!onProcessEvent()) return;
     onUpdate();
     onRender();
   }
+}
+
+bool App::onProcessEvent() {
+  SDL_Event e;
+  // 使用一个循环不断从事件队列中取出并消费下一个事件，非阻塞。
+  while(SDL_PollEvent(&e)) {
+    // 将事件先喂给 ImGui，因为它覆盖在上面。
+    ImGui_ImplSDL3_ProcessEvent(&e);
+    switch(e.type) {
+    case SDL_EVENT_QUIT: return false;
+    case SDL_EVENT_KEY_DOWN:
+      if(e.key.key == SDLK_ESCAPE) return false;
+      break;
+    case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
+      if(!windowResizeEvent()) return false;
+      break;
+    default: break;
+    }
+  }
+  return true;
 }
 
 void App::onUpdate() {
@@ -89,24 +94,24 @@ void App::onUpdate() {
 
 void App::onRender() {
   render_manager_.render();
-  
+
   // ---------- ImGui ----------
   ImGui_ImplMedium_NewFrame();  // Dummy.
   ImGui_ImplSDL3_NewFrame();    // SDL 后端每帧把窗口/输入状态同步给 ImGui，注释掉的话 ui 没法显示。
   ImGui::NewFrame();
 
-  imgui_inspector_.show();
-  
+  imgui_inspector_.run();
+
   ImGui::Render();
   ImGui_ImplMedium_RenderDrawData(ImGui::GetDrawData(), render_manager_.frameBuffer());
-  
   // ---------- ImGui ----------
+
   auto& fb = render_manager_.frameBuffer();
-  window_manager_.commitBuffer(fb.presentColorBuffer(), fb.width(), fb.height());
+  window_manager_.commitBuffer(fb.presentBuffer().packedAbgr8Data(), fb.width(), fb.height());
 }
 
 [[nodiscard]]
-bool App::onWindowResize() {
+bool App::windowResizeEvent() {
   Vec2i extent_physical = window_manager_.physicalExtent();
 
   // 测试过窗口手动的最小尺寸为 1，出现 0 只能说明出现异常。
@@ -126,8 +131,11 @@ bool App::onWindowResize() {
 }
 
 void App::quit() const {
-  ImGui_ImplMedium_Shutdown();
-  app_config_.saveToTomlFile();
+  if(imgui_init_succeed_) {
+    ImGui_ImplMedium_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
+    ImGui::DestroyContext();
+  } 
 }
 
 } // namespace Medium

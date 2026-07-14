@@ -46,14 +46,13 @@ struct SceneLoader {
   static void SetupCamera(const luabridge::LuaRef& tbl_scene, Scene* scene, f32 aspect_ratio) {
     luabridge::LuaRef tbl_camera = tbl_scene["Camera"];
     f32 fov  = tbl_camera["fov"].cast<f32>().value();
-    f32 near = tbl_camera["near"].cast<f32>().value();
 
     Vec3f pos = readVec3f(tbl_camera, "position");
     Vec3f rot = readVec3f(tbl_camera, "rotation");
 
     scene->main_camera_
       = scene->root_.attachChild(make_unique<Camera>("Main Camera", Camera::Mode::Perspective));
-    scene->main_camera_->setPerspParams(fov, near, aspect_ratio);
+    scene->main_camera_->setPerspParams(fov, aspect_ratio);
     scene->main_camera_->transform.setPosition(pos);
     scene->main_camera_->transform.setRotation(rot);
   }
@@ -61,18 +60,17 @@ struct SceneLoader {
   static void SetupLight(const luabridge::LuaRef& tbl_scene, Scene* scene) {
     luabridge::LuaRef tbl_dir = tbl_scene["Light"];
     Vec3f direction = readVec3f(tbl_dir, "direction");
-    // 注意，初始化必须调用一次 lookAt 来调整方向光的姿态。每帧计算的 DirectionalView 仅是获取光相机的
-    // 位置和正交范围，并不会改变光的朝向。
+    // 注意，初始化必须调用一次 setDir 来调整方向光的姿态。每帧计算的 DirectionalView 仅是获取并调整
+    // 光相机的位置和正交范围，并不会改变光的朝向。
     scene->dir_light_ = scene->root_.attachChild(make_unique<DirectionalLight>("Main Light"));
-    scene->dir_light_->dir = direction.normalized();
-    scene->dir_light_->transform.lookAt(scene->dir_light_->dir);
+    scene->dir_light_->setDir(direction);
   }
 
   static void ReadShadowCfg(const luabridge::LuaRef& tbl_scene, Scene* scene) {
     luabridge::LuaRef tbl_shadow_cfg  = tbl_scene["ShadowConfig"];
     scene->shadowCfg_.max_shadow_dist = tbl_shadow_cfg["max_shadow_distance"].cast<f32>().value();
     scene->shadowCfg_.csm_cascade_cnt
-      = std::clamp(tbl_shadow_cfg["csm_cascade_count"].cast<i32>().value(), 1, kMaxCSMCascades);
+      = std::clamp(tbl_shadow_cfg["csm_cascade_count"].cast<i32>().value(), kMinCSMCascades, kMaxCSMCascades);
   }
 
   static bool SetupModels(const luabridge::LuaRef& tbl_scene, Scene* scene) {
@@ -97,7 +95,7 @@ struct SceneLoader {
 
     auto obj_path = filesystem::path(PROJECT_ROOT_DIR) / path;
 
-    MeshPtr mesh = AssetCache::instance().loadFromObj(obj_path);
+    const Mesh* mesh = AssetCache::instance().loadFromObj(obj_path);
     if(!mesh) return false;
 
     auto model = scene->root_.attachChild(make_unique<MeshNode>(name, mesh));
@@ -119,6 +117,7 @@ std::unique_ptr<Scene> Scene::LoadFromLua(const std::filesystem::path& lua_path,
   if(luaL_dofile(L, lua_path.generic_string().c_str()) != LUA_OK) {
     Log::printLogPrefix("Scene", "LoadFromLua", true);
     fmt::print("Lua::{}\n", lua_tostring(L, -1));
+    lua_close(L);
     return nullptr;
   }
 
@@ -130,8 +129,10 @@ std::unique_ptr<Scene> Scene::LoadFromLua(const std::filesystem::path& lua_path,
     SceneLoader::SetupCamera(tbl_scene, scene.get(), aspect_ratio);
     SceneLoader::SetupLight (tbl_scene, scene.get());
     SceneLoader::ReadShadowCfg(tbl_scene, scene.get());
-    if(!SceneLoader::SetupModels(tbl_scene, scene.get()))
+    if(!SceneLoader::SetupModels(tbl_scene, scene.get())) {
+      lua_close(L);
       return nullptr;
+    }
   }
 
   lua_close(L);

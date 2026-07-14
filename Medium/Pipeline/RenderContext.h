@@ -6,36 +6,42 @@
 ///
 #pragma once
 
+#include "Base/Color.h"
 #include "Base/Geometry/Rect.h"
 #include "Base/Geometry/Frustum.h"
 #include "Base/Types.h"
-#include "Pipeline/RenderStat.h"
+#include "Pipeline/RenderStatus.h"
 
 namespace Medium {
 
 class  FrameBuffer;
 struct RectF;
-struct CSMSamplingCtx;
+struct CSMContext;
 
-/// @struct CameraCtx
+/// @struct CameraContext
 /// @brief 相机视图相关的上下文
-struct CameraCtx {
+struct CameraContext {
   Vec3f   cam_pos;
-  Mat4f   view;
-  Mat4f   vp;
+  Mat4f   mat_view;
+  Mat4f   mat_vp;
   Frustum frustum; // 用于 culling.
 };
 
-/// @struct LightingCtx
-struct LightingCtx {
-  Vec3f light_dir;
-  const CSMSamplingCtx* csm_data = nullptr;
+/// @struct LightingContext
+struct LightingContext {
+  Vec3f       light_dir;
+  LinearColor light_color;
+  const CSMContext* csm_ctx = nullptr;
 };
 
-/// @struct ShaderBindCtx
-struct ShaderBindCtx {
-  const CameraCtx*   camera_ctx = nullptr;
-  const LightingCtx* lighting_ctx = nullptr;
+/// @struct ShaderBindContext
+struct ShaderBindContext {
+  const CameraContext* camera_ctx = nullptr;
+  const LightingContext* lighting_ctx = nullptr;
+};
+
+enum class DrawMode {
+  Shaded, Wireframe
 };
 
 enum class BlendMode {
@@ -54,19 +60,19 @@ struct RenderState {
   bool enable_depth_test  = true;
   bool enable_depth_write = true;
   bool enable_color_write = true;
+  DrawMode  draw_mode  = DrawMode::Shaded;
   CullMode  cull_mode  = CullMode::CullBack;
   BlendMode blend_mode = BlendMode::Replace;
   ColorWriteTarget color_write_target = ColorWriteTarget::HDR;
   Rect scissor{}; // 默认为一个非法 scissor，即不启用 scissor test.
 };
 
-// TODO: 这个 Ctx 的语义有点点奇怪。
 /// @struct RenderPassCtx
 struct RenderPassCtx {
   const RenderState& render_state;
   const RectF&       viewport;
   FrameBuffer&       buffer;
-  RenderStat*        render_status = nullptr;
+  RenderStatus*      render_status = nullptr;
 };
 
 } // namespace Medium

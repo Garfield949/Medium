@@ -1,0 +1,30 @@
+///
+/// @file   DebugRenderer.h
+/// @author Garfield949
+/// @date   2026/7/3 23:30
+/// @brief  
+///
+#pragma once
+
+#include "Base/Types.h"
+
+namespace Medium {
+class FrameBuffer;
+struct RenderCommand;
+struct RenderStatus;
+struct SceneDrawListView;
+}
+
+namespace Medium {
+
+class DebugRenderer {
+public:
+  explicit DebugRenderer() = default;
+
+  void drawAABBs(Mat4f mat_vp,
+                 const SceneDrawListView& draw_list,
+                 FrameBuffer&  frame_buffer,
+                 RenderStatus& render_status);
+};
+
+} // namespace Medium

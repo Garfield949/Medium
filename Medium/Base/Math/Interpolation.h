@@ -36,9 +36,9 @@ T interpolate(const T& attrib0, const T& attrib1, const T& attrib2, const Vec3f&
   // 插值当前像素的 1/w，即透视矫正公式的分母
   f32 w_inv_interp = tmp0 + tmp1 + tmp2;
   // 避免除零，w_inv_interp 极小说明像素位于"无穷远"
-  if(std::abs(w_inv_interp) < Math::KINDA_SMALL_NUMBER) return attrib0;
+  if(std::abs(w_inv_interp) < Math::KindaSmallNumber) return attrib0;
   // 透视矫正公式的分子，对三个顶点的 attrib/w 进行插值
-  T val = (attrib0 * tmp0) + (attrib1 * tmp1) + (attrib2 * tmp2);
+  T val = attrib0 * tmp0 + attrib1 * tmp1 + attrib2 * tmp2;
   // 当前像素的 w，透视矫正公式分母的倒数
   f32 w_interp = 1.0f / w_inv_interp;
   // 除以 1/w 等价于乘以 w
@@ -53,7 +53,7 @@ struct PerspWeights {
     f32 tmp1 = w_invs[1] * weights[1];
     f32 tmp2 = w_invs[2] * weights[2];
     f32 w_inv_interp = tmp0 + tmp1 + tmp2;
-    f32 w_interp = std::abs(w_inv_interp) < Math::KINDA_SMALL_NUMBER ? -1.0f : 1.0f / w_inv_interp;
+    f32 w_interp = std::abs(w_inv_interp) < Math::KindaSmallNumber ? -1.0f : 1.0f / w_inv_interp;
     return {tmp0, tmp1, tmp2, w_interp};
   }
 };
@@ -62,7 +62,7 @@ struct PerspWeights {
 /// @details 预计算权重版本，在 frag 层面只计算一次中间变量。
 template <typename T> [[nodiscard]]
 T interpolate(const T& attrib0, const T& attrib1, const T& attrib2, const PerspWeights& weights) noexcept {
-  T val = (attrib0 * weights.w0) + (attrib1 * weights.w1) + (attrib2 * weights.w2);
+  T val = attrib0 * weights.w0 + attrib1 * weights.w1 + attrib2 * weights.w2;
   return val * weights.w_interp;
 }
 

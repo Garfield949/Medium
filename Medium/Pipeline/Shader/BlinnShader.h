@@ -9,8 +9,8 @@
 namespace Medium {
   class Material;
   struct Vertex;
-  struct CSMSamplingCtx;
-  struct ShaderBindCtx;
+  struct CSMContext;
+  struct ShaderBindContext;
   struct FSPayload;
 }
 
@@ -18,13 +18,15 @@ namespace Medium {
 
 struct BlinnShader {
   struct Uniform {
-    Vec3f camera_pos; // 用于高光
-    Mat4f view;       // 用于阴影级联选择
-    Mat4f wvp;
-    Mat4f world;
-    const Material* material = nullptr;
-    Vec3f light_dir_inv;
-    const CSMSamplingCtx* csm_ctx = nullptr;
+    Vec3f camera_pos;                     // 用于高光
+    Mat4f mat_wvp;                        // 用于顶点着色器
+    Mat4f mat_world;                      // 用于查询某些属性的世界空间位置
+    const Material* material = nullptr;   // 当前着色点(SubMesh)绑定的材质
+
+    Vec3f       light_dir_inv;            // 光照计算
+    LinearColor light_color;              // 光线颜色
+
+    const CSMContext* csm_ctx = nullptr;  // 级联阴影采样数据
   };
   
   static constexpr u32 kOffsetUV      = 0;  // Vec2f
@@ -50,7 +52,7 @@ struct BlinnShader {
     };
   }
   
-  void bind(const ShaderBindCtx& bind_ctx, const Mat4f& world, const Material* mat) noexcept;
+  void bind(const ShaderBindContext& bind_ctx, const Mat4f& world, const Material* mat) noexcept;
 
   [[nodiscard]]
   VSOut vertex(const Vertex& vert) const noexcept;

@@ -4,6 +4,7 @@
 ///
 #pragma once
 
+#include <algorithm>
 #include <type_traits> // std::is_trivially_copyable_v<T>
 
 #include "Base/Math/Math.h"
@@ -88,7 +89,7 @@ struct Color {
   [[nodiscard]]
   u32 toPackedArgb8() const noexcept {
     // 保留 A_G_ | 将 B 移到最低位 | 将 R 移到次高位。
-    return (data & 0xFF00FF00u) | ((data & 0x00FF0000u) >> 16) | ((data & 0x000000FFu) << 16);   
+    return (data & 0xFF00FF00u) | ((data & 0x00FF0000u) >> 16) | ((data & 0x000000FFu) << 16);
   }
 
   u32 data;
@@ -209,18 +210,6 @@ struct LinearColor {
     return src_premult + dst * (1.0f - src_premult.A);
   }
 
-  /// @brief ACES 色调映射简单拟合
-  /// @details 将各分量的高动态范围压缩到 [0, 1] LDR 范围内。
-  /// @note 严格来说，线性颜色经色调映射后就不再是线性的了，语义上偷了点懒。
-  constexpr LinearColor toneMapped() const noexcept {
-    constexpr f32 a = 2.51f, b = 0.03f, c = 2.43f, d = 0.59f, e = 0.14f;
-    auto formula = [&](f32 channel) {
-      channel = std::max(0.0f, channel);
-      return channel * (a * channel + b) / (channel * (c * channel + d) + e);
-    };
-    return {formula(R), formula(G), formula(B), A};
-  }
-
   /// @brief 转换为 Color 定点数颜色类型。
   /// @param space 传入目标 Color 的预期色彩空间枚举
   ///              1. ColorSpace::SRGB:   进行伽马矫正再量化到 u8
@@ -230,13 +219,13 @@ struct LinearColor {
   static constexpr LinearColor Black() noexcept { return {}; }
   static constexpr LinearColor White() noexcept { return {1.0f}; }
   static constexpr LinearColor Red()   noexcept { return {1.0f, 0.0f, 0.0f}; }
+  static constexpr LinearColor Pink()  noexcept { return {1.0, 0.078, 0.576}; }
   static constexpr LinearColor Green() noexcept { return {0.0f, 1.0f, 0.0f}; }
   static constexpr LinearColor Blue()  noexcept { return {0.0f, 0.0f, 1.0f}; }
   static constexpr LinearColor Navy()  noexcept { return {0.0761f, 0.2832f, 0.4678f}; }
 
-  const f32* data() const noexcept {
-    return &R;
-  }
+  const f32* data() const noexcept { return &R; }
+  f32*       data() noexcept { return &R; }
 
   f32 R = 0.0f, G = 0.0f, B = 0.0f, A = 1.0f;
 }; // struct LinearColor
