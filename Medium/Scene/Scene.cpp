@@ -19,7 +19,6 @@
 #include "Scene/MeshNode.h"
 #include "Pipeline/Shadow/CSM.h"
 #include "Resources/AssetCache.h"
-#include "lua/lua.h"
 
 namespace Medium {
 namespace {
@@ -50,8 +49,7 @@ struct SceneLoader {
     Vec3f pos = readVec3f(tbl_camera, "position");
     Vec3f rot = readVec3f(tbl_camera, "rotation");
 
-    scene->main_camera_
-      = scene->root_.attachChild(make_unique<Camera>("Main Camera", Camera::Mode::Perspective));
+    scene->main_camera_ = scene->root_.attachChild(make_unique<Camera>("Main Camera", Camera::Mode::Perspective));
     scene->main_camera_->setPerspParams(fov, aspect_ratio);
     scene->main_camera_->transform.setPosition(pos);
     scene->main_camera_->transform.setRotation(rot);
@@ -66,10 +64,10 @@ struct SceneLoader {
     scene->dir_light_->setDir(direction);
   }
 
-  static void ReadShadowCfg(const luabridge::LuaRef& tbl_scene, Scene* scene) {
+  static void ReadShadowConfig(const luabridge::LuaRef& tbl_scene, Scene* scene) {
     luabridge::LuaRef tbl_shadow_cfg  = tbl_scene["ShadowConfig"];
-    scene->shadowCfg_.max_shadow_dist = tbl_shadow_cfg["max_shadow_distance"].cast<f32>().value();
-    scene->shadowCfg_.csm_cascade_cnt
+    scene->shadow_cfg_.max_shadow_dist = tbl_shadow_cfg["max_shadow_distance"].cast<f32>().value();
+    scene->shadow_cfg_.csm_cascade_cnt
       = std::clamp(tbl_shadow_cfg["csm_cascade_count"].cast<i32>().value(), kMinCSMCascades, kMaxCSMCascades);
   }
 
@@ -128,7 +126,7 @@ std::unique_ptr<Scene> Scene::LoadFromLua(const std::filesystem::path& lua_path,
     
     SceneLoader::SetupCamera(tbl_scene, scene.get(), aspect_ratio);
     SceneLoader::SetupLight (tbl_scene, scene.get());
-    SceneLoader::ReadShadowCfg(tbl_scene, scene.get());
+    SceneLoader::ReadShadowConfig(tbl_scene, scene.get());
     if(!SceneLoader::SetupModels(tbl_scene, scene.get())) {
       lua_close(L);
       return nullptr;

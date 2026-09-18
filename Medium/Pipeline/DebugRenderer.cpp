@@ -10,7 +10,7 @@
 #include "Resources/Mesh.h"
 #include "Pipeline/Clip.h"
 #include "Pipeline/RenderStatus.h"
-#include "Pipeline/RenderCommand.h"
+#include "Pipeline/DrawCommand.h"
 #include "Pipeline/DrawCore.h"
 #include "Pipeline/FrameBuffer.h"
 #include "Pipeline/SceneRenderer.h"
@@ -31,7 +31,7 @@ void DebugRenderer::drawAABBs(Mat4f mat_vp,
 
   RectF viewport = {0, 0, frame_buffer.widthF(), frame_buffer.heightF()};
 
-  auto foo = [&](const RenderCommand& cmd) {
+  auto foo = [&](const DrawCommand& cmd) {
     // 获取各 submesh 的世界控件包围盒角点。
     std::array<Vec3f, 8> bbox_corners_world
       = cmd.submesh->aabb_local.toWorldAABB(cmd.mat_world).corners();

@@ -88,7 +88,3 @@ inline Quatf eulerToQuatf(const Vec3f& euler_deg) {
 }
 
 } // namespace Medium::Math
-
-
-
-

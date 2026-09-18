@@ -12,11 +12,11 @@
 
 namespace Medium {
   
-class RenderQueue;
+class DrawQueue;
 
 class MeshNode : public Node {
 public:
-  static constexpr NodeType Type = NodeType::MeshInstance;
+  static constexpr NodeType Type = NodeType::Mesh;
 
   explicit MeshNode(std::string name, const Mesh* mesh)
     : Node{std::move(name), Type}, mesh_{mesh} {}

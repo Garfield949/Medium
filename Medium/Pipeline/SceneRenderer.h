@@ -9,8 +9,8 @@
 #include <span>
 
 #include "Pipeline/RenderContext.h"
-#include "Pipeline/RenderQueue.h"
-#include "Pipeline/Shader/VariantShader.h"
+#include "Pipeline/DrawQueue.h"
+#include "Pipeline/Shader/ShaderVariant.h"
 
 namespace Medium {
 class Camera;
@@ -25,8 +25,8 @@ struct CSMContext;
 namespace Medium {
 
 struct SceneDrawListView {
-  std::span<const RenderCommand> opaque;
-  std::span<const RenderCommand> transparent;
+  std::span<const DrawCommand> opaque;
+  std::span<const DrawCommand> transparent;
 };
 
 class SceneRenderer {
@@ -55,13 +55,13 @@ public:
   // ---------- Getters ----------
   SceneDrawListView drawListView() const noexcept {
     return {
-      .opaque      = opaque_queue_.commands(),
-      .transparent = transp_queue_.commands()
+      .opaque      = opaque_queue_.drawCommands(),
+      .transparent = transp_queue_.drawCommands()
     };
   }
 
 private:
-  VariantShader blinn_shader_ = BlinnShader{};
+  ShaderVariant blinn_shader_ = BlinnShader{};
 
   const Camera* main_camera_ = nullptr;
   const DirectionalLight* dir_light_ = nullptr;
@@ -69,8 +69,8 @@ private:
   RenderState opaque_render_state_;
   RenderState transp_render_state_;
 
-  RenderQueue opaque_queue_{RenderQueue::Type::OpaqueQueue};
-  RenderQueue transp_queue_{RenderQueue::Type::TransparentQueue};
+  DrawQueue opaque_queue_{DrawQueue::Type::Opaque};
+  DrawQueue transp_queue_{DrawQueue::Type::Transparent};
 };
 
 } // Medium

@@ -20,8 +20,8 @@ bool RenderManager::init(Scene* scene, const Vec2i& buffer_extent_physical)
   
   if(!shadow_manager_.init(scene->mainCamera(),
                            scene->directionalLight(),
-                           scene->shadowCfg().max_shadow_dist,
-                           scene->shadowCfg().csm_cascade_cnt))
+                           scene->shadowConfig().max_shadow_dist,
+                           scene->shadowConfig().csm_cascade_cnt))
     return false;
   
   if(!scene_renderer_.init(scene->mainCamera(),
@@ -38,8 +38,8 @@ void RenderManager::bindNewScene(Scene* new_scene) {
 
   shadow_manager_.bind(new_scene->mainCamera(),
                        new_scene->directionalLight(),
-                       new_scene->shadowCfg().max_shadow_dist,
-                       new_scene->shadowCfg().csm_cascade_cnt);
+                       new_scene->shadowConfig().max_shadow_dist,
+                       new_scene->shadowConfig().csm_cascade_cnt);
 
   scene_renderer_.bind(new_scene->mainCamera(), new_scene->directionalLight());
 }

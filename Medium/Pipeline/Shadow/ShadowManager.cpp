@@ -16,7 +16,7 @@
 #include "Pipeline/RenderStatus.h"
 #include "Pipeline/DrawCore.h"
 #include "Pipeline/RenderContext.h"
-#include "Pipeline/RenderQueue.h"
+#include "Pipeline/DrawQueue.h"
 
 namespace Medium {
 
@@ -36,7 +36,7 @@ bool ShadowManager::init(const Camera* main_camera,
     .enable_depth_write = true,
     .enable_color_write = false,
     .draw_mode          = DrawMode::Shaded,
-    .cull_mode          = CullMode::CullBack,
+    .cull_mode          = CullMode::Back,
     .blend_mode         = BlendMode::Replace
   };
 
@@ -102,7 +102,7 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
       .camera_ctx = &light_cam_ctx
     };
 
-    RenderPassCtx opaque_pass_ctx{
+    RenderPassContext opaque_pass_ctx{
       .render_state = opaque_render_state_,
       .viewport     = cascade_viewports_[i],
       .buffer       = csm_atlas_
@@ -113,10 +113,10 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
     opaque_queue_.build(scene_mesh_nodes, light_cam_ctx);
     opaque_queue_.sort();
 
-    Pipeline::executeCommands(opaque_queue_.commands(), shader_ctx, opaque_pass_ctx, depth_shader_);
+    Pipeline::executeDrawCommands(opaque_queue_.drawCommands(), shader_ctx, opaque_pass_ctx, depth_shader_);
 
     // 收集不透明 pass draw calls.
-    render_status.statistics.shadow_opaque_draw_calls += opaque_queue_.commands().size();
+    render_status.statistics.shadow_opaque_draw_calls += opaque_queue_.drawCommands().size();
   }
   
   if(csm_freeze_state_ == CSMFreezeState::Request) csm_freeze_state_ = CSMFreezeState::Frozen;

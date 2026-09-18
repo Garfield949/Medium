@@ -30,7 +30,7 @@ TODO
 
 - 搞清楚 RenderQueue 排序的策略、sort key 的计算策略 : Done
 
-- 优化 VariantShader 的分发策略
+- 优化 ShaderVariant 的分发策略
 
 - 包围盒线框debug
 

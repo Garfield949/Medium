@@ -86,6 +86,7 @@ struct Color {
   [[nodiscard]]
   LinearColor toLinear(ColorSpace space) const noexcept;
 
+  // 暂时没用。
   [[nodiscard]]
   u32 toPackedArgb8() const noexcept {
     // 保留 A_G_ | 将 B 移到最低位 | 将 R 移到次高位。

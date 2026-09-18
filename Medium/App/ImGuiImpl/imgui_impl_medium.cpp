@@ -15,12 +15,12 @@
 #include "Resources/Texture2D.h"
 #include "Pipeline/DrawCore.h"
 #include "Pipeline/FrameBuffer.h"
-#include "Pipeline/Shader/VariantShader.h"
+#include "Pipeline/Shader/ShaderVariant.h"
 
 namespace {
   
 struct ImGui_ImplMedium_Data {
-  Medium::VariantShader shader = Medium::ImGuiShader{};
+  Medium::ShaderVariant shader = Medium::ImGuiShader{};
   std::vector<Medium::Vertex> vertices;
   std::vector<size_t> indices;
 };
@@ -225,12 +225,12 @@ void ImGui_ImplMedium_RenderDrawData(ImDrawData* draw_data,
     .enable_depth_write = false,
     .enable_color_write = true,
     .draw_mode          = Medium::DrawMode::Shaded,
-    .cull_mode          = Medium::CullMode::CullOff,
+    .cull_mode          = Medium::CullMode::Off,
     .blend_mode         = Medium::BlendMode::PremultipliedOver,
     .color_write_target = Medium::ColorWriteTarget::Present // UI 叠加在已经 tonemap 的 present 缓冲上。
   };
 
-  // VariantShader 特化。
+  // ShaderVariant 特化。
   auto& shader = std::get<Medium::ImGuiShader>(bd->shader);
 
   const int w_fb_physical = static_cast<int>(draw_data->DisplaySize.x * draw_data->FramebufferScale.x);
@@ -246,7 +246,7 @@ void ImGui_ImplMedium_RenderDrawData(ImDrawData* draw_data,
     // 设置当前 DrawList 的顶点和索引在大数组中的基偏移：
     // - 初始 bd->vertices 和 bd->indices 为空，则偏移均为 0;
     // - 每个 DrawList 包含一批顶点和索引，占据大数组中的一段，所以当前 DrawList 的基偏移应为上一 DrawList 所占据段的末尾，即大数组的 size;
-    // - 始终记住，传入 Medium 管线（见 DrawCore.h 的 DrawView）是一整个大数组，需手动进行偏移计算。
+    // - 始终记住，传入 Medium 管线（见 DrawCore.h 的 IndexedDrawView）是一整个大数组，需手动进行偏移计算。
     const size_t vertex_base = bd->vertices.size();
     const size_t index_base  = bd->indices.size();
 
@@ -286,7 +286,7 @@ void ImGui_ImplMedium_RenderDrawData(ImDrawData* draw_data,
       render_state.scissor = scissor;
 
       // cmd.ElemCount 即当前 ImDrawCmd 的索引数量.
-      Medium::Pipeline::DrawView draw_view{
+      Medium::Pipeline::IndexedDrawView draw_view{
         .vertices      = bd->vertices,
         .indices       = bd->indices,
         .index_offset  = index_base + cmd.IdxOffset,

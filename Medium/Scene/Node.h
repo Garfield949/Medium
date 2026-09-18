@@ -2,7 +2,7 @@
 /// @file   Node.h
 /// @author Garfield949
 /// @date   2026/2/11 22:02
-/// @brief  
+/// @brief
 ///
 #pragma once
 
@@ -10,11 +10,11 @@
 
 namespace Medium {
 
-class RenderQueue;
+class DrawQueue;
 struct CameraContext;
 
 // 用于 cast_to 进行类型识别
-enum class NodeType { Vanilla, MeshInstance, Light, Camera };
+enum class NodeType { Vanilla, Mesh, Light, Camera };
 
 class Node {
   friend class Transform;
@@ -37,7 +37,7 @@ public:
     if(node->node_type == NodeT::Type) return static_cast<NodeT*>(node);
     return nullptr;
   }
-  
+
   /// @brief cast_to 的 const 重载
   template<typename NodeT>
   static const NodeT* CastTo(const Node* node) {
@@ -54,7 +54,7 @@ public:
       child->traverse(f);
     }
   }
-  
+
   /// @brief traverse 的 const 重载
   template<typename Callable>
   void traverse(Callable&& f) const {

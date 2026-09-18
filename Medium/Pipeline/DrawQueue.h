@@ -1,31 +1,31 @@
 ///
-/// @file   RenderQueue.h
+/// @file   DrawQueue.h
 /// @author Garfield949
 /// @date   2026/3/19 10:33
-/// @brief  该文件定义渲染队列类型
+/// @brief  该文件定义绘制队列类型
 ///
 #pragma once
 
 #include <span>
 
-#include "RenderCommand.h"
+#include "DrawCommand.h"
 
 namespace Medium {
 
 class MeshNode;
 struct CameraContext;
 
-/// @class RenderQueue
-/// @brief 渲染队列，在每个 pass 收集渲染命令
-class RenderQueue {
+/// @class DrawQueue
+/// @brief 绘制队列，在每个 pass 收集渲染命令
+class DrawQueue {
 public:
   // 通过队列类型觉得排序方式。
   enum class Type {
-    OpaqueQueue,
-    TransparentQueue
+    Opaque,
+    Transparent
   };
 
-  explicit RenderQueue(Type type) : queue_type_{type} {}
+  explicit DrawQueue(Type type) : queue_type_{type} {}
 
   void clear() { cmds_.clear(); }
   
@@ -34,8 +34,8 @@ public:
 
   void sort();
 
-  /// @brief 吐给 Pipeline::executeCommands
-  std::span<const RenderCommand> commands() const noexcept {
+  /// @brief 吐给 Pipeline::executeDrawCommands
+  std::span<const DrawCommand> drawCommands() const noexcept {
     return cmds_;
   }
 
@@ -44,7 +44,7 @@ private:
   void sortTransparent();
 
   Type queue_type_;
-  std::vector<RenderCommand> cmds_;
+  std::vector<DrawCommand> cmds_;
 };
 
 } // Medium

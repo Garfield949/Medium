@@ -8,8 +8,6 @@
 
 #include <array>
 
-#include "Base/Color.h"
-#include "Base/Types.h"
 #include "Pipeline/Shadow/CSM.h"
 #include "Resources/Vertex.h"
 #include "Resources/Material.h"
@@ -57,12 +55,12 @@ VSOut BlinnShader::vertex(const Vertex& vert) const noexcept {
   return vs_out;
 }
 
-bool BlinnShader::fragment(FSPayload& fs_payload) const noexcept
+bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noexcept
 {
   // frag_n 为几何法线 Geometry Normal.
-  Vec2f frag_uv  = fs_payload.getVec2f(kOffsetUV);
-  Vec3f frag_n   = fs_payload.getVec3f(kOffsetNormal).normalized();
-  Vec3f frag_pos = fs_payload.getVec3f(kOffsetPos);
+  Vec2f frag_uv  = fs_in.getVec2f(kOffsetUV);
+  Vec3f frag_n   = fs_in.getVec3f(kOffsetNormal).normalized();
+  Vec3f frag_pos = fs_in.getVec3f(kOffsetPos);
 
   const Material* mat = uniforms.material;
 
@@ -78,7 +76,7 @@ bool BlinnShader::fragment(FSPayload& fs_payload) const noexcept
 
   const auto csm_ctx = uniforms.csm_ctx;
 
-  f32 frag_z_view;
+  f32 frag_z_view = 0.0f;
   if(csm_ctx) frag_z_view = (csm_ctx->mat_view_snapshot * frag_pos.homogeneous()).z();
 
   // Cascade Band View.
@@ -86,31 +84,44 @@ bool BlinnShader::fragment(FSPayload& fs_payload) const noexcept
   // 传一个 nullptr 表示禁用 Shadow Query.
   if(csm_ctx && csm_ctx->cascade_band_view_enabled) {
     auto cascade_query = csm_ctx->cascadeQuery(frag_z_view);
+
     // 不在级联范围内的 frag 会进入下方的正常着色逻辑。
     if(cascade_query) {
       auto [cascade, index] = cascade_query.value();
 
-      static constexpr std::array colors = {
-        LinearColor::Red(), LinearColor::Green(), LinearColor::Blue(), LinearColor::Pink()
+      Vec4f frag_ndc_ls = cascade->mat_vp_light * frag_pos.homogeneous();
+
+      Vec2f shadow_uv{
+        (frag_ndc_ls.x() + 1.0f) * 0.5f,
+        (frag_ndc_ls.y() + 1.0f) * 0.5f
       };
 
-      fs_payload.frag_color = colors[index];
+      if(Math::isBetween(frag_ndc_ls.z(), 0.0f, 1.0f) &&
+         Math::isBetween(shadow_uv.x()  , 0.0f, 1.0f) &&
+         Math::isBetween(shadow_uv.y()  , 0.0f, 1.0f))
+      {
+        static constexpr std::array colors = {
+          LinearColor::Red(), LinearColor::Green(), LinearColor::Blue(), LinearColor::Pink()
+        };
 
-      f32 band_width  = csm_ctx->blendBandWidth(index);
-      f32 blend_start = cascade->slice_far - band_width;
-      f32 blend_end   = cascade->slice_far;
+        frag_color = colors[index];
 
-      // 非尾级联且在混合带里。
-      if(index + 1 < csm_ctx->cascade_cnt && frag_z_view >= blend_start && frag_z_view <= blend_end) {
-        f32 blend_offset = frag_z_view - blend_start;
-        f32 t = blend_offset / band_width;
+        f32 band_width  = csm_ctx->blendBandWidth(index);
+        f32 blend_start = cascade->slice_far - band_width;
+        f32 blend_end   = cascade->slice_far;
 
-        fs_payload.frag_color = Math::lerp(colors[index], colors[index + 1], t);
+        // 非尾级联且在混合带里。
+        if(index + 1 < csm_ctx->cascade_cnt && frag_z_view >= blend_start && frag_z_view <= blend_end) {
+          f32 blend_offset = frag_z_view - blend_start;
+          f32 t = blend_offset / band_width;
+
+          frag_color = Math::lerp(colors[index], colors[index + 1], t);
+        }
+
+        frag_color.A = frag_alpha;
+
+        return false;
       }
-
-      fs_payload.frag_color.A = frag_alpha;
-
-      return false;
     }
   }
 
@@ -128,8 +139,8 @@ bool BlinnShader::fragment(FSPayload& fs_payload) const noexcept
   }
 
   if(mat->enable_norm) {
-    Vec3f T = fs_payload.getVec3f(kOffsetTangent);
-    f32 det = fs_payload.getScalar(kOffsetDet);
+    Vec3f T = fs_in.getVec3f(kOffsetTangent);
+    f32 det = fs_in.getScalar(kOffsetDet);
 
     // 施密特正交化
     T = (T - T.dot(frag_n) * frag_n).normalized();
@@ -169,9 +180,9 @@ bool BlinnShader::fragment(FSPayload& fs_payload) const noexcept
 
   f32 diff = half_lambert * half_lambert;
 
-  fs_payload.frag_color = (diffuse * diff + specular) * uniforms.light_color * frag_visibility;
+  frag_color = (diffuse * diff + specular) * uniforms.light_color * frag_visibility;
 
-  fs_payload.frag_color.A = frag_alpha;
+  frag_color.A = frag_alpha;
 
   return false;
 }

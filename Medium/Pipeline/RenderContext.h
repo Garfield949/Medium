@@ -49,7 +49,7 @@ enum class BlendMode {
 };
 
 enum class CullMode {
-  CullOff, CullFront, CullBack
+  Off, Front, Back
 };
 
 enum class ColorWriteTarget {
@@ -61,14 +61,14 @@ struct RenderState {
   bool enable_depth_write = true;
   bool enable_color_write = true;
   DrawMode  draw_mode  = DrawMode::Shaded;
-  CullMode  cull_mode  = CullMode::CullBack;
+  CullMode  cull_mode  = CullMode::Back;
   BlendMode blend_mode = BlendMode::Replace;
   ColorWriteTarget color_write_target = ColorWriteTarget::HDR;
   Rect scissor{}; // 默认为一个非法 scissor，即不启用 scissor test.
 };
 
-/// @struct RenderPassCtx
-struct RenderPassCtx {
+/// @struct RenderPassContext
+struct RenderPassContext {
   const RenderState& render_state;
   const RectF&       viewport;
   FrameBuffer&       buffer;

@@ -11,8 +11,8 @@
 #include "Base/Geometry/Rect.h"
 #include "Pipeline/FrameBuffer.h"
 #include "Pipeline/RenderContext.h"
-#include "Pipeline/RenderQueue.h"
-#include "Pipeline/Shader/VariantShader.h"
+#include "Pipeline/DrawQueue.h"
+#include "Pipeline/Shader/ShaderVariant.h"
 #include "Pipeline/Shadow/CSM.h"
 #include "Resources/Texture2D.h"
 
@@ -135,7 +135,7 @@ private:
   CSMUpdatePolicy makeUpdatePolicy() const noexcept;
 
 private:
-  VariantShader depth_shader_ = DepthShader{};
+  ShaderVariant depth_shader_ = DepthShader{};
 
   FrameBuffer csm_atlas_{FrameBuffer::Type::DepthOnly};
   Texture2D   csm_atlas_debug_{PixelFormat::ABGR8, ColorSpace::SRGB};
@@ -152,7 +152,7 @@ private:
   DirectionalLight* dir_light_ = nullptr;  // 需 applyViewFit，不能是 const.
  
   RenderState opaque_render_state_;
-  RenderQueue opaque_queue_{RenderQueue::Type::OpaqueQueue};
+  DrawQueue opaque_queue_{DrawQueue::Type::Opaque};
 };
 
 } // namespace Medium

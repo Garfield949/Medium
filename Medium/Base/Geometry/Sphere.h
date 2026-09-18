@@ -22,11 +22,11 @@ struct Sphere {
       center += v;
     center /= 8.0f;
   
-    f32 max_dist_sq = 0.0f;
+    f32 max_dist_squared = 0.0f;
     for(const auto& v: corners)
-      max_dist_sq = std::max(max_dist_sq, (v - center).squaredNorm());
+      max_dist_squared = std::max(max_dist_squared, (v - center).squaredNorm());
   
-    return {center, std::sqrt(max_dist_sq)};
+    return {center, std::sqrt(max_dist_squared)};
   }
   Vec3f center{0};
   f32 radius{0};

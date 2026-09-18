@@ -47,8 +47,8 @@ struct DepthShader {
   }
 
   [[nodiscard]]
-  bool fragment(const FSPayload& fs_payload) const noexcept {
-    Vec2f frag_uv = fs_payload.getVec2f(kOffsetUV);
+  bool fragment(const FSIn& fs_in, LinearColor&) const noexcept {
+    Vec2f frag_uv = fs_in.getVec2f(kOffsetUV);
   
     const Material* mat = uniforms.material;
   

@@ -1,10 +1,10 @@
 ///
-/// @file   RenderQueue.cpp
+/// @file   DrawQueue.cpp
 /// @author Garfield949
 /// @date   2026/4/3 15:24
 /// @brief  
 ///
-#include "RenderQueue.h"
+#include "DrawQueue.h"
 
 #include <algorithm>
 #include <functional>
@@ -13,11 +13,11 @@
 #include "Resources/Mesh.h"
 #include "Resources/Material.h"
 #include "Pipeline/RenderContext.h"
-#include "Pipeline/RenderCommand.h"
+#include "Pipeline/DrawCommand.h"
 
 namespace Medium {
 
-void RenderQueue::build(std::span<const MeshNode* const> mesh_nodes, const CameraContext& cam_ctx) {
+void DrawQueue::build(std::span<const MeshNode* const> mesh_nodes, const CameraContext& cam_ctx) {
   for(auto mesh_node: mesh_nodes) {
     const Mesh*    mesh    = mesh_node->mesh();
     const Mat4f&   world   = mesh_node->transform.worldMatrix();
@@ -28,9 +28,9 @@ void RenderQueue::build(std::span<const MeshNode* const> mesh_nodes, const Camer
       for(const auto& submesh: mesh->sub_meshes) {
         const Material& submesh_material = mesh->materials[submesh.material_index];
         // 根据子网格绑定的材质类型决定是否纳入队列。
-        if(this->queue_type_ == Type::OpaqueQueue && 
+        if(this->queue_type_ == Type::Opaque && 
            submesh_material.surface_mode == Material::SurfaceMode::Transparent) continue;
-        if(this->queue_type_ == Type::TransparentQueue &&
+        if(this->queue_type_ == Type::Transparent &&
            submesh_material.surface_mode != Material::SurfaceMode::Transparent) continue;
 
         // 在 SubMesh 层面进行视椎剔除。
@@ -47,7 +47,7 @@ void RenderQueue::build(std::span<const MeshNode* const> mesh_nodes, const Camer
         for(auto& corner: bbox_world.corners())
           max_z_view = std::max(max_z_view, (cam_ctx.mat_view * corner.homogeneous()).z());
 
-        RenderCommand cmd {
+        DrawCommand cmd {
           .mesh      = mesh,
           .submesh   = &submesh,
           .material  = &submesh_material,
@@ -61,20 +61,20 @@ void RenderQueue::build(std::span<const MeshNode* const> mesh_nodes, const Camer
   }
 }
 
-void RenderQueue::sort() {
+void DrawQueue::sort() {
   switch(queue_type_) {
-  case Type::OpaqueQueue: sortOpaque(); break;
-  case Type::TransparentQueue: sortTransparent(); break;
+  case Type::Opaque: sortOpaque(); break;
+  case Type::Transparent: sortTransparent(); break;
   }
 }
 
-void RenderQueue::sortOpaque() {
+void DrawQueue::sortOpaque() {
   // &Class::field 指向类 Class 中成员变量 field 的指针；参数二是比较器，{} 默认构造一个 std::ranges::less{}.
-  std::ranges::sort(cmds_, {}, &RenderCommand::sort_key);
+  std::ranges::sort(cmds_, {}, &DrawCommand::sort_key);
 }
 
-void RenderQueue::sortTransparent() {
-  std::ranges::sort(cmds_, std::ranges::greater{}, &RenderCommand::sort_key);
+void DrawQueue::sortTransparent() {
+  std::ranges::sort(cmds_, std::ranges::greater{}, &DrawCommand::sort_key);
 }
 
 } // namespace Medium

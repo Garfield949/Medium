@@ -9,8 +9,8 @@
 #include <filesystem>
 #include <span>
 
-#include "Scene/Node.h"
 #include "Base/Geometry/AABB3D.h"
+#include "Scene/Node.h"
 
 namespace Medium {
 
@@ -19,13 +19,15 @@ class DirectionalLight;
 class MeshNode;
 
 class Scene {
-  /// @brief 构建场景时，为了方便需访问 Scene 实例的私有成员，故将 SceneLoader 作为友元。
+  /// @brief 从 .obj 构建场景时，为了方便需访问 Scene 实例的私有成员，故将 SceneLoader 作为友元。
   friend struct SceneLoader;
 public:
-  struct ShadowCfg {
+  struct ShadowConfig {
     f32 max_shadow_dist = 0.0f;
     i32 csm_cascade_cnt = 0;
   };
+
+  explicit Scene() = default;
 
   [[nodiscard]]
   static std::unique_ptr<Scene> LoadFromLua(const std::filesystem::path& lua_path, f32 aspect_ratio);
@@ -34,8 +36,8 @@ public:
   const Node* root() const noexcept { return &root_; }
 
   // 注意：区分重载函数时，完全无视返回值类型。两个 camera 方法只能有一个标 const，因为它修饰的是 this:
-  // Scene* s = ...;       s->camera(); // this = Scene*
-  // const Scene* cs = s; cs->camera(); // this = const Scene*
+  // Scene* s = ...;       s->camera(); -> this = Scene*
+  // const Scene* cs = s; cs->camera(); -> this = const Scene*
   Camera*       mainCamera() noexcept { return main_camera_; }
   const Camera* mainCamera() const noexcept { return main_camera_; }
   
@@ -49,21 +51,19 @@ public:
   /// @brief 返回场景的世界空间包围盒。
   AABB3D worldAABB() const noexcept;
 
-  /// @brief 返回场景的阴影配置
-  ShadowCfg shadowCfg() const noexcept { return shadowCfg_; }
+  /// @brief 返回场景 .lua 的阴影配置
+  ShadowConfig shadowConfig() const noexcept { return shadow_cfg_; }
 
 private:
-  Scene() = default;
-
   Node root_{"Scene Root"};
 
-  // 相机和方向光是观察指针，实际生命周期由 root_ 持有，root_ 析构时会自动释放。
+  // 相机和方向光是观察指针，实例的生命周期由 root_ 持有，root_ 析构时会自动释放。
   Camera* main_camera_ = nullptr;  
   DirectionalLight* dir_light_ = nullptr;
 
   std::vector<MeshNode*> mesh_nodes_;
 
-  ShadowCfg shadowCfg_;
+  ShadowConfig shadow_cfg_;
 };
 
 } // namespace Medium

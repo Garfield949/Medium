@@ -133,7 +133,7 @@ void ImGuiInspector::showInspectorWindow() {
 void ImGuiInspector::showCSMAtlasWindow() {
   ImGui::SetNextWindowPos({15, h_statistics_window_ + 30}, ImGuiCond_Always);
   ImGui::SetNextWindowSize({315, 335}, ImGuiCond_Always);
-  if(ImGui::Begin("CSM Atlas Debug View", nullptr, ImGuiWindowFlags_NoCollapse)) {
+  if(ImGui::Begin("CSM Atlas Debug View")) {
     ImGui::Image(ImGui_ImplMedium_Texture2DPtrToImTextureID(render_manager->shadowManager().CSMAtlasDebugTexture()),
       ImVec2{300.0f, 300.0f},
       ImVec2{0.0f, 1.0f},
@@ -227,8 +227,8 @@ void ImGuiInspector::showDebugPanel() {
     if(ImGui::RadioButton("Wireframe", mode == DrawMode::Wireframe))
       render_manager->setDrawMode(DrawMode::Wireframe);
 
-    // ---------- Show Overlays ----------
-    ImGui::SeparatorText("Show Overlays");
+    // ---------- Overlays ----------
+    ImGui::SeparatorText("Overlays");
     bool show_aabb = render_manager->drawAABBs();
     if(ImGui::Checkbox("AABBs", &show_aabb))
       render_manager->setDrawAABBs(show_aabb);

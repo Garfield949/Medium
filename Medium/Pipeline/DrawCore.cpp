@@ -8,15 +8,13 @@
 
 #include <span>
 
-#include "Base/Types.h"
 #include "Base/Color.h"
-#include "Base/Math/Math.h"
 #include "Base/Geometry/Rect.h"
 #include "Base/Math/Interpolation.h"
-#include "Pipeline/RenderCommand.h"
-#include "Pipeline/Subpixel.h"
 #include "Pipeline/Clip.h"
+#include "Pipeline/Subpixel.h"
 #include "Pipeline/FrameBuffer.h"
+#include "Pipeline/DrawCommand.h"
 #include "Pipeline/Shader/ShaderTypes.h"
 #include "Pipeline/RenderContext.h"
 #include "Resources/Mesh.h"
@@ -113,43 +111,43 @@ i32 topLeftBias(i32 dx, i32 dy) noexcept {
   return is_top_left ? 0 : -1;
 }
 
-FSPayload interpVaryings(const VaryingLayout& varying_layout,
-                         const std::array<Varying, 3>& varyings,
-                         const Vec3f& weights,
-                         const Vec3f& w_invs,
-                         bool  enable_interp_mode = false) {
+FSIn interpVaryings(const VaryingLayout& varying_layout,
+                    const std::array<Varying, 3>& varyings,
+                    const Vec3f& weights,
+                    const Vec3f& w_invs,
+                    bool  enable_interp_mode = false) {
   // 优化的透视矫正插值路径，但测试过与无优化路径开销毫无差异，可能是 -O3 和 LTO 自动完成了优化；
   // 目前所有插值需求都可以直接走透视插值矫正路径（只需要线性插值的在顶点着色器里将 w 设为 1 即退化），暂时无限期停用另一条判
   // 断插值模式的路径。
-  FSPayload fs_payload;
+  FSIn fs_in;
   const Interp::PerspWeights pw = Interp::PerspWeights::Get(weights, w_invs);
   if(!enable_interp_mode) {
-    // 退化情况直接取第一个顶点的 varying.
     if(pw.w_interp > 0) 
       for(i32 i = 0; i < varying_layout.scalar_cnt; ++i)
-        fs_payload.scalars_interp[i]
+        fs_in.scalars_interp[i]
         = Interp::interpolate(varyings[0].scalars[i], varyings[1].scalars[i], varyings[2].scalars[i], pw);
+    // 退化情况直接取第一个顶点的 varying.
     else [[unlikely]]
-      fs_payload.scalars_interp = varyings[0].scalars;
+      fs_in.scalars_interp = varyings[0].scalars;
   } else [[unlikely]] {
     // 当前 scalar 级判断与 field 级开销并无二致。
     for(const auto& field: varying_layout.fields)
     for(i32 i = field.offset; i < field.offset + field.scalar_cnt; ++i)
       if(field.interp_mode == InterpMode::Perspective)
-        fs_payload.scalars_interp[i] =
+        fs_in.scalars_interp[i] =
         Interp::interpolate(varyings[0].scalars[i],
                             varyings[1].scalars[i],
                             varyings[2].scalars[i], pw);
       else if(field.interp_mode == InterpMode::NoPerspective)
-        fs_payload.scalars_interp[i] =
+        fs_in.scalars_interp[i] =
         Interp::interpolate(varyings[0].scalars[i],
                             varyings[1].scalars[i],
                             varyings[2].scalars[i], weights);
       else
         // 总是拷贝 ClipPolygon 三角划分所得三角形的末顶点属性。
-        fs_payload.scalars_interp[i] = varyings[2].scalars[i];
+        fs_in.scalars_interp[i] = varyings[2].scalars[i];
   }
-  return fs_payload;
+  return fs_in;
 }
 
 void bresenham(int x0, int y0, f32 z0, 
@@ -217,16 +215,16 @@ void bresenham(int x0, int y0, f32 z0,
 
 namespace Medium::Pipeline {
 
-void executeCommands(std::span<const RenderCommand> cmds,
-                     const ShaderBindContext& shader_ctx,
-                     const RenderPassCtx& pass_ctx,
-                     VariantShader&       shader)
+void executeDrawCommands(std::span<const DrawCommand> cmds,
+                         const ShaderBindContext&     shader_ctx,
+                         const RenderPassContext&     pass_ctx,
+                         ShaderVariant&               shader)
 {
   std::visit([&](auto& active_shader) {
     for(const auto& cmd: cmds) {
       active_shader.bind(shader_ctx, cmd.mat_world, cmd.material);
 
-      DrawView draw_view {
+      IndexedDrawView draw_view {
         .vertices      = cmd.mesh->vertices,
         .indices       = cmd.mesh->indices,
         .index_offset  = cmd.submesh->index_offset,
@@ -234,20 +232,20 @@ void executeCommands(std::span<const RenderCommand> cmds,
         .vertex_offset = 0
       };
       
-      // 结构化绑定：const auto& 修饰的是 pass_ctx, auto 会推导为 RenderPassCtx. 
-      // 故 const auto& 等价于 const RenderPassCtx&.
+      // 结构化绑定：const auto& 修饰的是 pass_ctx, auto 会推导为 RenderPassContext. 
+      // 故 const auto& 等价于 const RenderPassContext&.
       const auto& [render_state, viewport, buffer, render_status] = pass_ctx;
       draw(draw_view, render_state, viewport, buffer, shader, render_status);
     }
   }, shader);
 }
 
-void draw(const DrawView&    draw_view,
-          const RenderState& render_state,
-          const RectF&       viewport,
-          FrameBuffer&       buffer,
-          VariantShader&     shader,
-          RenderStatus*      render_status)
+void draw(const IndexedDrawView& draw_view,
+          const RenderState&     render_state,
+          const RectF&           viewport,
+          FrameBuffer&           buffer,
+          ShaderVariant&         shader,
+          RenderStatus*          render_status)
 {
   std::visit([&](auto& active_shader){
     
@@ -299,13 +297,13 @@ void draw(const DrawView&    draw_view,
       };
       // Culling: NDC 空间和屏幕空间的剔除效果一致，所以在视口变换前先做剔除，免得白做一次视口变换；有向面积
       // 为正说明三角形是逆时针的，这在左手系中是背对相机的；
-      // - 启用 CullOff   时不会过滤任何三角形；
-      // - 启用 CullBack  时只会放行 CW  三角形；
-      // - 启用 CullFront 时只会放行 CCW 三角形； 
+      // - 启用 Off   时不会过滤任何三角形；
+      // - 启用 Back  时只会放行 CW  三角形；
+      // - 启用 Front 时只会放行 CCW 三角形； 
       const bool CW = orient2D(triangle[0], triangle[1], triangle[2]) <= 0;
-      if(render_state.cull_mode == CullMode::CullBack  && !CW) continue;
-      if(render_state.cull_mode == CullMode::CullFront &&  CW) continue;
-      // 若被放行的是 CCW 三角形，说明当前为 CullFront 或 CullOff. 下方的边函数逻辑是专为 CW 三角形优化的，
+      if(render_state.cull_mode == CullMode::Back  && !CW) continue;
+      if(render_state.cull_mode == CullMode::Front &&  CW) continue;
+      // 若被放行的是 CCW 三角形，说明当前为 Front 或 Off. 下方的边函数逻辑是专为 CW 三角形优化的，
       // 所以将三角形绕序改为 CW 即可：
       if(!CW) { 
         std::swap(triangle[1], triangle[2]);
@@ -328,12 +326,12 @@ void draw(const DrawView&    draw_view,
 // 注：当应用了次像素，边函数就变为了 E(x*scale, y*scale) = (A*scale)x + (B*scale)y + C.
 void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
                        const std::array<Varying, 3>& varyings,
-                       const VaryingLayout& varying_layout,
-                       const RenderState&   render_state,
-                       const RectF&         viewport,
-                       FrameBuffer&         buffer,
-                       VariantShader&       shader,
-                       RenderStatus*        render_status)
+                       const VaryingLayout&          varying_layout,
+                       const RenderState&            render_state,
+                       const RectF&                  viewport,
+                       FrameBuffer&                  buffer,
+                       ShaderVariant&                shader,
+                       RenderStatus*                 render_status)
 {
   std::array<Vec2i, 3> tri_fixed; // 将传入三角形的浮点屏幕坐标提升为次像素定点数；
   std::array<f32  , 3> tri_depth; // 保存三角形顶点的深度值 Zndc.
@@ -389,7 +387,7 @@ void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
   E01_row += bias01;
   E12_row += bias12;
   E20_row += bias20;
-
+ 
   // 三角形层面做 dispatch
   std::visit([&](auto& active_shader) {
   // 边函数增量更新
@@ -417,9 +415,11 @@ void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
         if(pass_depth_test) {
           const Vec3f w_invs{varyings[0].w_inv, varyings[1].w_inv, varyings[2].w_inv};
         
-          FSPayload fs_payload = interpVaryings(varying_layout, varyings, weights, w_invs, false);
+          FSIn fs_in = interpVaryings(varying_layout, varyings, weights, w_invs, false);
 
-          const bool discard = active_shader.fragment(fs_payload); // Alpha test.  
+          LinearColor frag_color;
+
+          const bool discard = active_shader.fragment(fs_in, frag_color); // Alpha test.  
           
           if(!discard) {
             if(render_state.enable_depth_write)
@@ -427,15 +427,15 @@ void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
             if(render_state.enable_color_write) {
               if(render_state.blend_mode == BlendMode::Replace) {
                 if(render_state.color_write_target == ColorWriteTarget::HDR)
-                  buffer.writeHDRColor(idx, fs_payload.frag_color);
+                  buffer.writeHDRColor(idx, frag_color);
                 else
-                  buffer.writePresentColor(idx, fs_payload.frag_color);
+                  buffer.writePresentColor(idx, frag_color);
               }
               else {
                 if(render_state.color_write_target == ColorWriteTarget::HDR)
-                  buffer.writeHDRColorPremult(idx, fs_payload.frag_color.premultiplied());
+                  buffer.writeHDRColorPremult(idx, frag_color.premultiplied());
                 else
-                  buffer.writePresentColorPremult(idx, fs_payload.frag_color.premultiplied());
+                  buffer.writePresentColorPremult(idx, frag_color.premultiplied());
               }
               if(render_status) render_status->statistics.written_pixels++;
             }

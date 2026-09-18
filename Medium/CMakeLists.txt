@@ -20,12 +20,13 @@ target_sources(${PROJECT_NAME} PRIVATE
     Pipeline/DrawCore.cpp
     Pipeline/RenderManager.cpp
     Pipeline/SceneRenderer.cpp
-    Pipeline/RenderQueue.cpp
+    Pipeline/DrawQueue.cpp
     Platform/Input.cpp
     Platform/Timer.cpp
     Resources/AssetCache.cpp
     Resources/Material.cpp
     Resources/Mesh.cpp
+    Resources/Texture2D.cpp
     Scene/Light/DirectionalLight.cpp
     Scene/Camera.cpp
     Scene/MeshNode.cpp

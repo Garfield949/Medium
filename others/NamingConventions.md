@@ -16,3 +16,5 @@
 - class私有成员变量：foo_bar_
 - class公有成员变量：foo_bar
 - struct成员变量：foo_bar
+
+- 参数和接口尽量用全写，局部变量或类成员可用缩写。

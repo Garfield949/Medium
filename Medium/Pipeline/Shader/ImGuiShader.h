@@ -69,9 +69,9 @@ struct ImGuiShader {
   }
 
   [[nodiscard]]
-  bool fragment(FSPayload& fs_payload) const noexcept {
-    const Vec2f uv = fs_payload.getVec2f(kOffsetUV);
-    const LinearColor vert_col = fs_payload.getLinearColor(kOffsetColor);
+  bool fragment(const FSIn& fs_in, LinearColor& frag_color) const noexcept {
+    const Vec2f uv = fs_in.getVec2f(kOffsetUV);
+    const LinearColor vert_col = fs_in.getLinearColor(kOffsetColor);
 
     LinearColor texel_col{1.0f};
     if(uniform.texture)
@@ -79,7 +79,7 @@ struct ImGuiShader {
       texel_col = Samplers::LinearClamp.sampleColor(*uniform.texture, uv.x(), uv.y());
 
     // ImGui 的像素颜色 = 顶点颜色 * 材质颜色。
-    fs_payload.frag_color = texel_col * vert_col;
+    frag_color = texel_col * vert_col;
     // 透明的直接丢掉。
     return false;
   }

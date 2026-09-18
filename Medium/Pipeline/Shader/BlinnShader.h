@@ -18,15 +18,15 @@ namespace Medium {
 
 struct BlinnShader {
   struct Uniform {
-    Vec3f camera_pos;                     // 用于高光
-    Mat4f mat_wvp;                        // 用于顶点着色器
-    Mat4f mat_world;                      // 用于查询某些属性的世界空间位置
-    const Material* material = nullptr;   // 当前着色点(SubMesh)绑定的材质
+    Vec3f camera_pos;                    // 用于高光
+    Mat4f mat_wvp;                       // 用于顶点着色器
+    Mat4f mat_world;                     // 用于查询某些属性的世界空间位置
+    const Material* material = nullptr;  // 当前着色点(SubMesh)绑定的材质
 
-    Vec3f       light_dir_inv;            // 光照计算
-    LinearColor light_color;              // 光线颜色
+    Vec3f       light_dir_inv;           // 光照计算
+    LinearColor light_color;             // 光线颜色
 
-    const CSMContext* csm_ctx = nullptr;  // 级联阴影采样数据
+    const CSMContext* csm_ctx = nullptr; // 级联阴影采样数据
   };
   
   static constexpr u32 kOffsetUV      = 0;  // Vec2f
@@ -58,7 +58,7 @@ struct BlinnShader {
   VSOut vertex(const Vertex& vert) const noexcept;
 
   [[nodiscard]]
-  bool fragment(FSPayload& fs_payload) const noexcept;
+  bool fragment(const FSIn& fs_in, LinearColor& frag_color) const noexcept;
 
   Uniform uniforms;
 };

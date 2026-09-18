@@ -2,7 +2,7 @@
 /// @file   Interpolation.h
 /// @author Garfield949
 /// @date   2026/6/19 10:18
-/// @brief  
+/// @brief
 ///
 #pragma once
 
@@ -14,7 +14,7 @@ namespace Medium::Interp {
 /// @param attrib0, attrib1, attrib2 三个待混合顶点属性；
 /// @param weights 重心坐标 (alpha, beta, gamma)；
 /// @return 混合结果。
-template <typename T> [[nodiscard]]
+template<typename T> [[nodiscard]]
 T interpolate(const T& attrib0, const T& attrib1, const T& attrib2, const Vec3f& weights) noexcept {
   return attrib0 * weights.x() + attrib1 * weights.y() + attrib2 * weights.z();
 }
@@ -27,7 +27,7 @@ T interpolate(const T& attrib0, const T& attrib1, const T& attrib2, const Vec3f&
 /// @details 1/w 与 attrib/w 在屏幕空间均为线性的。要得到当前像素的 attrib_interp，只需对三个顶点的 attrib/w 进行
 /// 插值，再除以当前像素的 1/w（也为插值得到）即得 attrib_interp;
 /// @return 混合结果。
-template <typename T> [[nodiscard]]
+template<typename T> [[nodiscard]]
 T interpolate(const T& attrib0, const T& attrib1, const T& attrib2, const Vec3f& weights, const Vec3f& w_invs) noexcept {
   // 中间值，用于避免冗余乘法
   f32 tmp0 = w_invs[0] * weights[0];
@@ -60,7 +60,7 @@ struct PerspWeights {
 
 /// @brief 重心坐标透视矫正插值；
 /// @details 预计算权重版本，在 frag 层面只计算一次中间变量。
-template <typename T> [[nodiscard]]
+template<typename T> [[nodiscard]]
 T interpolate(const T& attrib0, const T& attrib1, const T& attrib2, const PerspWeights& weights) noexcept {
   T val = attrib0 * weights.w0 + attrib1 * weights.w1 + attrib2 * weights.w2;
   return val * weights.w_interp;

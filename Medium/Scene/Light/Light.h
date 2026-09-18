@@ -18,6 +18,7 @@ public:
   explicit Light(std::string name): Node{std::move(name), Type} {}
 
   LinearColor color = LinearColor::White();
+  
   bool cast_shadows = true;
 };
 

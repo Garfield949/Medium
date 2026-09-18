@@ -2,12 +2,12 @@
 /// @file   Meta.h
 /// @author Garfield949
 /// @date   2026/3/4 23:35
-/// @brief  
+/// @brief
 ///
 #pragma once
 
 namespace Medium {
-  
+
 // - Overloads, 利用 C++17 特性将多个匿名 Lambda 聚合为一个完整的 Visitor 仿函数对象。
 // - 可变参数模板：Ts... 为模板参数包；
 // - 右侧进行参数解包，实现对传入的 Lambda 进行多重继承；
@@ -28,5 +28,5 @@ template<typename... Ts> struct overloads : Ts... {
 // - 现在可以写为 overloads{lmda, lmdb}; 会自动推导出 overloads<LambdaA, LambdaB>.
 template<typename... Ts>
 overloads(Ts...) -> overloads<Ts...>;
-  
+
 }
