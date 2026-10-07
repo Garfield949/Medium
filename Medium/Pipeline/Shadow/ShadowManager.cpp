@@ -8,7 +8,6 @@
 
 #include "Base/Log.h"
 #include "Base/Color.h"
-#include "Resources/Texture2D.h"
 #include "Scene/Camera.h"
 #include "Scene/Light/DirectionalLight.h"
 #include "Pipeline/Shadow/CSM.h"
@@ -25,7 +24,7 @@ bool ShadowManager::init(const Camera* main_camera,
                          f32 max_shadow_dist,
                          i32 cascade_count) 
 {
-  if(!setCascadeTileRes(kDefaultCascadeTileRes)) return false;
+  setCascadeTileRes(kDefaultCascadeTileRes);
 
   csm_ctx_.csm_atlas = &csm_atlas_;
   
@@ -147,27 +146,18 @@ void ShadowManager::setMaxShadowDistance(f32 dist) noexcept {
   updateCascadeSlices();
 }
 
-bool ShadowManager::setCascadeTileRes(i32 res) {
-  if(cascade_tile_res_ == res) return true;
+void ShadowManager::setCascadeTileRes(i32 res) {
+  if(cascade_tile_res_ == res) return;
 
-  if(!resize(res)) {
-    Log::printLogPrefix("ShadowManager", "setCascadeTileRes", true);
-    fmt::print("Failed.\n");
-    return false;
-  }
+  resize(res);
 
   cascade_tile_res_ = res;
   updateCascadeViewports();
-
-  return true;
 }
 
-bool ShadowManager::resize(i32 tile_res) {
-  if(!csm_atlas_.resize(tile_res * 2)) 
-    return false;
-  if(!csm_atlas_debug_.resize(tile_res / 2)) 
-    return false;
-  return true;
+void ShadowManager::resize(i32 tile_res) {
+  csm_atlas_.resize(tile_res * 2);
+  csm_atlas_debug_.resize(tile_res / 2);
 }
 
 void ShadowManager::updateCascadeSlices() noexcept {
@@ -181,7 +171,7 @@ void ShadowManager::updateCascadeViewports() noexcept {
 }
 
 void ShadowManager::updateAtlasDebugTexture() noexcept {
-  const Texture2D& depth_buf = csm_atlas_.depthBuffer();
+  const Image2D<f32>& depth_buf = csm_atlas_.depthBuffer();
 
   i32 w_dst = csm_atlas_debug_.width();
   i32 h_dst = csm_atlas_debug_.height();
@@ -195,13 +185,13 @@ void ShadowManager::updateAtlasDebugTexture() noexcept {
       f32 z_max = 0.0f;
       for(int j = 0; j < kScale; ++j) {
         for(int i = 0; i < kScale; ++i) {
-          const size_t src_idx = depth_buf.indexFlippedY(x * kScale + i, y * kScale + j);
-          if(const f32 src_depth = depth_buf.readDepth(src_idx); z_max < src_depth) 
+          const size_t src_idx = csm_atlas_.getIndex(x * kScale + i, y * kScale + j);
+          if(const f32 src_depth = depth_buf[src_idx]; z_max < src_depth)
             z_max = src_depth;
         }
       }
       const u8 grey_scale = quantizeToU8(std::clamp(z_max, 0.0f, 1.0f));
-      csm_atlas_debug_.writePackedAbgr(csm_atlas_debug_.index(x, y), Color{grey_scale}.data);
+      csm_atlas_debug_[x, y] = Color{grey_scale};
     }
   }
 }

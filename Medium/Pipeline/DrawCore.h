@@ -51,16 +51,6 @@ void draw(const IndexedDrawView& draw_view,
           ShaderVariant&         shader,
           RenderStatus*          render_status);
 
-/// @brief 光栅化填充模式，Edge Equation.
-void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
-                       const std::array<Varying, 3>& varyings,
-                       const VaryingLayout&          varying_layout,
-                       const RenderState&            render_state,
-                       const RectF&                  viewport,
-                       FrameBuffer&                  buffer,
-                       ShaderVariant&                shader,
-                       RenderStatus*                 render_status);
-
 /// @brief 绘制线段，输入两个 ndc 线段端点。
 bool rasterizeLine(Vec4f&             v0_ndc,
                    Vec4f&             v1_ndc,

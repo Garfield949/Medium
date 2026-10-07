@@ -8,8 +8,9 @@
 
 #include <SDL3/SDL.h>
 
-#include "App/WindowDefaults.h"
 #include "Base/Log.h"
+#include "Base/Color.h"
+#include "App/WindowDefaults.h"
 #include "SDL3/SDL_video.h"
 
 namespace Medium {
@@ -58,8 +59,8 @@ bool WindowManager::onResize() {
   return createSDLTexture();
 }
 
-void WindowManager::commitBuffer(const u32* packed_abgr8_buffer, i32 buffer_width, i32 buffer_height) {
-  size_t bytes_cnt_row   = buffer_width  * sizeof(u32);
+void WindowManager::commitBuffer(const Color* packed_abgr8_buffer, i32 buffer_width, i32 buffer_height) {
+  size_t bytes_cnt_row   = buffer_width  * sizeof(Color);
   size_t bytes_cnt_total = buffer_height * bytes_cnt_row;
 
   // 接收可写的像素内存地址。

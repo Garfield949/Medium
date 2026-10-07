@@ -26,7 +26,7 @@ private:
   bool onProcessEvent();
   void onUpdate();
   void onRender();
-  bool windowResizeEvent();
+  bool onWindowResize();
 
 private:
   bool imgui_init_succeed_ = false;

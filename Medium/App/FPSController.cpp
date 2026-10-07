@@ -4,6 +4,8 @@
 ///
 #include "FPSController.h"
 
+#include <cassert>
+
 #include "Base/Math/Math.h"
 #include "Platform/Input.h"
 #include "Scene/Node.h"

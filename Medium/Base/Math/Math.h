@@ -18,9 +18,9 @@ inline constexpr f32 KindaLikeOne     = 0.999f;
 namespace Medium::Math {
 
 // 判定浮点数是否接近零
-// std::abs 在 C++23 才是 constexpr.
+// std::abs 到 C++23 才是 constexpr.
 [[nodiscard]]
-inline bool isNearlyZero(f32 value, f32 tolerance = VerySmallNumber) noexcept {
+constexpr bool isNearlyZero(f32 value, f32 tolerance = VerySmallNumber) noexcept {
   return std::abs(value) <= tolerance;
 }
 

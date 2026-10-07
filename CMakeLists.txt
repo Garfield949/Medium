@@ -17,11 +17,16 @@ list(REMOVE_ITEM LUA_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/external/lua/lua.c"
 # Lua 静态编译进二进制
 add_library(lua_static STATIC ${LUA_SOURCES})
 
+# 优化选项，让源文件在链接阶段也能参与内联，只对 release 构建生效
+set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+
 # 生成可执行文件，并顺便指定源文件
 add_executable(${PROJECT_NAME} ${IMGUI_SOURCES})
 
 # CMake 会为含 CMakeLists.txt 的子目录分配一个构建文件夹
 add_subdirectory(Medium)
+
+# target_ 开头的命令操作的是一个已经存在的 CMake target, 需放在 add_executable 之后。
 
 # 向构建目标追加源文件，ImGui 静态编译
 target_sources(${PROJECT_NAME} PRIVATE
@@ -33,7 +38,7 @@ target_sources(${PROJECT_NAME} PRIVATE
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
-    CXX_STANDARD 20          # 指定项目使用 C++20
+    CXX_STANDARD 23          # 指定项目使用 C++23
     CXX_STANDARD_REQUIRED ON # 若编译器较旧不支持，不允许静默降级，编译直接报错
     CXX_EXTENSIONS OFF       # 不允许开启编译器扩展
 )
@@ -48,6 +53,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/Medium)
 target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/DearImGui)
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/external/Eigen)
 
 # 定义宏，记录项目的根路径，用于程序内寻找模型文件
 target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_ROOT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/")
@@ -61,6 +67,3 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     $<$<CONFIG:Debug>:-O0>             # 禁用优化
     $<$<CONFIG:Debug>:-g>              # 启用调试信息
 )
-
-# 优化选项，让源文件在链接阶段也能参与内联
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)

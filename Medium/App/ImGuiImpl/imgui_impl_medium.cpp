@@ -7,17 +7,14 @@
 #ifndef IMGUI_DISABLE
 #include "imgui_impl_medium.h"
 
-#include <cstddef>
-#include <cstring>
-
-#include "Base/Color.h"
 #include "Base/Geometry/Rect.h"
-#include "Resources/Texture2D.h"
 #include "Pipeline/DrawCore.h"
 #include "Pipeline/FrameBuffer.h"
 #include "Pipeline/Shader/ShaderVariant.h"
 
 namespace {
+
+using ColorImage = Medium::Image2D<Medium::Color>;
   
 struct ImGui_ImplMedium_Data {
   Medium::ShaderVariant shader = Medium::ImGuiShader{};
@@ -32,9 +29,9 @@ ImGui_ImplMedium_Data* ImGui_ImplMedium_GetBackendData() {
 }
 
 // 如果 src_tex 需要更新某个区域，则同步写入其绑定的 dst_tex 对应区域。
-void ImGui_ImplMedium_WriteTexture(Medium::Texture2D* dst_tex, 
-                                    ImTextureData* src_tex,
-                                    const ImTextureRect& rect) {
+void ImGui_ImplMedium_WriteTexture(ColorImage* dst_tex,
+                                   ImTextureData* src_tex,
+                                   const ImTextureRect& rect) {
   // ImTextureData->Format (ImTextureFormat) 分为 ImTextureFormat_RGBA32 (字面意义的内存布局：
   // 低地址 -> RR GG BB AA -> 高地址，即 Packed ABGR8) 和 ImTextureFormat_Alpha8. 后者是为计算
   // 能力较弱的嵌入式设备准备的，暂时无视掉这个分支。
@@ -42,7 +39,7 @@ void ImGui_ImplMedium_WriteTexture(Medium::Texture2D* dst_tex,
     size_t w_tex = src_tex->Width;
     size_t bytes_per_row_rect = rect.w * src_tex->BytesPerPixel;
 
-    auto dst_data = dst_tex->packedAbgr8Data();
+    auto dst_data = dst_tex->data();
     auto src_data = src_tex->Pixels;
     
     for(unsigned short i = 0; i < rect.h; ++i) {
@@ -57,13 +54,9 @@ void ImGui_ImplMedium_WriteTexture(Medium::Texture2D* dst_tex,
 }
 
 void ImGui_ImplMedium_ProcessImTextureData(ImTextureData* tex_data) {
-  // ImGui 创建了一个新材质，并要求绑定到自定义 Texture2D 上。
+  // ImGui 创建了一个新材质，并要求绑定到自定义 Image2D 上。
   if(tex_data->Status == ImTextureStatus_WantCreate) {
-    auto medium_tex = new Medium::Texture2D{Medium::PixelFormat::ABGR8, Medium::ColorSpace::SRGB};
-    if(!medium_tex->resize(tex_data->Width, tex_data->Height)) {
-      delete medium_tex;
-      return;
-    }
+    auto medium_tex = new ColorImage{tex_data->Width, tex_data->Height};
     ImGui_ImplMedium_WriteTexture(
       medium_tex, tex_data,
       {0, 0, static_cast<unsigned short>(tex_data->Width), static_cast<unsigned short>(tex_data->Height)}
@@ -74,14 +67,14 @@ void ImGui_ImplMedium_ProcessImTextureData(ImTextureData* tex_data) {
   }
   
   else if(tex_data->Status == ImTextureStatus_WantUpdates) {
-    auto medium_tex = static_cast<Medium::Texture2D*>(tex_data->BackendUserData);
+    auto medium_tex = static_cast<ColorImage*>(tex_data->BackendUserData);
     for(const ImTextureRect& rect: tex_data->Updates)
       ImGui_ImplMedium_WriteTexture(medium_tex, tex_data, rect);
     tex_data->SetStatus(ImTextureStatus_OK);
   }
   
   else if(tex_data->Status == ImTextureStatus_WantDestroy) {
-    auto medium_tex = static_cast<Medium::Texture2D*>(tex_data->BackendUserData);
+    auto medium_tex = static_cast<ColorImage*>(tex_data->BackendUserData);
     delete medium_tex;
     tex_data->BackendUserData = nullptr;
     tex_data->SetTexID(ImTextureID_Invalid);
@@ -121,14 +114,14 @@ Medium::Rect ImGui_ImplMedium_ClipRectToRect(const ImDrawCmd*  cmd,
 } // 匿名命名空间，控制仅单文件可见
 
 
-ImTextureID ImGui_ImplMedium_Texture2DPtrToImTextureID(const Medium::Texture2D* ptr) {
+ImTextureID ImGui_ImplMedium_Texture2DPtrToImTextureID(const ColorImage* ptr) {
   // ImTextureID 本身是个无符号整数，所以加一层转 uintptr_t (大小足以保存一个指针的无符号数) 完善「地址转整数」
   // 这个语义，去掉也没问题。
   return static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(ptr));
 }
 
-const Medium::Texture2D* ImGui_ImplMedium_ImTextureIDtoTexture2DPtr(ImTextureID id) {
-  return reinterpret_cast<Medium::Texture2D*>(static_cast<uintptr_t>(id));
+const ColorImage* ImGui_ImplMedium_ImTextureIDtoImage2DPtr(ImTextureID id) {
+  return reinterpret_cast<ColorImage*>(static_cast<uintptr_t>(id));
 }
 
 // 由用户调用
@@ -161,7 +154,7 @@ void ImGui_ImplMedium_Shutdown() {
   
   for(ImTextureData* tex_data: ImGui::GetPlatformIO().Textures) {
     if(tex_data->BackendUserData) {
-      delete static_cast<Medium::Texture2D*>(tex_data->BackendUserData);
+      delete static_cast<ColorImage*>(tex_data->BackendUserData);
       tex_data->BackendUserData = nullptr;
       tex_data->SetTexID(ImTextureID_Invalid);
       tex_data->SetStatus(ImTextureStatus_Destroyed);
@@ -276,7 +269,7 @@ void ImGui_ImplMedium_RenderDrawData(ImDrawData* draw_data,
       // 取出当前 cmd 的纹理。
       // 如果没有个性化需求（比如插入图片等），纹理永远是字体 atlas，原因：UI 的 矩形、边框、线条都是用白色 texel 乘顶点颜色画出来的，
       // 而这个所谓的 「白色 texel」其实是 ImGui 生成的字体 atlas 纹理的一小块纯白区域。几乎所有控件的绘制都依赖 font atlas.
-      const auto* texture = ImGui_ImplMedium_ImTextureIDtoTexture2DPtr(cmd.GetTexID()); 
+      const auto* texture = ImGui_ImplMedium_ImTextureIDtoImage2DPtr(cmd.GetTexID()); 
 
       // ImGuiIO.DisplaySize 是通过 ImGui_ImplSDL3_NewFrame() 更新的 SDL 窗口逻辑尺寸。
       shader.bind({draw_data->DisplayPos.x,  draw_data->DisplayPos.y},

@@ -11,7 +11,8 @@ namespace Medium {
 namespace {
 
 /// @brief 降采样，将 Image 缩小为原来的一半。
-/// @note  由于最终的加权平均必须在线性空间中完成，所以需传入图像颜色空间来决定如何 decode 像素颜色。
+/// @details 降采样的核心在于计算 dst 每个像素在 src 上占据的面积，并将面积内像素颜色的加权平均作为该像素的值。
+/// @note 由于最终的加权平均必须在线性空间中完成，所以需传入图像颜色空间来决定如何 decode 像素颜色。
 Image2D<Color> downsample(const Image2D<Color>& image_src, ColorSpace color_space) {
   // 8x8 -> 4x4; 5x3 -> 2x1; 1x4 -> 1x2.
   i32 w_dst = std::max(1, image_src.width()  / 2);
@@ -25,7 +26,6 @@ Image2D<Color> downsample(const Image2D<Color>& image_src, ColorSpace color_spac
 
   // 遍历 dst 的每个像素。
   for(i32 y = 0; y < h_dst; ++y) {
-
     // 假设 src 尺寸为 5x3, dst 尺寸为 2x1. 则 w_ratio = 2.5, h_ratio = 3.
     // 计算 dst 当前像素对应 src 在 y 轴上的跨度：
     // 假设 y = 1，对应 dst 在 y 轴上的第二个像素。那么该像素在 y 轴上占据 [0, 1], 对应 src 上的端点为 0 * 3 = 0 和 1 * 3 = 3.
@@ -36,7 +36,6 @@ Image2D<Color> downsample(const Image2D<Color>& image_src, ColorSpace color_spac
     i32 src_y1_i = static_cast<i32>(std::ceil(src_y1_f));
 
     for(i32 x = 0; x < w_dst; ++x) {
-
       // 计算 dst 当前像素对应 src 在 x 轴上的跨度：
       // 假设 x = 1，对应 dst 在 x 轴上的第二个像素。那么该像素在 x 轴上占据 [1, 2], 对应 src 上的端点为 1 * 2.5 = 2.5 和 2 * 2.5 = 5.
       f32 src_x0_f = w_ratio * static_cast<f32>(x);
@@ -61,10 +60,10 @@ Image2D<Color> downsample(const Image2D<Color>& image_src, ColorSpace color_spac
                    std::max(src_x0_f, static_cast<f32>(sx));
 
           // 计算当前像素的实际面积，易知 weight <= 1.0.
-          f32 weight = wx * wy;
+          f32 weight_norm = wx * wy;
 
           // 颜色累加必须先转换到线性空间。
-          color_sum += image_src.at(sx, sy).toLinear(color_space) * weight;
+          color_sum += image_src[sx, sy].toLinear(color_space) * weight_norm;
         }
       }
 
@@ -72,7 +71,7 @@ Image2D<Color> downsample(const Image2D<Color>& image_src, ColorSpace color_spac
       f32 area = (src_x1_f - src_x0_f) * (src_y1_f - src_y0_f);
 
       // 计算颜色的加权平均值，并转换到原空间 Abgr8.
-      image_dst.at(x, y) = (color_sum / area).toColor(color_space);
+      image_dst[x, y] = (color_sum / area).toColor(color_space);
     }
   }
 
@@ -90,6 +89,7 @@ Texture2D::Texture2D(Image2D<Color> base, ColorSpace space): color_space_{space}
   
   mip_levels_.push_back(std::move(base));
 
+  // 最高级 mip 一定是 1 x 1.
   while(mip_levels_.back().width() > 1 || mip_levels_.back().height() > 1)
     mip_levels_.push_back(downsample(mip_levels_.back(), space));
 }

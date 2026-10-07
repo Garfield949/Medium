@@ -1,0 +1,37 @@
+[
+  {
+    "label": "CMake: Release Run",
+    "command": "cmake -S . -B build/release -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build/release --parallel 12 && ./build/release/MediumCanvas",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false
+  },
+  {
+    "label": "CMake: Release Build",
+    "command": "cmake -S . -B build/release -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build/release --parallel 12",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false
+  },
+  {
+    "label": "CMake: Debug Build",
+    "command": "cmake -S . -B build/debug -G Ninja -DCMAKE_BUILD_TYPE=Debug && cmake --build build/debug --parallel 12",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false
+  },
+  {
+    "label": "CMake: Debug Run",
+    "command": "./build/debug/MediumCanvas",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false
+  },
+  {
+    "label": "CMake: Clean",
+    "command": "[ ! -d build/release ] || cmake --build build/release --target clean; [ ! -d build/debug ] || cmake --build build/debug --target clean",
+    "cwd": "$ZED_WORKTREE_ROOT",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": false
+  }
+]

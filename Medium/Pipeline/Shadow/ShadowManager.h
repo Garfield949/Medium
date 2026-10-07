@@ -9,12 +9,12 @@
 #include <span>
 
 #include "Base/Geometry/Rect.h"
+#include "Resources/Texture2D.h"
 #include "Pipeline/FrameBuffer.h"
 #include "Pipeline/RenderContext.h"
 #include "Pipeline/DrawQueue.h"
 #include "Pipeline/Shader/ShaderVariant.h"
 #include "Pipeline/Shadow/CSM.h"
-#include "Resources/Texture2D.h"
 
 namespace Medium {
 
@@ -50,7 +50,7 @@ public:
             i32 cascade_count) noexcept;
 
   /// @brief 设置 Cascade Tile 分辨率。
-  bool setCascadeTileRes(i32 res);
+  void setCascadeTileRes(i32 res);
 
   // ---------- Getters ----------
   /// @brief 获得 CSM 采样的上下文数据，主要用于着色器的 Shadow Query.
@@ -59,7 +59,7 @@ public:
   }
 
   /// @brief 将 CSM Atlas 1/4 分辨率降采样并返回结果的 Texture2D 包装。
-  const Texture2D* CSMAtlasDebugTexture() noexcept {
+  const Image2D<Color>* CSMAtlasDebugImage() noexcept {
     updateAtlasDebugTexture();
     return &csm_atlas_debug_;
   }
@@ -112,7 +112,7 @@ public:
   }
 
 private:
-  bool resize(i32 tile_res);                // 受 cascade_tile_res_ 影响。
+  void resize(i32 tile_res);                // 受 cascade_tile_res_ 影响。
   void updateCascadeSlices()     noexcept;  // 受 cascade_cnt_ 和 max_shadow_dist_ 影响。
   void updateCascadeViewports()  noexcept;  // 受 cascade_tile_res_ 影响。
   void updateAtlasDebugTexture() noexcept;
@@ -137,8 +137,8 @@ private:
 private:
   ShaderVariant depth_shader_ = DepthShader{};
 
-  FrameBuffer csm_atlas_{FrameBuffer::Type::DepthOnly};
-  Texture2D   csm_atlas_debug_{PixelFormat::ABGR8, ColorSpace::SRGB};
+  FrameBuffer    csm_atlas_{FrameBuffer::Type::DepthOnly};
+  Image2D<Color> csm_atlas_debug_;
 
   CSMContext csm_ctx_;
   std::array<f32, kMaxCSMCascades + 1> cascade_slices_;

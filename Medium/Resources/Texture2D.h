@@ -17,14 +17,13 @@ namespace Medium {
 ///        给 Texture2D.
 class Texture2D {
 public:
-  /// @brief 接收一个基图，构造时自动生成 mip 链，需指定纹理的色彩空间。
+  // 接收一个基图，构造时自动生成 mip 链，需指定纹理的色彩空间。
   explicit Texture2D(Image2D<Color> base, ColorSpace space);
 
-  i32 width()  const noexcept { return mip_levels_[0].width(); }
-  i32 height() const noexcept { return mip_levels_[0].height(); }
-
-  i32 widthF()  const noexcept { return mip_levels_[0].widthF(); }
-  i32 heightF() const noexcept { return mip_levels_[0].heightF(); }
+  i32 width()   const noexcept { return mip_levels_[0].width(); }
+  i32 height()  const noexcept { return mip_levels_[0].height(); }
+  f32 widthF()  const noexcept { return mip_levels_[0].widthF(); }
+  f32 heightF() const noexcept { return mip_levels_[0].heightF(); }
 
   i32 mipLevelCount() const noexcept {
     return static_cast<i32>(mip_levels_.size());
@@ -38,8 +37,8 @@ public:
   }
 
 private:
-  ColorSpace color_space_;
   std::vector<Image2D<Color>> mip_levels_;  // level 0 为全分辨率原图。
+  ColorSpace color_space_;
 };
 
 } // namespace Medium

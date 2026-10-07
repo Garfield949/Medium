@@ -29,6 +29,7 @@ enum class AddressMode {
   Clamp
 };
 
+/// @class Sampler
 class Sampler {
 public:
   constexpr Sampler(FilterMode filter_mode, AddressMode address_mode_u, AddressMode address_mode_v)
@@ -37,35 +38,38 @@ public:
   constexpr Sampler(FilterMode filter_mode, AddressMode address_mode)
     : Sampler(filter_mode, address_mode, address_mode) {}
 
-  /// @param duv_dx_pixel: 屏幕像素 x 轴上移动一格 u,v 各自的增量。
-  /// @param duv_dy_pixel: 屏幕像素 y 轴上移动一格 u,v 各自的增量。
-  LinearColor sampleColor(const Texture2D& tex, const Vec2f& uv, const Vec2f& duv_dx_pixel, const Vec2f& duv_dy_pixel) const {
+  LinearColor sample(const Image2D<Color>& image, ColorSpace color_space, const Vec2f& uv) const {
+    return filter_mode_ == FilterMode::Nearest ? sampleNearest(image, color_space, uv.x(), uv.y())
+                                               : sampleBilinear(image, color_space, uv.x(), uv.y());
+  }
+
+  /// @param duv_dx: 屏幕像素 x 轴上移动一格 u,v 各自的增量。
+  /// @param duv_dy: 屏幕像素 y 轴上移动一格 u,v 各自的增量。
+  LinearColor sample(const Texture2D& tex, const Vec2f& uv, const Vec2f& duv_dx, const Vec2f& duv_dy) const {
     Vec2f size_base{tex.widthF(), tex.heightF()};
 
-    Vec2f dtexel_dx = duv_dx_pixel.cwiseProduct(size_base);  // 屏幕像素 x 轴移动一格时，纹理在 u,v 方向上的纹素增量。
-    Vec2f dtexel_dy = duv_dy_pixel.cwiseProduct(size_base);  // 屏幕像素 y 轴移动一格时，纹理在 u,v 方向上的纹素增量。
+    Vec2f dtexel_dx = duv_dx.cwiseProduct(size_base);  // 屏幕像素 x 轴移动一格时，纹理在 u,v 方向上的纹素增量。
+    Vec2f dtexel_dy = duv_dy.cwiseProduct(size_base);  // 屏幕像素 y 轴移动一格时，纹理在 u,v 方向上的纹素增量。
 
     // 计算 ρ^2.
     f32 texel_grad_squared = std::max(dtexel_dx.squaredNorm(), dtexel_dy.squaredNorm());
 
-    // ρ = sqrt(texel_grad_squared) -> log2{(texel_grad_squared)^0.5f} = 0.5f * log2{texel_grad_squared}.
-    // 当 ρ = 4，则 lod = log2(4) = 2. mip level 2 中一个像素对应原图的 16 个像素。
     // 当 ρ = 1，即 pixel 和 texel 一一对应时，log2(1) = 0，即选到原图 mip_level0.
     // 当 ρ < 1，变为放大过滤，可以想象当相机离墙很近时，一个纹素可能覆盖了很多个屏幕像素，此时直接用 level0.
+    if(texel_grad_squared <= 1.0f)
+      return sampleBilinear(tex.mipLevel(0), tex.colorSpace(), uv.x(), uv.y());
+
+    // ρ = sqrt(texel_grad_squared) -> log2{(texel_grad_squared)^0.5f} = 0.5f * log2{texel_grad_squared}.
+    // 当 ρ = 4，则 lod = log2(4) = 2. mip level 2 中一个像素对应原图的 16 个像素。
     f32 lod = 0.5f * std::log2(texel_grad_squared);
 
-    return sampleMips(tex, uv, lod);
-  }
-
-private:
-  LinearColor sampleMips(const Texture2D& tex, const Vec2f& uv, f32 lod) const {
     i32 level_highest = tex.mipLevelCount() - 1;
     
-    lod = std::clamp(lod, 0.0f, static_cast<f32>(level_highest));
+    lod = std::min(lod, static_cast<f32>(level_highest));
 
     // 当 lod = 2.3, level_l = 2, level_h = 3.
-    i32 level_l = static_cast<i32>(std::floor(lod));
-    i32 level_h = std::min(level_highest, static_cast<i32>(lod + 1.0f));
+    i32 level_l = static_cast<i32>(lod);
+    i32 level_h = std::min(level_highest, level_l + 1);
 
     // 三次插值系数。
     f32 t = lod - static_cast<f32>(level_l);
@@ -78,7 +82,8 @@ private:
     
     return Math::lerp(color_l, color_h, t);
   }
-  
+
+private:
   LinearColor sampleNearest(const Image2D<Color>& image, ColorSpace color_space, f32 u, f32 v) const {
     i32 x = static_cast<i32>(std::floor(u * image.widthF()));
     i32 y = static_cast<i32>(std::floor(v * image.heightF()));
@@ -86,7 +91,7 @@ private:
     x = addressCoord(x, image.width(),  address_mode_u_);
     y = addressCoord(y, image.height(), address_mode_v_);
 
-    return image.at(x, y).toLinear(color_space);
+    return image[x, y].toLinear(color_space);
   }
 
   LinearColor sampleBilinear(const Image2D<Color>& image, ColorSpace color_space, f32 u, f32 v) const {
@@ -114,8 +119,8 @@ private:
     i32 y1 = addressCoord(py + 1, h_image, address_mode_v_);
 
     // 获得四个角的像素颜色。
-    LinearColor bl = image.at(x0, y0).toLinear(color_space), br = image.at(x1, y0).toLinear(color_space);
-    LinearColor tl = image.at(x0, y1).toLinear(color_space), tr = image.at(x1, y1).toLinear(color_space);
+    LinearColor bl = image[x0, y0].toLinear(color_space), br = image[x1, y0].toLinear(color_space);
+    LinearColor tl = image[x0, y1].toLinear(color_space), tr = image[x1, y1].toLinear(color_space);
 
     // 插值系数：距离未 wrap 前的左边界和下边界的偏移。
     f32 t1 = x - static_cast<f32>(px);

@@ -5,6 +5,7 @@
 /// @brief
 ///
 #include "AssetCache.h"
+#include <utility>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -28,7 +29,8 @@ using namespace tinyobj;
 // ---------- 用于 loadObj 函数里的 std::unordered_map: unique_map
 struct IndexHash {
   size_t operator()(const index_t& idx) const noexcept {
-    // {} 为初始化列表，这里是实例化一个计算 i32 的临时对象，() 调用了为 i32 重载的 operator()
+    // {} 为初始化列表，这里是实例化一个计算 i32 的临时对象，() 调用了为 i32 重载的 operator().
+    // 重载 operator() 后，那么对象可以像函数一样被调用：IndexHash a; size_t v = a(42);
     const size_t h1 = std::hash<i32>{}(idx.vertex_index);
     const size_t h2 = std::hash<i32>{}(idx.normal_index);
     const size_t h3 = std::hash<i32>{}(idx.texcoord_index);
@@ -231,7 +233,7 @@ void AssetCache::parseMTL(Mesh* mesh_new,
                           const std::filesystem::path& obj_path)
 {
   // Mesh 的材质数组第一个位置放置默认材质（绿色纯色）
-  mesh_new->materials.push_back(Material{});
+  mesh_new->materials.emplace_back();
 
   for(const auto& mat_t: tiny_materials) {
     Material mat_new{mat_t.name};
@@ -268,7 +270,8 @@ void AssetCache::parseMTL(Mesh* mesh_new,
 
 Texture2D* AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& color_space) {
   const std::string tex_path_str = tex_path.generic_string();
-  const std::string tex_key = fmt::format("{}#colorspace={}", tex_path_str, static_cast<i32>(color_space));
+  // C++23 小工具 std::to_underlying, 将枚举值转换为其底层整型值。
+  const std::string tex_key = fmt::format("{}#colorspace={}", tex_path_str, std::to_underlying(color_space));
 
   if(auto it = texture_cache_.find(tex_key); it != texture_cache_.end()) {
     Texture2D* tex_cached = it->second.get();
@@ -292,8 +295,14 @@ Texture2D* AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& c
     return nullptr;
   }
 
-  auto texture_owned 
-    = std::make_unique<Texture2D>(width, height, PixelFormat::ABGR8, color_space, raw);
+  Image2D<Color> base{width, height};
+
+  std::memcpy(base.data(), raw, base.pixelCount() * sizeof(Color));
+
+  // Image2D 显示删除了拷贝构造，必须用 move.
+  auto texture_owned = std::make_unique<Texture2D>(std::move(base), color_space);
+
+  stbi_image_free(raw);
 
   // try_emplace: 先看 key 是否存在，再决定是否构造 value. 
   // emplace 返回一个 std::pair<iterator, bool>，其中 bool 指示 key 是否已存在。

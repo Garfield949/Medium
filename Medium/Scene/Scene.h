@@ -32,14 +32,13 @@ public:
   [[nodiscard]]
   static std::unique_ptr<Scene> LoadFromLua(const std::filesystem::path& lua_path, f32 aspect_ratio);
 
-  Node* root() noexcept { return &root_; }
-  const Node* root() const noexcept { return &root_; }
+  auto root(this auto& self) noexcept {
+    return &self.root_;
+  }
 
-  // 注意：区分重载函数时，完全无视返回值类型。两个 camera 方法只能有一个标 const，因为它修饰的是 this:
-  // Scene* s = ...;       s->camera(); -> this = Scene*
-  // const Scene* cs = s; cs->camera(); -> this = const Scene*
-  Camera*       mainCamera() noexcept { return main_camera_; }
-  const Camera* mainCamera() const noexcept { return main_camera_; }
+  auto mainCamera(this auto& self) noexcept {
+    return self.main_camera_;
+  }
   
   DirectionalLight* directionalLight() const noexcept { return dir_light_; }
 

@@ -13,7 +13,9 @@ struct SDL_Renderer;  // 2D 绘制句柄，与一个 SDL_Window 关联；
 struct SDL_Texture;   // 可被绘制的图像缓冲，与一个 SDL_Renderer 绑定。
 
 namespace Medium {
-  
+
+struct Color;
+
 class WindowManager {
 public:
   explicit WindowManager() = default;
@@ -34,7 +36,7 @@ public:
   bool onResize();
 
   /// @brief 将最终颜色缓冲提交到 SDL
-  void commitBuffer(const u32* packed_abgr8_buffer, i32 buffer_width, i32 buffer_height);
+  void commitBuffer(const Color* packed_abgr8_buffer, i32 buffer_width, i32 buffer_height);
 
   /// @brief 获取 SDL 窗口句柄
   SDL_Window* SDLWindowHandler() const noexcept { return sdl_window_; }
@@ -49,4 +51,4 @@ private:
   SDL_Texture*  sdl_texture_present_ = nullptr;
 };
 
-} // namespaceMedium
+} // namespace Medium

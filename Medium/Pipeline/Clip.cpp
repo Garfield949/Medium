@@ -73,13 +73,10 @@ ClipPolygon clipByPlane(const ClipPolygon& poly_in, const ClipPlane plane, i32 v
 
 namespace Medium {
 
-// 1/w 在 clip space 里是非线性的，不能直接插值。这里先对 pos 进行插值，再取 1/w.
 // 不对插值过程中的 normal 和 tangent 进行归一化，因为 fragment 阶段会归一化。
 ClipVertex ClipVertex::Lerp(const ClipVertex& a, const ClipVertex& b, f32 t, i32 varying_scalar_count) noexcept {
   ClipVertex out;
-
   out.pos = Math::lerp(a.pos, b.pos, t);
-  out.varying.w_inv = 1.0f / out.pos.w();
 
   for(i32 i = 0; i < varying_scalar_count; ++i)
     out.varying.scalars[i] = Math::lerp(a.varying.scalars[i], b.varying.scalars[i], t);

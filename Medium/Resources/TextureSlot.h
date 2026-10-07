@@ -24,12 +24,12 @@ inline TextureSlot makeSlot(Texture2D* map, const LinearColor& solid_color) {
   return solid_color;
 }
 
-inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv) {
+inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv, const Vec2f& duv_dx, const Vec2f& duv_dy) {
     // 0 对应 TexturePtr, 1 对应 LinearColor
     if (slot.index() == 0) {
       // get 返回一个右值，必须绑定 const 引用。
       const Texture2D* texture = std::get<0>(slot);
-      return Samplers::LinearRepeat.sampleColor(*texture, uv.x(), uv.y());
+      return Samplers::TrilinearRepeat.sample(*texture, uv, duv_dx, duv_dy);
     }
     return std::get<1>(slot);
 }

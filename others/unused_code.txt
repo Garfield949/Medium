@@ -1,0 +1,41 @@
+if(!enable_interp_mode) {
+  if(pw.w_interp > 0)
+    for(i32 i = 0; i < varying_layout.scalar_cnt; ++i)
+      fs_in.scalars_interp[i]
+      = Interp::interpolate(varyings[0].scalars[i], varyings[1].scalars[i], varyings[2].scalars[i], pw);
+  // 退化情况直接取第一个顶点的 varying.
+  else [[unlikely]]
+    fs_in.scalars_interp = varyings[0].scalars;
+} else [[unlikely]] {
+  // 当前 scalar 级判断与 field 级开销并无二致。
+  for(const auto& field: varying_layout.fields)
+  for(i32 i = field.offset; i < field.offset + field.scalar_cnt; ++i)
+    if(field.interp_mode == InterpMode::Perspective)
+      fs_in.scalars_interp[i] =
+      Interp::interpolate(varyings[0].scalars[i],
+                          varyings[1].scalars[i],
+                          varyings[2].scalars[i], pw);
+    else if(field.interp_mode == InterpMode::NoPerspective)
+      fs_in.scalars_interp[i] =
+      Interp::interpolate(varyings[0].scalars[i],
+                          varyings[1].scalars[i],
+                          varyings[2].scalars[i], weights);
+    else
+      // 总是拷贝 ClipPolygon 三角划分所得三角形的末顶点属性。
+      fs_in.scalars_interp[i] = varyings[2].scalars[i];
+}
+
+static constexpr std::array<VaryingField, 5> kVaryingFields = {{
+  {.offset = kOffsetUV,      .scalar_cnt = 2},
+  {.offset = kOffsetNormal,  .scalar_cnt = 3},
+  {.offset = kOffsetTangent, .scalar_cnt = 3},
+  {.offset = kOffsetDet,     .scalar_cnt = 1},
+  {.offset = kOffsetPos,     .scalar_cnt = 3},
+}};
+
+static constexpr VaryingLayout varyingLayout() noexcept { 
+  return {
+    .fields = kVaryingFields,
+    .scalar_cnt = varyingScalarCount()
+  };
+}

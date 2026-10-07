@@ -8,12 +8,19 @@
 
 #include <cassert>
 #include <vector>
+#include <concepts>
 
 #include "Base/Types.h"
+#include "Base/Color.h"
 
 namespace Medium {
 
 template<typename T>
+concept PixelType = std::same_as<T, f32>   ||      // Depth Buffer.
+                    std::same_as<T, Color> ||      // Present Buffer.
+                    std::same_as<T, LinearColor>;  // HDR Buffer.
+
+template<PixelType T>
 class Image2D {
 public:
   // 禁用拷贝构造和拷贝赋值，防止无意识复制行为；
@@ -33,7 +40,7 @@ public:
   Image2D& operator=(Image2D&&) noexcept = default;
 
   explicit Image2D() = default;
-  explicit Image2D(i32 w, i32 h): w_{w}, h_{h}, data_(w * h) {}
+  explicit Image2D(i32 w, i32 h): w_{w}, h_{h}, pixels_(w * h) {}
   
   i32 width()  const noexcept { return w_; }
   i32 height() const noexcept { return h_; }
@@ -41,7 +48,7 @@ public:
   f32 widthF()  const noexcept { return static_cast<f32>(w_); }
   f32 heightF() const noexcept { return static_cast<f32>(h_); }
 
-  size_t pixelCount() const noexcept { return data_.size(); }
+  size_t pixelCount() const noexcept { return pixels_.size(); }
 
   // Medium 在 读入模型 -> NDC -> 视口变换 链路上全程采用原点在左下角的坐标系。
   size_t index(i32 x, i32 y) const noexcept {
@@ -51,37 +58,39 @@ public:
 
   void resize(i32 width, i32 height) {
     assert(width > 0 && height > 0);
-    data_.resize(width * height);
+    pixels_.resize(width * height);
     w_ = width;
     h_ = height;
   }
 
+  void resize(i32 resolution) { resize(resolution, resolution); }
+
   void fill(const T& value) {
-    std::fill(data_.begin(), data_.end(), value);
+    std::fill(pixels_.begin(), pixels_.end(), value);
   }
 
-  const T& operator[](size_t i) const {
-    assert(i < data_.size());
-    return data_[i];
+  // C++23 Explicit object parameter, 显式对象参数，也称 deducing this，允许将 this 显式写进参数列表。
+  // 1. 将 self 的类型标为 auto, 则 operator[] 根据调用对象自动推导 this 是否为 const.
+  // 2. this auto& self 使用引用表示该函数操作的就是调用对象本身，不会造成拷贝。
+  // 3. decltype(auto) 自动推导返回类型是否为 const. self.pixels_[i] 本身是一个引用表达式，所以返回值会推导为 T& 或 const T&.
+  decltype(auto) operator[](this auto& self, size_t i) {
+    assert(i < self.pixels_.size());
+    return self.pixels_[i];
   }
 
-  const T& at(i32 x, i32 y) const {
-    return data_[index(x, y)];
+  // C++23 多参数 operator[].
+  decltype(auto) operator[](this auto& self, size_t x, size_t y) {
+    return self.pixels_[self.index(x,y)];
   }
 
-  T& operator[](size_t i) {
-    assert(i < data_.size());
-    return data_[i];
+  T* data() noexcept {
+    return pixels_.data();
   }
 
-  T& at(i32 x, i32 y) {
-    return data_[index(x, y)];
-  }
-  
 private:
   i32 w_ = 0;
   i32 h_ = 0;
-  std::vector<T> data_;
+  std::vector<T> pixels_;
 };
   
 } // namespace Medium

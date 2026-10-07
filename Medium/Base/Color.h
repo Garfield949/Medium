@@ -225,8 +225,9 @@ struct LinearColor {
   static constexpr LinearColor Blue()  noexcept { return {0.0f, 0.0f, 1.0f}; }
   static constexpr LinearColor Navy()  noexcept { return {0.0761f, 0.2832f, 0.4678f}; }
 
-  const f32* data() const noexcept { return &R; }
-  f32*       data() noexcept { return &R; }
+  auto data(this auto& self) noexcept {
+    return &self.R;
+  }
 
   f32 R = 0.0f, G = 0.0f, B = 0.0f, A = 1.0f;
 }; // struct LinearColor

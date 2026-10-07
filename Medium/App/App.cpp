@@ -79,7 +79,7 @@ bool App::onProcessEvent() {
       if(e.key.key == SDLK_ESCAPE) return false;
       break;
     case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
-      if(!windowResizeEvent()) return false;
+      if(!onWindowResize()) return false;
       break;
     default: break;
     }
@@ -107,11 +107,11 @@ void App::onRender() {
   // ---------- ImGui ----------
 
   auto& fb = render_manager_.frameBuffer();
-  window_manager_.commitBuffer(fb.presentBuffer().packedAbgr8Data(), fb.width(), fb.height());
+  window_manager_.commitBuffer(fb.presentBuffer().data(), fb.width(), fb.height());
 }
 
 [[nodiscard]]
-bool App::windowResizeEvent() {
+bool App::onWindowResize() {
   Vec2i extent_physical = window_manager_.physicalExtent();
 
   // 测试过窗口手动的最小尺寸为 1，出现 0 只能说明出现异常。
@@ -121,10 +121,9 @@ bool App::windowResizeEvent() {
     return false;
   }
 
-  if(!render_manager_.onResize(extent_physical)) return false;
-
+  
   if(!window_manager_.onResize()) return false;
-
+  render_manager_.onResize(extent_physical);
   scene_manager_.onResize(extent_physical);
 
   return true;

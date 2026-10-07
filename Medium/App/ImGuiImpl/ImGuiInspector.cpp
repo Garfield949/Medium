@@ -134,7 +134,7 @@ void ImGuiInspector::showCSMAtlasWindow() {
   ImGui::SetNextWindowPos({15, h_statistics_window_ + 30}, ImGuiCond_Always);
   ImGui::SetNextWindowSize({315, 335}, ImGuiCond_Always);
   if(ImGui::Begin("CSM Atlas Debug View")) {
-    ImGui::Image(ImGui_ImplMedium_Texture2DPtrToImTextureID(render_manager->shadowManager().CSMAtlasDebugTexture()),
+    ImGui::Image(ImGui_ImplMedium_Texture2DPtrToImTextureID(render_manager->shadowManager().CSMAtlasDebugImage()),
       ImVec2{300.0f, 300.0f},
       ImVec2{0.0f, 1.0f},
       ImVec2{1.0f, 0.0f}

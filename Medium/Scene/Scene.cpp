@@ -107,7 +107,7 @@ struct SceneLoader {
 };
 
 std::unique_ptr<Scene> Scene::LoadFromLua(const std::filesystem::path& lua_path, f32 aspect_ratio) {
-  std::unique_ptr<Scene> scene{new Scene};
+  std::unique_ptr<Scene> scene = std::make_unique<Scene>();
 
   lua_State* L = luaL_newstate();
   luaL_openlibs(L);

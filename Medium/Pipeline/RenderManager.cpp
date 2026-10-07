@@ -6,17 +6,16 @@
 ///
 #include "RenderManager.h"
 
-#include "Pipeline/RenderContext.h"
 #include "Scene/SceneManager.h"
 #include "Scene/Light/DirectionalLight.h"
+#include "Pipeline/RenderContext.h"
 #include "Pipeline/PostProcess/ToneMapping.h"
 
 namespace Medium {
 
 bool RenderManager::init(Scene* scene, const Vec2i& buffer_extent_physical) 
 {
-  if(!frame_buffer_.resize(buffer_extent_physical.x(),
-                           buffer_extent_physical.y())) return false;
+  frame_buffer_.resize(buffer_extent_physical.x(), buffer_extent_physical.y());
   
   if(!shadow_manager_.init(scene->mainCamera(),
                            scene->directionalLight(),
@@ -74,13 +73,8 @@ void RenderManager::render() {
   PostProcess::toneMapping(frame_buffer_);
 }
 
-bool RenderManager::onResize(const Vec2i& buffer_extent_physical) {
-  if(!frame_buffer_.resize(buffer_extent_physical.x(), buffer_extent_physical.y())) {
-    Log::printLogPrefix("RenderManager", "onResize", true);
-    fmt::print("Failed\n", buffer_extent_physical.x(), buffer_extent_physical.y());
-    return false;
-  }
-  return true;
+void RenderManager::onResize(const Vec2i& buffer_extent_physical) {
+  frame_buffer_.resize(buffer_extent_physical.x(), buffer_extent_physical.y());
 }
 
 void RenderManager::setDrawMode(DrawMode mode) noexcept {

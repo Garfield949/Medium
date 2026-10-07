@@ -6,6 +6,8 @@
 ///
 #pragma once
 
+#include <cassert>
+
 #include "Transform.h"
 
 namespace Medium {

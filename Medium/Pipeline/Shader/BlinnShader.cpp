@@ -43,8 +43,7 @@ VSOut BlinnShader::vertex(const Vertex& vert) const noexcept {
   Vec3f vert_p_world = (uniforms.mat_world * vert.pos.homogeneous()).head<3>();
 
   VSOut vs_out;
-  vs_out.pos_clip      = uniforms.mat_wvp * vert.pos.homogeneous();
-  vs_out.varying.w_inv = 1.0f / vs_out.pos_clip.w();
+  vs_out.pos_clip = uniforms.mat_wvp * vert.pos.homogeneous();
   // tangent 的 w 分量（手性）也一并 smooth 插值，测试过值也只会是 1 或 -1 没有问题；
   // 测试过手动一个一个填 scalar，性能无差异。
   vs_out.varying.store(vert.uv.data()     , kOffsetUV     , 2);
@@ -64,7 +63,7 @@ bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noe
 
   const Material* mat = uniforms.material;
 
-  LinearColor diffuse = sampleSlot(mat->diff_slot, frag_uv);
+  LinearColor diffuse = sampleSlot(mat->diff_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy);
 
   f32 frag_alpha = 1.0f;
   if(mat->surface_mode == Material::SurfaceMode::Masked) { // Alpha Test
@@ -147,12 +146,12 @@ bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noe
 
     // T 和 N 均已在顶点着色器中应用了 world 矩阵，B 自然也附带了 world 的变换效果
     // 同一面片上顶点的 det 一定相同，所以插值出来的顶点的 det 可以直接取 varyings 其中之一的 w
-    Vec3f B = T.cross(frag_n).normalized() * det;
+    Vec3f B = T.cross(frag_n) * det;
 
     // 此时 TBN 同时具备从 tangent -> object 和 object -> world 的变换
     Mat3f TBN = (Mat3f() << T, B, frag_n).finished();
 
-    LinearColor raw = Samplers::LinearClamp.sampleColor(*mat->norm_slot, frag_uv.x(), frag_uv.y());
+    LinearColor raw = Samplers::TrilinearRepeat.sample(*mat->norm_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy);
 
     // 将 [0, 1] 的 LinearColor 映射到 [-1, 1]] 的坐标空间，得到切线空间的法向
     Vec3f n_T = Vec3f{raw.R * 2.0f - 1.0f, raw.G * 2.0f - 1.0f, raw.B * 2.0f - 1.0f}.normalized();
@@ -172,7 +171,7 @@ bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noe
 
     f32 spec = std::powf(std::max(frag_n.dot(h), 0.0f), mat->params.Ns);
 
-    specular = sampleSlot(mat->spec_slot, frag_uv) * spec;
+    specular = sampleSlot(mat->spec_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy) * spec;
   }
 
   // 半兰伯特：不受光的 frag 漫反射强度从 [-1,1] 被 wrap 到 [0.5,1] 再到 [0.25,1].

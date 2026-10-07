@@ -7,36 +7,14 @@
 #pragma once
 
 #include <array>
-#include <span>
 
 #include "Base/Color.h"
 #include "Base/Types.h"
 
 namespace Medium {
 
+inline constexpr i32 kOffsetUV = 0;
 inline constexpr i32 kMaxVaryingScalars = 16;
-
-enum class InterpMode {
-  Perspective,
-  NoPerspective,
-  Flat
-};
-
-/// @struct VaryingField
-/// @brief  描述 Varying 中单个域的偏移和元信息，比如 uv.
-struct VaryingField {
-  i32 offset = 0;
-  i32 scalar_cnt = 0;
-  bool calc_grad = false;
-  InterpMode interp_mode = InterpMode::Perspective;
-};
-
-/// @struct VaryingLayout
-/// @brief  携带 Varying 中所有域的布局。
-struct VaryingLayout {
-  std::span<const VaryingField> fields;
-  i32 scalar_cnt = 0;
-};
 
 /// @struct Varying
 /// @brief  存储 Varying 中所有域的离散标量数据。
@@ -46,9 +24,6 @@ struct Varying {
       scalars[offset + i] = vec_data[i];
   }
   std::array<f32, kMaxVaryingScalars> scalars;
-  // 不显式指定的话，默认使用 1.0f 会退化为线性插值。
-  // 将 w_inv 保存进 Varying 的原因是，rasterizeTriangle 阶段会将 Vec4f 的顶点量化为 Vec3i 的顶点数，会丢掉 w() 分量。
-  f32 w_inv = 1.0f;
 };
 
 /// @struct VSOut
@@ -85,7 +60,13 @@ struct FSIn {
   [[nodiscard]] f32 getScalar(i32 offset) const noexcept {
     return scalars_interp[offset];
   }
+
+  // Varyings 的平铺插值数据。
   std::array<f32, kMaxVaryingScalars> scalars_interp;
+
+  // uv 屏幕导数。
+  Vec2f duv_dx;
+  Vec2f duv_dy;
 };
 
 } // namespace Medium

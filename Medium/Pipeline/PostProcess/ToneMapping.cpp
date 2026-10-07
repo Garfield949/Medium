@@ -32,18 +32,11 @@ namespace Medium::PostProcess {
 void toneMapping(FrameBuffer& frame_buffer) noexcept {
   assert(frame_buffer.type() == FrameBuffer::Type::ColorDepth);
 
-  const Texture2D& buf_HDR     = frame_buffer.hdrBuffer();
-  Texture2D&       buf_present = frame_buffer.presentBuffer();
+  const Image2D<LinearColor>& buf_HDR = frame_buffer.hdrBuffer();
+  Image2D<Color>& buf_present = frame_buffer.presentBuffer();
 
-  for(size_t i = 0; i < buf_present.pixelCount(); ++i) {
-    LinearColor linear = buf_HDR.readLinearColor(i);
-
-    LinearColor tone_mapped = ACESMethod(linear);
-
-    u32 abgr8 = tone_mapped.toColor(ColorSpace::SRGB).data;
-
-    buf_present.writePackedAbgr(i, abgr8);
-  }
+  for(size_t i = 0; i < buf_present.pixelCount(); ++i)
+    buf_present[i] = ACESMethod(buf_HDR[i]).toColor(ColorSpace::SRGB);
 }
 
 } // namespace Medium::PostProcess

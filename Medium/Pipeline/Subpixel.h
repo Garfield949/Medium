@@ -21,7 +21,7 @@ inline constexpr i32 kScale = 1 << kBits;
 inline constexpr i32 kHalf  = kScale >> 1;
 
 // 将浮点坐标提升为定点数
-inline i32 fromFloat(const f32 value) {
+inline i32 fromF32(const f32 value) {
   return static_cast<i32>(std::lround(value * kScale));
 }
 

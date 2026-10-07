@@ -34,7 +34,7 @@ public:
   void bindNewScene(Scene* new_scene);
 
   /// @brief 窗口大小变化回调，调整主 pass 帧缓冲尺寸。
-  bool onResize(const Vec2i& buffer_extent_physical);
+  void onResize(const Vec2i& buffer_extent_physical);
 
   // ---------- Getters ----------
   /// @brief 返回主 pass 帧缓冲引用。

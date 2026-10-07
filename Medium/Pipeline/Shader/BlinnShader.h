@@ -29,28 +29,11 @@ struct BlinnShader {
     const CSMContext* csm_ctx = nullptr; // 级联阴影采样数据
   };
   
-  static constexpr u32 kOffsetUV      = 0;  // Vec2f
-  static constexpr u32 kOffsetNormal  = 2;  // Vec3f
-  static constexpr u32 kOffsetTangent = 5;  // Vec3f
-  static constexpr u32 kOffsetDet     = 8;  // f32
-  static constexpr u32 kOffsetPos     = 9;  // Vec3f
-  
-  static constexpr std::array<VaryingField, 5> kVaryingFields = {{
-    {.offset = kOffsetUV,      .scalar_cnt = 2, .interp_mode = InterpMode::Perspective},
-    {.offset = kOffsetNormal,  .scalar_cnt = 3, .interp_mode = InterpMode::Perspective},
-    {.offset = kOffsetTangent, .scalar_cnt = 3, .interp_mode = InterpMode::Perspective},
-    {.offset = kOffsetDet,     .scalar_cnt = 1, .interp_mode = InterpMode::Flat},
-    {.offset = kOffsetPos,     .scalar_cnt = 3, .interp_mode = InterpMode::Perspective},
-  }};
-
-  static constexpr u32 varyingScalarCount() noexcept { return kOffsetPos + 3; }
-
-  static constexpr VaryingLayout varyingLayout() noexcept { 
-    return {
-      .fields = kVaryingFields,
-      .scalar_cnt = varyingScalarCount()
-    };
-  }
+  static constexpr u32 kOffsetNormal       = kOffsetUV      + 2;
+  static constexpr u32 kOffsetTangent      = kOffsetNormal  + 3;
+  static constexpr u32 kOffsetDet          = kOffsetTangent + 3;
+  static constexpr u32 kOffsetPos          = kOffsetDet     + 1;
+  static constexpr u32 kVaryingScalarCount = kOffsetPos     + 3;
   
   void bind(const ShaderBindContext& bind_ctx, const Mat4f& world, const Material* mat) noexcept;
 

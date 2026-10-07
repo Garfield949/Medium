@@ -7,11 +7,9 @@
 #pragma once
 
 #include <cassert>
-#include <fmt/base.h>
 #include <fmt/color.h>
 
 #include "Base/Color.h"
-#include "Base/Log.h"
 #include "Base/Geometry/Rect.h"
 #include "Resources/Texture2D.h"
 
@@ -45,23 +43,23 @@ public:
   /// @brief 向 HDR 缓冲写入颜色。
   void writeHDRColor(size_t index, const LinearColor& color) noexcept {
     assert(this->type_ == Type::ColorDepth);
-    buf_HDR_.writeLinearColor(index, color);
+    buf_HDR_[index] = color;
   }
 
   void writeHDRColorPremult(size_t index, const LinearColor& src) noexcept {
     assert(this->type_ == Type::ColorDepth);
-    LinearColor dst = buf_HDR_.readLinearColor(index);
+    LinearColor dst = buf_HDR_[index];
     writeHDRColor(index, LinearColor::PremulOver(src, dst));
   }
 
   void writePresentColor(size_t index, const LinearColor& color) {
     assert(this->type_ == Type::ColorDepth);
-    buf_present_.writePackedAbgr(index, color.toColor(ColorSpace::SRGB).data);
+    buf_present_[index] = color.toColor(ColorSpace::SRGB);
   }
 
   void writePresentColorPremult(size_t index, const LinearColor& src) {
     assert(this->type_ == Type::ColorDepth);
-    LinearColor dst = buf_present_.readPackedAbgrToLinear(index);
+    LinearColor dst = buf_present_[index].toLinear(ColorSpace::SRGB);
     writePresentColor(index, LinearColor::PremulOver(src, dst));
   }
 
@@ -70,11 +68,11 @@ public:
   /// @brief 深度测试。
   /// @details Reversed-Z: [0 -> 离相机更远 ... -> 离相机更近 -> 1]
   bool depthTest(size_t index, f32 new_depth) const noexcept {
-    return new_depth > buf_depth_.readDepth(index);
+    return new_depth > buf_depth_[index];
   }
 
   void writeDepth(size_t index, f32 new_depth) noexcept {
-    buf_depth_.writeDepth(index, new_depth);
+    buf_depth_[index] = new_depth;
   }
 
   f32 sampleDepth(f32 u, f32 v, const RectF& viewport) const {
@@ -86,28 +84,22 @@ public:
     i32 px = static_cast<i32>(std::clamp(std::floor(x), viewport.x, viewport.x + viewport.w - 1.0f));
     i32 py = static_cast<i32>(std::clamp(std::floor(y), viewport.y, viewport.y + viewport.h - 1.0f));
 
-    return buf_depth_.readDepth(getIndex(px, py));
+    return buf_depth_[getIndex(px, py)];
   }
 
-  [[nodiscard]]
-  bool resize(i32 new_width, i32 new_height) {
-    if(!buf_depth_.resize(new_width, new_height)) return false;
+  void resize(i32 new_width, i32 new_height) {
+    buf_depth_.resize(new_width, new_height);
     
-    if(type_ == Type::ColorDepth) 
-      if(!buf_HDR_.resize(new_width, new_height) || !buf_present_.resize(new_width, new_height)) {
-        Log::printLogPrefix("FrameBuffer", "resize", true);
-        fmt::print("Resize failed\n");
-        return false;
-      }
-    
+    if(type_ == Type::ColorDepth) {
+      buf_HDR_.resize(new_width, new_height);
+      buf_present_.resize(new_width, new_height);
+    }
+
     w_ = new_width;
     h_ = new_height;
-    
-    return true;
   }
 
-  [[nodiscard]]
-  bool resize(i32 resolution) { return resize(resolution, resolution); }
+  void resize(i32 resolution) { resize(resolution, resolution); }
 
   // ---------- Getters ----------
   i32 width()   const noexcept { return w_; }
@@ -116,13 +108,13 @@ public:
   f32 heightF() const noexcept { return static_cast<f32>(h_); }
 
   [[nodiscard]]
-  const Texture2D& depthBuffer() const { return buf_depth_; }
+  const Image2D<f32>& depthBuffer() const { return buf_depth_; }
 
   [[nodiscard]]
-  const Texture2D& hdrBuffer() const { return buf_HDR_; }
+  const Image2D<LinearColor>& hdrBuffer() const { return buf_HDR_; }
 
   [[nodiscard]]
-  Texture2D& presentBuffer() { return buf_present_; }
+  Image2D<Color>& presentBuffer() { return buf_present_; }
 
   Type type() const noexcept { return type_; }
 
@@ -132,9 +124,9 @@ private:
   i32 w_ = 0;
   i32 h_ = 0;
 
-  Texture2D buf_HDR_{PixelFormat::RGBA32F, ColorSpace::Linear};  // 线性空间，RGBAF32 LinearColor;
-  Texture2D buf_present_{PixelFormat::ABGR8, ColorSpace::SRGB};  // SDL 绘制交付格式，ABGR8 packed U32;
-  Texture2D buf_depth_{PixelFormat::R32F, ColorSpace::Linear};   // R32F.
+  Image2D<f32>         buf_depth_;
+  Image2D<LinearColor> buf_HDR_;      // 线性空间
+  Image2D<Color>       buf_present_;  // SDL 绘制交付格式，ABGR8 packed U32
 };
 
 } // namespace Medium

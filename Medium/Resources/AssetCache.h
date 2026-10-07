@@ -6,8 +6,9 @@
 ///
 #pragma once
 
-#include <memory>
+#include <vector>
 #include <filesystem>
+#include <unordered_map>
 
 namespace tinyobj {
 struct material_t;
