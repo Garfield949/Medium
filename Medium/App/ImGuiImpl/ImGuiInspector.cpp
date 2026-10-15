@@ -124,6 +124,7 @@ void ImGuiInspector::showInspectorWindow() {
     return;
   }
   showScenePanel();
+  showGraphicsPanel();
   showDebugPanel();
   showFPSControllerInfoPanel();
   showAboutPanel();
@@ -134,7 +135,7 @@ void ImGuiInspector::showCSMAtlasWindow() {
   ImGui::SetNextWindowPos({15, h_statistics_window_ + 30}, ImGuiCond_Always);
   ImGui::SetNextWindowSize({315, 335}, ImGuiCond_Always);
   if(ImGui::Begin("CSM Atlas Debug View")) {
-    ImGui::Image(ImGui_ImplMedium_Texture2DPtrToImTextureID(render_manager->shadowManager().CSMAtlasDebugImage()),
+    ImGui::Image(ImGui_ImplMedium_Image2DPtrToImTextureID(render_manager->shadowManager().CSMAtlasDebugImage()),
       ImVec2{300.0f, 300.0f},
       ImVec2{0.0f, 1.0f},
       ImVec2{1.0f, 0.0f}
@@ -150,20 +151,20 @@ void ImGuiInspector::showScenePanel() {
     
     static const char* scene_filenames[]     {"sponza.lua", "minecraft.lua", "porsche.lua", "snake.lua", "house.lua", "teapot.lua"};
     static const char* scene_display_names[] {"Sponza", "Minecraft", "Porsche", "Snake Statue", "House", "Teapot"};
-    static int selected_idx = 0;
+    static int scene_selected_idx = 0;
     static bool scene_switched = true;
   
     ImGui::PushItemWidth(150.0f);
-    if(ImGui::BeginCombo(" Scene List", scene_display_names[selected_idx])) {
+    if(ImGui::BeginCombo(" Scene List", scene_display_names[scene_selected_idx])) {
       for(int n = 0; n < IM_COUNTOF(scene_display_names); n++) {
         // 这句用于配合下面的 SetItemDefaultFocus.
-        const bool is_selected = (selected_idx == n);
+        const bool is_selected = (scene_selected_idx == n);
         // 显示一个可选项，文字为 "scene_names[n]"。若用户点击该项，则设置 selected_idx，未点击则跳出 if.
-        if(ImGui::Selectable(scene_display_names[n], is_selected) && selected_idx != n) {
+        if(ImGui::Selectable(scene_display_names[n], is_selected) && scene_selected_idx != n) {
           if(scene_manager->switchScene(scene_filenames[n], window_manager->aspectRatio())) {
             render_manager->bindNewScene(scene_manager->activeScene());
             controller->bindNewHost(scene_manager->activeScene()->mainCamera());
-            selected_idx = n;
+            scene_selected_idx = n;
             scene_switched = true;
 
             show_csm_atlas_ = false;
@@ -173,6 +174,28 @@ void ImGuiInspector::showScenePanel() {
             shadow_manager.enableCascadeBandView(false);
             shadow_manager.freezeCSM(false);
           }
+        }
+        // 若当前项已是选中项，设置为焦点。
+        if(is_selected) ImGui::SetItemDefaultFocus();
+      }
+      ImGui::EndCombo();
+    }
+    ImGui::PopItemWidth();
+
+    ImGui::SeparatorText("Skybox");
+    static const char* cubemap_filenames[]     {"desert.png", "river.png"};
+    static const char* cubemap_display_names[] {"Desert", "River"};
+    static int cubemap_selected_idx = 0;
+
+    if(scene_switched) cubemap_selected_idx = 0;
+
+    ImGui::PushItemWidth(150.0f);
+    if(ImGui::BeginCombo(" Skybox List", cubemap_display_names[cubemap_selected_idx])) {
+      for(int n = 0; n < IM_COUNTOF(cubemap_display_names); n++) {
+        const bool is_selected = (cubemap_selected_idx == n);
+        if(ImGui::Selectable(cubemap_display_names[n], is_selected) && cubemap_selected_idx != n) {
+          if(scene_manager->activeScene()->switchSkybox(cubemap_filenames[n]))
+            cubemap_selected_idx = n;
         }
         // 若当前项已是选中项，设置为焦点。
         if(is_selected) ImGui::SetItemDefaultFocus();
@@ -208,6 +231,22 @@ void ImGuiInspector::showScenePanel() {
     if(ImGui::SliderFloat(" Fov", &fov,  50.0f, 120.0f))
       camera->setFOV(fov);
     
+    ImGui::Spacing();
+  }
+}
+
+void ImGuiInspector::showGraphicsPanel() {
+  if(ImGui::CollapsingHeader("Graphics")) {
+    // ----------- Mipmap -----------
+    ImGui::SeparatorText("Texture Filtering");
+
+    auto blinn_shader = render_manager->sceneRenderer().blinnShader();
+
+    bool enable_mipmap = blinn_shader->mipmapEnabled();
+    
+    if(ImGui::Checkbox("Mipmap", &enable_mipmap))
+      blinn_shader->enableMipmap(enable_mipmap);
+
     ImGui::Spacing();
   }
 }

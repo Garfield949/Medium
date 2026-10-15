@@ -6,12 +6,9 @@
 ///
 #pragma once
 
-#include <cassert>
-#include <fmt/color.h>
-
 #include "Base/Color.h"
 #include "Base/Geometry/Rect.h"
-#include "Resources/Texture2D.h"
+#include "Resources/Image2D.h"
 
 namespace Medium {
 

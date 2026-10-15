@@ -62,7 +62,7 @@ void ImGui_ImplMedium_ProcessImTextureData(ImTextureData* tex_data) {
       {0, 0, static_cast<unsigned short>(tex_data->Width), static_cast<unsigned short>(tex_data->Height)}
     );
     tex_data->BackendUserData = medium_tex;
-    tex_data->SetTexID(ImGui_ImplMedium_Texture2DPtrToImTextureID(medium_tex));
+    tex_data->SetTexID(ImGui_ImplMedium_Image2DPtrToImTextureID(medium_tex));
     tex_data->SetStatus(ImTextureStatus_OK);
   }
   
@@ -114,7 +114,7 @@ Medium::Rect ImGui_ImplMedium_ClipRectToRect(const ImDrawCmd*  cmd,
 } // 匿名命名空间，控制仅单文件可见
 
 
-ImTextureID ImGui_ImplMedium_Texture2DPtrToImTextureID(const ColorImage* ptr) {
+ImTextureID ImGui_ImplMedium_Image2DPtrToImTextureID(const ColorImage* ptr) {
   // ImTextureID 本身是个无符号整数，所以加一层转 uintptr_t (大小足以保存一个指针的无符号数) 完善「地址转整数」
   // 这个语义，去掉也没问题。
   return static_cast<ImTextureID>(reinterpret_cast<uintptr_t>(ptr));

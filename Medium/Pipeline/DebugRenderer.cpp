@@ -9,11 +9,11 @@
 #include "Base/Geometry/Rect.h"
 #include "Resources/Mesh.h"
 #include "Pipeline/Clip.h"
-#include "Pipeline/RenderStatus.h"
-#include "Pipeline/DrawCommand.h"
 #include "Pipeline/DrawCore.h"
 #include "Pipeline/FrameBuffer.h"
-#include "Pipeline/SceneRenderer.h"
+#include "Pipeline/DrawCommand.h"
+#include "Pipeline/RenderStatus.h"
+#include "Pipeline/SceneDrawListView.h"
 
 namespace Medium {
 

@@ -5,7 +5,6 @@
 /// @brief  
 ///
 #include "Texture2D.h"
-#include <cassert>
 
 namespace Medium {
 namespace {
@@ -85,13 +84,13 @@ Image2D<Color> downsample(const Image2D<Color>& image_src, ColorSpace color_spac
 namespace Medium {
 
 Texture2D::Texture2D(Image2D<Color> base, ColorSpace space): color_space_{space} {
-  assert(base.width() > 0 && base.height() > 0);
-  
   mip_levels_.push_back(std::move(base));
+}
 
-  // 最高级 mip 一定是 1 x 1.
+void Texture2D::generateMips() {
+  // 最高层 mip 一定是 1x1.
   while(mip_levels_.back().width() > 1 || mip_levels_.back().height() > 1)
-    mip_levels_.push_back(downsample(mip_levels_.back(), space));
+    mip_levels_.push_back(downsample(mip_levels_.back(), color_space_));
 }
 
 } // namespace Medium

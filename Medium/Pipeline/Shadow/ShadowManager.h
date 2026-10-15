@@ -9,12 +9,14 @@
 #include <span>
 
 #include "Base/Geometry/Rect.h"
-#include "Resources/Texture2D.h"
+
 #include "Pipeline/FrameBuffer.h"
 #include "Pipeline/RenderContext.h"
 #include "Pipeline/DrawQueue.h"
 #include "Pipeline/Shader/ShaderVariant.h"
 #include "Pipeline/Shadow/CSM.h"
+
+#include "Resources/Image2D.h"
 
 namespace Medium {
 

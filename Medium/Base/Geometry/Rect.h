@@ -7,7 +7,6 @@
 #pragma once
 
 #include "Base/Types.h"
-#include <algorithm>
 
 namespace Medium {
 

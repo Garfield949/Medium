@@ -24,12 +24,14 @@ inline TextureSlot makeSlot(Texture2D* map, const LinearColor& solid_color) {
   return solid_color;
 }
 
-inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv, const Vec2f& duv_dx, const Vec2f& duv_dy) {
+inline LinearColor sampleSlot(const TextureSlot& slot, const Vec2f& uv, const Vec2f& duv_dx, const Vec2f& duv_dy, bool mipmaping) {
     // 0 对应 TexturePtr, 1 对应 LinearColor
     if (slot.index() == 0) {
       // get 返回一个右值，必须绑定 const 引用。
+      // 对材质直接使用 mip 采样。
       const Texture2D* texture = std::get<0>(slot);
-      return Samplers::TrilinearRepeat.sample(*texture, uv, duv_dx, duv_dy);
+      return mipmaping ? Samplers::TrilinearRepeat.sample(*texture, uv, duv_dx, duv_dy)
+                       : Samplers::LinearRepeat.sample(texture->mipLevel(0), texture->colorSpace(), uv);
     }
     return std::get<1>(slot);
 }

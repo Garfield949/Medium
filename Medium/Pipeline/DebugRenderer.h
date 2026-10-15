@@ -9,13 +9,11 @@
 #include "Base/Types.h"
 
 namespace Medium {
+
 class FrameBuffer;
 struct DrawCommand;
 struct RenderStatus;
 struct SceneDrawListView;
-}
-
-namespace Medium {
 
 class DebugRenderer {
 public:

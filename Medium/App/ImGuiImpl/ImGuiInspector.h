@@ -40,6 +40,7 @@ private:
   void showCSMAtlasWindow();
   
   void showScenePanel();
+  void showGraphicsPanel();
   void showDebugPanel();
   void showFPSControllerInfoPanel();
   void showAboutPanel();

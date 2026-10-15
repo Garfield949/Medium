@@ -41,7 +41,7 @@ struct DepthShader {
   
     // Alpha Test
     if(mat->surface_mode == Material::SurfaceMode::Masked) {
-      f32 value = sampleSlot(mat->diff_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy).A;
+      f32 value = sampleSlot(mat->diff_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy, true).A;
       if(value < Material::kAlphaCutoff) return true;
     }
   

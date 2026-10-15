@@ -8,11 +8,11 @@
 
 #include <span>
 
+#include "Base/Types.h"
 #include "Base/Color.h"
 #include "Base/Geometry/Rect.h"
 #include "Base/Math/Interpolation.h"
 
-#include "Base/Types.h"
 #include "Pipeline/Clip.h"
 #include "Pipeline/Subpixel.h"
 #include "Pipeline/FrameBuffer.h"
@@ -24,7 +24,7 @@
 
 namespace Medium::Pipeline {
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// ---------------------------------------- 匿名空间私有实现 ----------------------------------------
+//                                          匿名空间私有实现                                         
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 namespace {
 // 透视除法 x,y -> [-1,1], reversed-z -> [0,1].
@@ -45,6 +45,7 @@ void NDCToViewport(Vec4f& vert, const RectF& viewport) {
   vert.x() = viewport.x + 0.5f * viewport.w * (vert.x() + 1.0f);
   vert.y() = viewport.y + 0.5f * viewport.h * (vert.y() + 1.0f);
 }
+
 /// @brief 接收三角面片的三个顶点，计算其在 2D 空间内的朝向；
 /// @details 计算向量 (b-a) 与 (c-a) 的叉积；
 ///          1. 叉积代数定义：(x1,y1,z1) x (x2,y2,z2) = (y1z2-z1y2, x2z1-x1z2, x1y2-x2y1). 所以 2D 叉积就是 3D 
@@ -62,7 +63,7 @@ f32 orient2D(const Vec4f& a, const Vec4f& b, const Vec4f& c) noexcept {
 }
 
 /// @brief 计算三角形的屏幕包围盒。
-/// @details Viewport 的作用是进行边界截断，会从 rasterizer 传入一个 RectF 自动隐式转型。
+/// @details Viewport 的作用是进行边界截断，会从 rasterizeTriangle 传入一个 RectF 自动隐式转型。
 Rect calcTriBBox(const std::array<Vec2i, 3>& tri_subpixel, const Rect& viewport) {
   // 获取次像素空间的包围盒边界。
   const i32 x_min_sub = std::min({tri_subpixel[0].x(), tri_subpixel[1].x(), tri_subpixel[2].x()});
@@ -76,8 +77,8 @@ Rect calcTriBBox(const std::array<Vec2i, 3>& tri_subpixel, const Rect& viewport)
   const i32 bias  = Subpixel::kScale - 1;
   const i32 x_min = std::max(viewport.x, x_min_sub >> Subpixel::kBits);
   const i32 y_min = std::max(viewport.y, y_min_sub >> Subpixel::kBits);
-  const i32 x_max = std::min((x_max_sub + bias) >> Subpixel::kBits, viewport.x + viewport.w - 1);
-  const i32 y_max = std::min((y_max_sub + bias) >> Subpixel::kBits, viewport.y + viewport.h - 1);
+  const i32 x_max = std::min(viewport.x + viewport.w - 1, (x_max_sub + bias) >> Subpixel::kBits);
+  const i32 y_max = std::min(viewport.y + viewport.h - 1, (y_max_sub + bias) >> Subpixel::kBits);
   // 在视区外部的三角形，其边界经过截断后，算出的包围盒宽度和高度一定 <= 0，即判定非法。
   // 举例：假设视区原点 (0,0)，宽度 = 100，x 边界为 100 - 1 = 99.
   // 1) x_min = -10  钳制为 0;   x_max = -2  保持为 -2.  则 rect.w = -2  - 0   + 1 = -1 <  0 非法；
@@ -132,7 +133,6 @@ struct UVGradientParams {
     // 观察 N 可知 ui/wi 是常数，因此 dN/dx = dλ0/dx * u0/w0 + dλ1/dx * u1/w1 + dλ2/dx * u2/w2.
     // 至于 D 求导就比较简单，dD/dx = dλ0/dx / w0 + dλ1/dx / w1 + dλ2/dx / w2.
     // Uy, Vx, Vy 同理；下面的计算逻辑用到了一些中间结果。
-    // ui/wi.
     const Vec2f uv0_over_w = Vec2f{varyings[0].scalars[kOffsetUV], varyings[0].scalars[kOffsetUV + 1]} * w_invs[0];
     const Vec2f uv1_over_w = Vec2f{varyings[1].scalars[kOffsetUV], varyings[1].scalars[kOffsetUV + 1]} * w_invs[1];
     const Vec2f uv2_over_w = Vec2f{varyings[2].scalars[kOffsetUV], varyings[2].scalars[kOffsetUV + 1]} * w_invs[2];
@@ -156,8 +156,7 @@ FSIn computeFSIn(const std::array<Varying, 3>& varyings,
   FSIn fs_in;
 
   // 优化的透视矫正插值路径，但测试过与无优化路径开销毫无差异，可能是 -O3 和 LTO 自动完成了优化；
-  // 目前所有插值需求都可以直接走透视插值矫正路径（只需要线性插值的在顶点着色器里将 w 设为 1 即退化），
-  // 目前无限期停用另一条判断插值模式的路径。
+  // 目前所有插值需求都可以直接走透视插值矫正路径（只需要线性插值的在顶点着色器里将 w 设为 1 即退化）
   const Interp::PerspWeights pw = Interp::PerspWeights::Get(weights, w_invs);
 
   // 透视矫正插值
@@ -282,6 +281,7 @@ void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
     tri_depth[i]     = triangle[i].z();
   }
 
+  // 注：计算得到的 bbox_tri 属于像素空间（非subpixel）
   Rect bbox_tri = calcTriBBox(tri_fixed, viewport);
   if(!bbox_tri.valid()) return; // 若三角形完全在视区外，直接丢弃
 
@@ -297,12 +297,12 @@ void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
   const Vec2i delta20{tri_fixed[0].x() - tri_fixed[2].x(),  tri_fixed[0].y() - tri_fixed[2].y()};
 
   // A 对应边函数 E(X+1,Y) 时的增量；同理，B 对应 E(X,Y+1) 时的增量。
+  // 在次像素空间中，每推近一个屏幕像素，相当于在次像素空间增加 16.
   const i32 A01 = Subpixel::kScale * delta01.y(),  B01 = -Subpixel::kScale * delta01.x();
   const i32 A12 = Subpixel::kScale * delta12.y(),  B12 = -Subpixel::kScale * delta12.x();
   const i32 A20 = Subpixel::kScale * delta20.y(),  B20 = -Subpixel::kScale * delta20.x();
 
-  // 从包围盒左下角的坐标开始测试、着色，一行一行往上。
-  // 加一个偏置将采样点移到像素中心，这里 array 方法将向量转为数组以进行逐分量加法。
+  // 从包围盒左下角的坐标开始测试、着色，一行一行往上；加一个偏置将采样点移到像素中心，这里 array 方法将向量转为数组以进行逐分量加法。
   // Subpixel::kHalf = 8.
   const Vec2i p_start = (bbox_tri.min() * Subpixel::kScale).array() + Subpixel::kHalf;
 
@@ -349,7 +349,7 @@ void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
  
   // 三角形层面做 dispatch
   std::visit([&](auto& active_shader) {
-  // 边函数增量更新
+  // 遍历包围盒，边函数增量更新。
   for(i32 y = bbox_tri.min().y(); y <= bbox_tri.max().y(); ++y) {
     // 当前像素的 Equation 值，注意同样要采用 i64.
     // 注：E*_row 保存当前行首的边函数值，E* 作为副本在行内向右递增。换行时，E*_row 加上对应的 B 得到新行
@@ -402,7 +402,7 @@ void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
 
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-// ----------------------------------------- 公开接口实现 ------------------------------------------
+//                                           公开接口实现                                          -
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 void executeDrawCommands(std::span<const DrawCommand> cmds,
                          const ShaderBindContext&     shader_ctx,
@@ -417,8 +417,7 @@ void executeDrawCommands(std::span<const DrawCommand> cmds,
       .vertices      = cmd.mesh->vertices,
       .indices       = cmd.mesh->indices,
       .index_offset  = cmd.submesh->index_offset,
-      .index_count   = cmd.submesh->index_count,
-      .vertex_offset = 0
+      .index_count   = cmd.submesh->index_count
     };
     
     // 结构化绑定：const auto& 修饰的是 pass_ctx, auto 会推导为 RenderPassContext. 
@@ -441,14 +440,14 @@ void draw(const IndexedDrawView& draw_view,
   const auto& 
   [vertices, indices, index_offset, index_count, vertex_offset] = draw_view;
 
-  for(u32 tri_cnt = index_count / 3, i = 0; i < tri_cnt; ++i) {
+  for(i32 tri_cnt = index_count / 3, i = 0; i < tri_cnt; ++i) {
     // 每 3 个紧邻的顶点索引为一个三角形。
-    const u32 tri_idx = index_offset + i * 3;
+    const i32 tri_idx = index_offset + i * 3;
 
     // 将当前三角形作为裁剪输入，运行顶点着色器 World Space -> Clip Space，并获取待插值的 varying.
-    ClipPolygon polygon;
-    for(u32 j = 0; j < 3; ++j, ++polygon.num_verts) {
-      const u32 vert_idx = indices[tri_idx + j];
+    ClipPolygon polygon;    
+    for(i32 j = 0; j < 3; ++j, ++polygon.num_verts) {
+      const i32 vert_idx = indices[tri_idx + j];
       
       const VSOut vs_out = active_shader.vertex(vertices[vertex_offset + vert_idx]);
       

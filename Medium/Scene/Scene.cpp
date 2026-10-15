@@ -138,6 +138,23 @@ std::unique_ptr<Scene> Scene::LoadFromLua(const std::filesystem::path& lua_path,
   return scene;
 }
 
+bool Scene::switchSkybox(std::string_view img_filename) {
+  auto img_path = std::filesystem::path(PROJECT_ROOT_DIR) / "assets" / "skyboxes"
+    / img_filename;
+
+  auto skybox_cubemap = AssetCache::instance().loadHorizontalCrossSkybox(img_path);
+
+  if(!skybox_cubemap) {
+    Log::printLogPrefix("SceneManager", "switchSkybox", true);
+    fmt::print("Failed\n");
+    return false;
+  }
+
+  skybox_cubemap_ = skybox_cubemap;
+
+  return true;
+}
+
 AABB3D Scene::worldAABB() const noexcept {
   AABB3D bbox_world;
   // 注：由于该方法是 const 的，故形参得为 const.

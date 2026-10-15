@@ -2,13 +2,15 @@
 /// @file   BlinnShader.cpp
 /// @author Garfield949
 /// @date   2026/3/6 09:09
-/// @brief  
+/// @brief
 ///
 #include "BlinnShader.h"
 
 #include <array>
 
+#include "Base/Color.h"
 #include "Pipeline/Shadow/CSM.h"
+#include "Resources/TextureSlot.h"
 #include "Resources/Vertex.h"
 #include "Resources/Material.h"
 #include "Resources/Sampler.h"
@@ -16,7 +18,7 @@
 #include "Pipeline/Shadow/ShadowQuery.h"
 
 namespace Medium {
-  
+
 void BlinnShader::bind(const ShaderBindContext& bind_ctx, const Mat4f& world, const Material* mat) noexcept {
   const CameraContext* cam_ctx = bind_ctx.camera_ctx;
   const LightingContext* lighting_ctx = bind_ctx.lighting_ctx;
@@ -29,15 +31,15 @@ void BlinnShader::bind(const ShaderBindContext& bind_ctx, const Mat4f& world, co
 
     .light_dir_inv = -lighting_ctx->light_dir,
     .light_color   = lighting_ctx->light_color,
-    
+
     .csm_ctx = lighting_ctx->csm_ctx,
   };
 }
 
 VSOut BlinnShader::vertex(const Vertex& vert) const noexcept {
   // 只表示方向的向量变换到世界空间只需应用旋转。
-  Mat3f rot_world = uniforms.mat_world.topLeftCorner(3, 3);  
-  
+  Mat3f rot_world = uniforms.mat_world.topLeftCorner(3, 3);
+
   Vec3f vert_n_world = (rot_world * vert.normal).normalized();
   Vec3f vert_t_world =  rot_world * vert.tangent.head<3>();
   Vec3f vert_p_world = (uniforms.mat_world * vert.pos.homogeneous()).head<3>();
@@ -63,7 +65,7 @@ bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noe
 
   const Material* mat = uniforms.material;
 
-  LinearColor diffuse = sampleSlot(mat->diff_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy);
+  LinearColor diffuse = sampleSlot(mat->diff_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy, mipmap_enabled_);
 
   f32 frag_alpha = 1.0f;
   if(mat->surface_mode == Material::SurfaceMode::Masked) { // Alpha Test
@@ -151,7 +153,8 @@ bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noe
     // 此时 TBN 同时具备从 tangent -> object 和 object -> world 的变换
     Mat3f TBN = (Mat3f() << T, B, frag_n).finished();
 
-    LinearColor raw = Samplers::TrilinearRepeat.sample(*mat->norm_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy);
+    LinearColor raw = mipmap_enabled_ ? Samplers::TrilinearRepeat.sample(*mat->norm_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy)
+                                      : Samplers::LinearRepeat.sample(mat->norm_slot->mipLevel(0), mat->norm_slot->colorSpace(), frag_uv);
 
     // 将 [0, 1] 的 LinearColor 映射到 [-1, 1]] 的坐标空间，得到切线空间的法向
     Vec3f n_T = Vec3f{raw.R * 2.0f - 1.0f, raw.G * 2.0f - 1.0f, raw.B * 2.0f - 1.0f}.normalized();
@@ -171,10 +174,10 @@ bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noe
 
     f32 spec = std::powf(std::max(frag_n.dot(h), 0.0f), mat->params.Ns);
 
-    specular = sampleSlot(mat->spec_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy) * spec;
+    specular = sampleSlot(mat->spec_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy, mipmap_enabled_) * spec;
   }
 
-  // 半兰伯特：不受光的 frag 漫反射强度从 [-1,1] 被 wrap 到 [0.5,1] 再到 [0.25,1].
+  // 不受光的 frag 漫反射强度从 [-1,1] 被 wrap 到 [0.5,1] 再到 [0.25,1]，原半兰伯特是将 [-1,1] 映射到 [0,1].
   f32 half_lambert = std::max(nl_shading, 0.0f) * 0.5f + 0.5f;
 
   f32 diff = half_lambert * half_lambert;

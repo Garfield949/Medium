@@ -11,7 +11,6 @@
 #include "Base/Log.h"
 #include "Base/Color.h"
 #include "App/WindowDefaults.h"
-#include "SDL3/SDL_video.h"
 
 namespace Medium {
 

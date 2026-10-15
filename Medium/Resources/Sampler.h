@@ -63,7 +63,7 @@ public:
     // 当 ρ = 4，则 lod = log2(4) = 2. mip level 2 中一个像素对应原图的 16 个像素。
     f32 lod = 0.5f * std::log2(texel_grad_squared);
 
-    i32 level_highest = tex.mipLevelCount() - 1;
+    i32 level_highest = tex.mipCount() - 1;
     
     lod = std::min(lod, static_cast<f32>(level_highest));
 

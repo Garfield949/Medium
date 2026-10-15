@@ -5,7 +5,6 @@
 /// @brief
 ///
 #include "AssetCache.h"
-#include <utility>
 
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYOBJLOADER_IMPLEMENTATION
@@ -15,7 +14,9 @@
 
 #include "Base/Color.h"
 #include "Base/Log.h"
+
 #include "Mesh.h"
+#include "CubeMap.h"
 #include "Material.h"
 #include "Texture2D.h"
 
@@ -228,6 +229,43 @@ const Mesh* AssetCache::loadFromObj(const fs::path& obj_path) {
   return it->second.get();
 }
 
+CubeMap* AssetCache::loadHorizontalCrossSkybox(const std::filesystem::path& img_path) {
+  const std::string img_path_str = img_path.generic_string();
+  auto& img_key = img_path_str;
+
+  if(auto it = skybox_cache_.find(img_key); it != skybox_cache_.end()) {
+    CubeMap* skybox_cached = it->second.get();
+    Log::printLogPrefix("AssetCache", "loadHorizontalCrossSkybox", false);
+    fmt::print("[{}] cached\n", img_path_str);
+    return skybox_cached;
+  }
+
+  i32 width, height, channels;
+  // 翻转十字 cubemap 后，top 和 bottom 的位置会互换。
+  stbi_set_flip_vertically_on_load(true);
+  unsigned char* raw = stbi_load(img_path_str.c_str(),
+                                 &width,
+                                 &height,
+                                 &channels,
+                                 STBI_rgb_alpha); // 强制补齐 alpha 通道。
+
+  if(!raw) {
+    Log::printLogPrefix("AssetCache", "loadHorizontalCrossSkybox", true);
+    fmt::print("StbImage::{}\n\n", stbi_failure_reason());
+    return nullptr;
+  }
+
+  Image2D<Color> base{width, height};
+
+  std::memcpy(base.data(), raw, base.pixelCount() * sizeof(Color));
+  stbi_image_free(raw);
+
+  std::unique_ptr<CubeMap> skybox_owned = CubeMap::FromHorizontalCross(base);
+
+  auto it = skybox_cache_.emplace(img_key, std::move(skybox_owned)).first;
+  return it->second.get();
+}
+
 void AssetCache::parseMTL(Mesh* mesh_new,
                           const std::vector<material_t>& tiny_materials,
                           const std::filesystem::path& obj_path)
@@ -298,14 +336,14 @@ Texture2D* AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& c
   Image2D<Color> base{width, height};
 
   std::memcpy(base.data(), raw, base.pixelCount() * sizeof(Color));
+  stbi_image_free(raw);
 
   // Image2D 显示删除了拷贝构造，必须用 move.
   auto texture_owned = std::make_unique<Texture2D>(std::move(base), color_space);
+  texture_owned->generateMips();
 
-  stbi_image_free(raw);
-
-  // try_emplace: 先看 key 是否存在，再决定是否构造 value. 
   // emplace 返回一个 std::pair<iterator, bool>，其中 bool 指示 key 是否已存在。
+  // std::unique_ptr 禁止拷贝，只能移动。
   auto it = texture_cache_.emplace(tex_key, std::move(texture_owned)).first;
   return it->second.get();
 }

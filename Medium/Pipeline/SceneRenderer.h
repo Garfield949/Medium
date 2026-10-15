@@ -8,26 +8,22 @@
 
 #include <span>
 
-#include "Pipeline/RenderContext.h"
 #include "Pipeline/DrawQueue.h"
+#include "Pipeline/RenderContext.h"
+#include "Pipeline/SceneDrawListView.h"
+#include "Pipeline/Shader/BlinnShader.h"
 #include "Pipeline/Shader/ShaderVariant.h"
 
 namespace Medium {
+
 class Camera;
+class CubeMap;
 class MeshNode;
 class DirectionalLight;
 class RenderManager;
 class FrameBuffer;
 struct RenderStatus;
 struct CSMContext;
-}
-
-namespace Medium {
-
-struct SceneDrawListView {
-  std::span<const DrawCommand> opaque;
-  std::span<const DrawCommand> transparent;
-};
 
 class SceneRenderer {
 public:
@@ -42,8 +38,9 @@ public:
   /// @brief 渲染场景。
   void render(std::span<const MeshNode* const> scene_mesh_nodes,
               const CSMContext* csm_ctx,
-              FrameBuffer&  frame_buffer,
-              RenderStatus& render_status);
+              CubeMap*          skybox_cubemap,
+              FrameBuffer&      frame_buffer,
+              RenderStatus&     render_status);
 
   // ---------- Setters ----------
   /// @brief 设置不透明和透明 pass 走哪个绘制分支。
@@ -60,7 +57,13 @@ public:
     };
   }
 
+  BlinnShader* blinnShader() { return &std::get<BlinnShader>(blinn_shader_); }
+
 private:
+  void drawSkybox(FrameBuffer&  frame_buffer,
+                  CubeMap*      skybox_cubemap,
+                  RenderStatus& render_status) const;
+
   ShaderVariant blinn_shader_ = BlinnShader{};
 
   const Camera* main_camera_ = nullptr;

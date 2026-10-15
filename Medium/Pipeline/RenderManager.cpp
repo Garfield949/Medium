@@ -15,8 +15,6 @@ namespace Medium {
 
 bool RenderManager::init(Scene* scene, const Vec2i& buffer_extent_physical) 
 {
-  frame_buffer_.resize(buffer_extent_physical.x(), buffer_extent_physical.y());
-  
   if(!shadow_manager_.init(scene->mainCamera(),
                            scene->directionalLight(),
                            scene->shadowConfig().max_shadow_dist,
@@ -26,6 +24,8 @@ bool RenderManager::init(Scene* scene, const Vec2i& buffer_extent_physical)
   if(!scene_renderer_.init(scene->mainCamera(),
                            scene->directionalLight()))
     return false;
+
+  frame_buffer_.resize(buffer_extent_physical.x(), buffer_extent_physical.y());
 
   active_scene_ = scene;
 
@@ -60,6 +60,7 @@ void RenderManager::render() {
   // ---------- Main Pass ----------
   scene_renderer_.render(active_scene_->meshNodes(),
                          shadow_pass_enabled ? &shadow_manager_.CSMCtx() : nullptr,
+                         active_scene_->skybox(),
                          frame_buffer_,
                          render_status_);
 

@@ -39,8 +39,8 @@ public:
   Image2D(Image2D&&) noexcept = default;
   Image2D& operator=(Image2D&&) noexcept = default;
 
-  explicit Image2D() = default;
-  explicit Image2D(i32 w, i32 h): w_{w}, h_{h}, pixels_(w * h) {}
+  Image2D() = default;
+  Image2D(i32 w, i32 h): w_{w}, h_{h}, pixels_(w * h) {}
   
   i32 width()  const noexcept { return w_; }
   i32 height() const noexcept { return h_; }
@@ -83,8 +83,8 @@ public:
     return self.pixels_[self.index(x,y)];
   }
 
-  T* data() noexcept {
-    return pixels_.data();
+  auto data(this auto& self) noexcept {
+    return self.pixels_.data();
   }
 
 private:

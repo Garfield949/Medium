@@ -17,23 +17,35 @@ namespace Medium {
 ///        给 Texture2D.
 class Texture2D {
 public:
-  // 接收一个基图，构造时自动生成 mip 链，需指定纹理的色彩空间。
-  explicit Texture2D(Image2D<Color> base, ColorSpace space);
+  /// @brief 接收一个基图，需指定色彩空间。
+  explicit Texture2D(Image2D<Color> base_image, ColorSpace color_space);
 
-  i32 width()   const noexcept { return mip_levels_[0].width(); }
-  i32 height()  const noexcept { return mip_levels_[0].height(); }
-  f32 widthF()  const noexcept { return mip_levels_[0].widthF(); }
+  i32 width()   const noexcept { return mip_levels_[0].width();   }
+  i32 height()  const noexcept { return mip_levels_[0].height();  }
+  f32 widthF()  const noexcept { return mip_levels_[0].widthF();  }
   f32 heightF() const noexcept { return mip_levels_[0].heightF(); }
 
-  i32 mipLevelCount() const noexcept {
+  /// @brief 返回 mip 链层级数。
+  i32 mipCount() const noexcept {
     return static_cast<i32>(mip_levels_.size());
   }
 
+  /// @brief 返回纹理的原始色彩空间。
   ColorSpace colorSpace() const noexcept { return color_space_; }
 
+  /// @brief 生成 Mipmap 链。
+  void generateMips();
+
+  /// @brief 获取指定 mip 层级。
+  /// @note  std::vector::operator[] 返回的是引用，因此 decltype(auto) 一定会返回引用。
   const Image2D<Color>& mipLevel(i32 level) const noexcept {
-    assert(level >= 0 && level < mipLevelCount());
+    assert(level >= 0 && level < mipCount());
     return mip_levels_[level];
+  }
+
+  /// @brief 获取原图
+  decltype(auto) baseImage(this auto& self) noexcept {
+    return self.mip_levels_[0];
   }
 
 private:

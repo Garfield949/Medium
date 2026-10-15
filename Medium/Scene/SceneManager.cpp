@@ -27,6 +27,9 @@ bool SceneManager::switchScene(std::string_view lua_file_name, f32 aspect_ratio)
     fmt::print("Failed\n");
     return false;
   }
+
+  if(!new_scene->switchSkybox("desert.png"))
+    return false;
   
   // 这里会调用 unique_ptr 的移动赋值，并自动释放掉之前的场景资源。
   active_scene_ = std::move(new_scene);

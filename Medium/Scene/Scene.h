@@ -6,8 +6,8 @@
 ///
 #pragma once
 
-#include <filesystem>
 #include <span>
+#include <filesystem>
 
 #include "Base/Geometry/AABB3D.h"
 #include "Scene/Node.h"
@@ -17,6 +17,7 @@ namespace Medium {
 class Camera;
 class DirectionalLight;
 class MeshNode;
+class CubeMap;
 
 class Scene {
   /// @brief 从 .obj 构建场景时，为了方便需访问 Scene 实例的私有成员，故将 SceneLoader 作为友元。
@@ -40,7 +41,15 @@ public:
     return self.main_camera_;
   }
   
-  DirectionalLight* directionalLight() const noexcept { return dir_light_; }
+  auto directionalLight(this auto& self) noexcept {
+    return self.dir_light_;
+  }
+
+  auto skybox(this auto& self) noexcept {
+    return self.skybox_cubemap_;
+  }
+
+  bool switchSkybox(std::string_view img_filename);
 
   // 注：该方法的 const 修饰符，隐含了返回类型 const std::vector<const MeshNode*> : 即既无法改变数组中
   // MeshNode* 指向的内容，也禁止改变 MeshNode* 本身（指向别的地址）。故 span 的模板参数必须为一个同时为
@@ -57,8 +66,11 @@ private:
   Node root_{"Scene Root"};
 
   // 相机和方向光是观察指针，实例的生命周期由 root_ 持有，root_ 析构时会自动释放。
-  Camera* main_camera_ = nullptr;  
-  DirectionalLight* dir_light_ = nullptr;
+  Camera*           main_camera_ = nullptr;
+  DirectionalLight* dir_light_   = nullptr;
+
+  // 持有天空盒 CubeMap 的观察指针。
+  CubeMap* skybox_cubemap_ = nullptr;
 
   std::vector<MeshNode*> mesh_nodes_;
 

@@ -28,6 +28,8 @@ struct BlinnShader {
 
     const CSMContext* csm_ctx = nullptr; // 级联阴影采样数据
   };
+
+  Uniform uniforms;
   
   static constexpr u32 kOffsetNormal       = kOffsetUV      + 2;
   static constexpr u32 kOffsetTangent      = kOffsetNormal  + 3;
@@ -43,7 +45,11 @@ struct BlinnShader {
   [[nodiscard]]
   bool fragment(const FSIn& fs_in, LinearColor& frag_color) const noexcept;
 
-  Uniform uniforms;
+  void enableMipmap(bool enable) noexcept { mipmap_enabled_ = enable; }
+  bool mipmapEnabled() const noexcept { return mipmap_enabled_; }
+
+private:
+  bool mipmap_enabled_ = true;
 };
 
 } // namespace Medium

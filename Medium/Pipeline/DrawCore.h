@@ -30,7 +30,7 @@ struct IndexedDrawView {
   std::span<const size_t> indices;
   size_t index_offset;
   size_t index_count;
-  size_t vertex_offset;
+  size_t vertex_offset = 0;
   // ImGui 的新增支持项，给定一个 vertices 的基偏移量，例子如下：
   // vertices: [0 ... 999], indices: {0, 1, 2}, vertex_offset = 500.
   // 那么 indices 指代的三角形为：

@@ -27,8 +27,9 @@ void Camera::setAspectRatio(f32 aspect_ratio_new) noexcept {
   dirty_proj_matrix_ = true;
 }
 
-void Camera::setFOV(f32 fov) noexcept {
-  fov_y_ = fov;
+void Camera::setFOV(f32 fov_new) noexcept {
+  if(fov_new == fov_y_) return;
+  fov_y_ = fov_new;
   dirty_proj_matrix_ = true;
 }
 
