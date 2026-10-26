@@ -31,6 +31,7 @@ using f64 = double;
 using Aff3f = Eigen::Affine3f;
 using Mat3f = Eigen::Matrix3f;
 using Mat4f = Eigen::Matrix4f;
+using Vec3d = Eigen::Vector3d;
 using Vec3f = Eigen::Vector3f;
 using Vec4f = Eigen::Vector4f;
 using Vec3i = Eigen::Vector3i;

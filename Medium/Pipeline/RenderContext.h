@@ -15,6 +15,7 @@
 namespace Medium {
 
 class  FrameBuffer;
+class  EnvironmentSH9;
 struct RectF;
 struct CSMContext;
 
@@ -32,6 +33,7 @@ struct LightingContext {
   Vec3f       light_dir;
   LinearColor light_color;
   const CSMContext* csm_ctx = nullptr;
+  const EnvironmentSH9* sh9  = nullptr;
 };
 
 /// @struct ShaderBindContext

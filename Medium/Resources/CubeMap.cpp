@@ -11,7 +11,7 @@
 
 namespace Medium {
 
-std::unique_ptr<CubeMap> CubeMap::FromHorizontalCross(const Image2D<Color>& image) {
+CubeMap CubeMap::FromHorizontalCross(const Image2D<Color>& image) {
   const std::array face_coords{
     Vec2i{2, 1}, Vec2i{0, 1},  // +-X
     Vec2i{1, 2}, Vec2i{1, 0},  // +-Y
@@ -20,10 +20,10 @@ std::unique_ptr<CubeMap> CubeMap::FromHorizontalCross(const Image2D<Color>& imag
 
   const i32 face_size = image.height() / 3;
 
-  auto res = std::make_unique<CubeMap>();
+  CubeMap res;
 
   for(i32 i = 0; i < 6; ++i) {
-    auto& face = res->faces_[i];
+    auto& face = res.faces_[i];
     face.resize(face_size);
 
     const i32 origin_x = face_coords[i].x() * face_size;

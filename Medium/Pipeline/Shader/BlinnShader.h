@@ -7,14 +7,13 @@
 #include "Pipeline/Shader/ShaderTypes.h"
 
 namespace Medium {
-  class Material;
-  struct Vertex;
-  struct CSMContext;
-  struct ShaderBindContext;
-  struct FSPayload;
-}
 
-namespace Medium {
+class  Material;
+class  EnvironmentSH9;
+struct Vertex;
+struct CSMContext;
+struct ShaderBindContext;
+struct FSPayload;
 
 struct BlinnShader {
   struct Uniform {
@@ -25,17 +24,18 @@ struct BlinnShader {
 
     Vec3f       light_dir_inv;           // 光照计算
     LinearColor light_color;             // 光线颜色
+    const EnvironmentSH9* sh9 = nullptr;  // 9系球谐函数，漫反射计算
 
     const CSMContext* csm_ctx = nullptr; // 级联阴影采样数据
   };
 
   Uniform uniforms;
   
-  static constexpr u32 kOffsetNormal       = kOffsetUV      + 2;
-  static constexpr u32 kOffsetTangent      = kOffsetNormal  + 3;
-  static constexpr u32 kOffsetDet          = kOffsetTangent + 3;
-  static constexpr u32 kOffsetPos          = kOffsetDet     + 1;
-  static constexpr u32 kVaryingScalarCount = kOffsetPos     + 3;
+  static constexpr i32 kOffsetNormal       = kOffsetUV      + 2;
+  static constexpr i32 kOffsetTangent      = kOffsetNormal  + 3;
+  static constexpr i32 kOffsetDet          = kOffsetTangent + 3;
+  static constexpr i32 kOffsetPos          = kOffsetDet     + 1;
+  static constexpr i32 kVaryingScalarCount = kOffsetPos     + 3;
   
   void bind(const ShaderBindContext& bind_ctx, const Mat4f& world, const Material* mat) noexcept;
 

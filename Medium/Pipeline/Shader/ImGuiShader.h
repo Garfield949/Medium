@@ -24,8 +24,8 @@ struct ImGuiShader {
     const Image2D<Color>* texture = nullptr;  // ImGui 当前 ImDrawCmd 使用的贴图（若是 UI 文本，则是一个 font atlas）。
   };
 
-  static constexpr u32 kOffsetColor        = kOffsetUV    + 2;
-  static constexpr u32 kVaryingScalarCount = kOffsetColor + 4;
+  static constexpr i32 kOffsetColor        = kOffsetUV    + 2;
+  static constexpr i32 kVaryingScalarCount = kOffsetColor + 4;
 
   // Dummy.
   void bind(const ShaderBindContext&, const Mat4f&, const Material*) noexcept {}

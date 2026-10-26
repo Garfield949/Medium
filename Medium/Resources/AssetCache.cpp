@@ -12,10 +12,11 @@
 #include <stb_image.h>
 #include <fmt/color.h>
 
-#include "Base/Color.h"
 #include "Base/Log.h"
+#include "Base/Color.h"
 
 #include "Mesh.h"
+#include "SkyBox.h"
 #include "CubeMap.h"
 #include "Material.h"
 #include "Texture2D.h"
@@ -113,8 +114,8 @@ void parseSubMeshesFromShapes(Mesh* mesh_new, const attrib_t& attrib, const std:
       submesh.material_index = mat_id;
       // 将每个 SubMesh 顶点去重并计算顶点索引，并更新 index_map
       for(const index_t& index : face_indices) {
-        auto it = vert_pos_by_index_t.find(index);
-        if(it == vert_pos_by_index_t.end()) {
+        auto iter = vert_pos_by_index_t.find(index);
+        if(iter == vert_pos_by_index_t.end()) {
           // 原地构造一个 Vertex 对象。
           mesh_new->vertices.emplace_back(extractToVec3f(attrib.vertices,  index.vertex_index),
                                           extractToVec3f(attrib.normals,   index.normal_index),
@@ -124,7 +125,7 @@ void parseSubMeshesFromShapes(Mesh* mesh_new, const attrib_t& attrib, const std:
           vert_pos_by_index_t[index] = new_vert_pos;            // unordered_map 存入键值对
           mesh_new->indices.push_back(new_vert_pos);            // Mesh 的索引数组存入对应顶点在 mesh_new.vertices 中的下标
         } else
-          mesh_new->indices.push_back(it->second);              // 已存在则直接存入对应顶点在 mesh_new.vertices 中的下标
+          mesh_new->indices.push_back(iter->second);              // 已存在则直接存入对应顶点在 mesh_new.vertices 中的下标
       }
       mesh_new->sub_meshes.push_back(submesh);
     }
@@ -166,10 +167,10 @@ const Mesh* AssetCache::loadFromObj(const fs::path& obj_path) {
   const auto& mesh_key      = obj_path_str;
 
   // 若迭代器 == mesh_cache_.end()，说明并不存在 key 对应的值。
-  if(auto it = mesh_cache_.find(mesh_key); it != mesh_cache_.end()) {
+  if(auto iter = mesh_cache_.find(mesh_key); iter != mesh_cache_.end()) {
     Log::printLogPrefix("AssetCache", "loadFromObj", false);
     fmt::print("[{}] cached\n", obj_path_str);
-    Mesh* mesh_cached = it->second.get();
+    Mesh* mesh_cached = iter->second.get();
     return mesh_cached;
   }
 
@@ -225,16 +226,18 @@ const Mesh* AssetCache::loadFromObj(const fs::path& obj_path) {
   // 依据情况计算 Mesh 的顶点法线、切线以及包围盒
   meshPostProcess(mesh_owned.get(), attrib.normals.empty());
 
-  auto it = mesh_cache_.emplace(mesh_key, std::move(mesh_owned)).first;
-  return it->second.get();
+  // emplace 返回一个 std::pair<iterator, bool>，其中 bool 指示 key 是否已存在。
+  // std::unique_ptr 禁止拷贝，只能移动。
+  auto iter = mesh_cache_.emplace(mesh_key, std::move(mesh_owned)).first;
+  return iter->second.get();
 }
 
-CubeMap* AssetCache::loadHorizontalCrossSkybox(const std::filesystem::path& img_path) {
-  const std::string img_path_str = img_path.generic_string();
+SkyBox* AssetCache::loadSkyBox(const std::filesystem::path& cubemap_img_path) {
+  const std::string img_path_str = cubemap_img_path.generic_string();
   auto& img_key = img_path_str;
 
-  if(auto it = skybox_cache_.find(img_key); it != skybox_cache_.end()) {
-    CubeMap* skybox_cached = it->second.get();
+  if(auto iter = skybox_cache_.find(img_key); iter != skybox_cache_.end()) {
+    SkyBox* skybox_cached = iter->second.get();
     Log::printLogPrefix("AssetCache", "loadHorizontalCrossSkybox", false);
     fmt::print("[{}] cached\n", img_path_str);
     return skybox_cached;
@@ -248,22 +251,25 @@ CubeMap* AssetCache::loadHorizontalCrossSkybox(const std::filesystem::path& img_
                                  &height,
                                  &channels,
                                  STBI_rgb_alpha); // 强制补齐 alpha 通道。
-
   if(!raw) {
     Log::printLogPrefix("AssetCache", "loadHorizontalCrossSkybox", true);
     fmt::print("StbImage::{}\n\n", stbi_failure_reason());
     return nullptr;
   }
 
-  Image2D<Color> base{width, height};
+  Image2D<Color> img_base{width, height};
 
-  std::memcpy(base.data(), raw, base.pixelCount() * sizeof(Color));
+  std::memcpy(img_base.data(), raw, img_base.pixelCount() * sizeof(Color));
   stbi_image_free(raw);
 
-  std::unique_ptr<CubeMap> skybox_owned = CubeMap::FromHorizontalCross(base);
+  auto skybox_owned     = std::make_unique<SkyBox>();
+  skybox_owned->cubemap = CubeMap::FromHorizontalCross(img_base);
+  skybox_owned->sh9     = EnvironmentSH9::FromCubeMap(skybox_owned->cubemap);
 
-  auto it = skybox_cache_.emplace(img_key, std::move(skybox_owned)).first;
-  return it->second.get();
+  // emplace 返回一个 std::pair<iterator, bool>，其中 bool 指示 key 是否已存在。
+  // std::unique_ptr 禁止拷贝，只能移动。
+  auto iter = skybox_cache_.emplace(img_key, std::move(skybox_owned)).first;
+  return iter->second.get();
 }
 
 void AssetCache::parseMTL(Mesh* mesh_new,
@@ -311,8 +317,8 @@ Texture2D* AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& c
   // C++23 小工具 std::to_underlying, 将枚举值转换为其底层整型值。
   const std::string tex_key = fmt::format("{}#colorspace={}", tex_path_str, std::to_underlying(color_space));
 
-  if(auto it = texture_cache_.find(tex_key); it != texture_cache_.end()) {
-    Texture2D* tex_cached = it->second.get();
+  if(auto iter = texture_cache_.find(tex_key); iter != texture_cache_.end()) {
+    Texture2D* tex_cached = iter->second.get();
     Log::printLogPrefix("AssetCache", "loadTexture", false);
     fmt::print("[{}] cached\n", tex_path_str);
     return tex_cached;
@@ -344,8 +350,8 @@ Texture2D* AssetCache::loadTexture(const fs::path& tex_path, const ColorSpace& c
 
   // emplace 返回一个 std::pair<iterator, bool>，其中 bool 指示 key 是否已存在。
   // std::unique_ptr 禁止拷贝，只能移动。
-  auto it = texture_cache_.emplace(tex_key, std::move(texture_owned)).first;
-  return it->second.get();
+  auto iter = texture_cache_.emplace(tex_key, std::move(texture_owned)).first;
+  return iter->second.get();
 }
 
 } // namespace Medium

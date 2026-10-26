@@ -93,7 +93,7 @@ inline f32 sampleVisibility(const CSMContext* csm_ctx,
 
     constexpr f32 z_bias = 0.0001f;
 
-    if(z_frag + z_bias < z_map) visibility = 0.3f;
+    if(z_frag + z_bias < z_map) visibility = 0.2f;
   }
 
   return visibility;

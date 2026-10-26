@@ -21,7 +21,7 @@ namespace Medium {
 enum class ColorSpace;
 class Mesh;
 class Texture2D;
-class CubeMap;
+struct SkyBox;
 
 class AssetCache {
 public:
@@ -40,7 +40,7 @@ public:
   [[nodiscard]] const Mesh* loadFromObj (const std::filesystem::path& obj_path);
 
   // 加载天空盒 cubemap 图片。
-  [[nodiscard]] CubeMap* loadHorizontalCrossSkybox(const std::filesystem::path& img_path);
+  [[nodiscard]] SkyBox* loadSkyBox(const std::filesystem::path& cubemap_img_path);
 
 private:
   void parseMTL(Mesh* mesh_new,
@@ -51,7 +51,7 @@ private:
 
   std::unordered_map<std::string, std::unique_ptr<Mesh>>      mesh_cache_;
   std::unordered_map<std::string, std::unique_ptr<Texture2D>> texture_cache_;
-  std::unordered_map<std::string, std::unique_ptr<CubeMap>>   skybox_cache_;
+  std::unordered_map<std::string, std::unique_ptr<SkyBox>>    skybox_cache_;
 };
 
 } // Medium

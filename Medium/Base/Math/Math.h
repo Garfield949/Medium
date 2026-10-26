@@ -8,7 +8,7 @@
 
 namespace Medium::Math {
 
-inline constexpr f32 MediumPi         = 3.141592653f;
+inline constexpr f32 Pi               = 3.141592653f;
 inline constexpr f32 KindaSmallNumber = 1e-4f;
 inline constexpr f32 VerySmallNumber  = 1e-6f;
 inline constexpr f32 KindaLikeOne     = 0.999f;
@@ -38,13 +38,13 @@ bool isBetween(T val, T min, T max) noexcept {
 /// @brief 度数转弧度
 [[nodiscard]]
 constexpr f32 deg_to_rad(f32 deg) noexcept {
-  return MediumPi * deg / 180.0f;
+  return Pi * deg / 180.0f;
 }
 
 /// @brief 弧度转度数
 [[nodiscard]]
 constexpr f32 rad_to_deg(f32 rad) noexcept {
-  return rad * 180.0f / MediumPi;
+  return rad * 180.0f / Pi;
 }
 
 /// @brief 浮点向量叉积；

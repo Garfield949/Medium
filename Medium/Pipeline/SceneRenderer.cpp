@@ -11,10 +11,10 @@
 #include "Pipeline/RenderStatus.h"
 #include "Pipeline/DrawCore.h"
 #include "Pipeline/FrameBuffer.h"
-#include "Resources/CubeMap.h"
 #include "Scene/Camera.h"
 #include "Scene/MeshNode.h"
 #include "Scene/Light/DirectionalLight.h"
+#include "Resources/SkyBox.h"
 
 namespace Medium {
 
@@ -52,7 +52,7 @@ void SceneRenderer::bind(const Camera *camera, const DirectionalLight* dir_light
 
 void SceneRenderer::render(std::span<const MeshNode* const> scene_mesh_nodes,
                            const CSMContext* csm_ctx,
-                           CubeMap*          skybox_cubemap,
+                           SkyBox*           skybox,
                            FrameBuffer&      frame_buffer,
                            RenderStatus&     render_status)
 {
@@ -72,7 +72,8 @@ void SceneRenderer::render(std::span<const MeshNode* const> scene_mesh_nodes,
   LightingContext lighting_ctx {
     .light_dir   = dir_light_->dir(),
     .light_color = dir_light_->color,
-    .csm_ctx     = csm_ctx
+    .csm_ctx     = csm_ctx,
+    .sh9         = &skybox->sh9
   };
 
   ShaderBindContext shader_ctx{
@@ -94,7 +95,7 @@ void SceneRenderer::render(std::span<const MeshNode* const> scene_mesh_nodes,
 
   // ---------- Skybox Pass
   if(opaque_render_state_.draw_mode == DrawMode::Shaded)
-    drawSkybox(frame_buffer, skybox_cubemap, render_status);
+    drawSkybox(frame_buffer, skybox->cubemap, render_status);
 
   // ---------- Transparent Pass
   RenderPassContext transparent_pass_ctx{
@@ -113,9 +114,9 @@ void SceneRenderer::render(std::span<const MeshNode* const> scene_mesh_nodes,
   render_status.statistics.scene_transp_draw_calls += transp_queue_.drawCommands().size();
 }
 
-void SceneRenderer::drawSkybox(FrameBuffer&  frame_buffer,
-                               CubeMap*      skybox_cubemap,
-                               RenderStatus& render_status) const
+void SceneRenderer::drawSkybox(FrameBuffer&   frame_buffer,
+                               const CubeMap& skybox_cubemap,
+                               RenderStatus&  render_status) const
 {
   const i32 w   = frame_buffer.width() , h   = frame_buffer.height();
   const f32 w_f = frame_buffer.widthF(), h_f = frame_buffer.heightF();
@@ -142,7 +143,7 @@ void SceneRenderer::drawSkybox(FrameBuffer&  frame_buffer,
       // 将视线向量转换到世界空间。
       const Vec3f dir_world = mat_world_rot * dir_view;
 
-      frame_buffer.writeHDRColor(frag_idx, skybox_cubemap->sample(dir_world));
+      frame_buffer.writeHDRColor(frag_idx, skybox_cubemap.sample(dir_world));
 
       render_status.statistics.written_pixels++;
     }

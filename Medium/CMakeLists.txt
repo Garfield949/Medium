@@ -25,6 +25,7 @@ target_sources(${PROJECT_NAME} PRIVATE
     Platform/Timer.cpp
     Resources/AssetCache.cpp
     Resources/CubeMap.cpp
+    Resources/EnvironmentSH9.cpp
     Resources/Material.cpp
     Resources/Mesh.cpp
     Resources/Texture2D.cpp

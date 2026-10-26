@@ -20,7 +20,7 @@ struct DepthShader {
     const Material* material = nullptr;
   };
 
-  static constexpr u32 kVaryingScalarCount = kOffsetUV + 2;
+  static constexpr i32 kVaryingScalarCount = kOffsetUV + 2;
   
   void bind(const ShaderBindContext& bind_ctx, const Mat4f& world, const Material* mat) noexcept;
 

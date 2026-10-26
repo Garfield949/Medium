@@ -31,14 +31,14 @@ void ImGuiInspector::run() {
   // 同步 ShadowManager 的相关状态，所以需要在外部特判一下。
   if(!render_manager->shadowingEnabled()) {
     auto& shadow_manager = render_manager->shadowManager();
-    
+
     shadow_manager.requestAtlasDebugView(false);
     shadow_manager.enableCascadeBandView(false);
     shadow_manager.freezeCSM(false);
 
     show_csm_atlas_ = false;
   }
-  
+
   if(show_csm_atlas_) showCSMAtlasWindow();
 }
 
@@ -47,21 +47,21 @@ void ImGuiInspector::showStatisticsWindow() {
   ImGui::SetNextWindowSize(ImVec2{w_statistics_window_, 0.0f});     // 高度设为 0，让 ImGui 自动计算。
 
   static bool collapsed = false;
-  
-  // ImGuiMod_Ctrl 在 macOS 下映射为 command. 
+
+  // ImGuiMod_Ctrl 在 macOS 下映射为 command.
   // 后面的 flag 保证无论 statistics 窗口是否为焦点，都会响应快捷键。
   if(ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_1, ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused)) {
     collapsed = !collapsed;
     ImGui::SetNextWindowCollapsed(collapsed);  // 按下快捷键才设置窗口是否折叠，否则放到外面会覆盖鼠标的点击。
   }
-  
-  if(!ImGui::Begin("Statistics - Ctrl/Cmd+1", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) { 
+
+  if(!ImGui::Begin("Statistics - Ctrl/Cmd+1", nullptr, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize)) {
     ImGui::End();  // 如果折叠了窗口则进行 early out.
     return;
   }
-  
-  ImGuiIO& io = ImGui::GetIO(); 
-  
+
+  ImGuiIO& io = ImGui::GetIO();
+
   ShadowManager& shadow_manager = render_manager->shadowManager();
   const RenderStatus& render_status = render_manager->renderStatus();
 
@@ -104,7 +104,7 @@ void ImGuiInspector::showStatisticsWindow() {
 
 void ImGuiInspector::showInspectorWindow() {
   ImGuiIO& io = ImGui::GetIO(); (void)io;
-  
+
   ImGui::SetNextWindowPos(ImVec2{io.DisplaySize.x - w_inspector_window_ - window_margin_, window_margin_});
   ImGui::SetNextWindowSize(ImVec2{w_inspector_window_, 0.0f});
   ImGui::SetNextWindowSizeConstraints(
@@ -113,7 +113,7 @@ void ImGuiInspector::showInspectorWindow() {
   );
 
   static bool collapsed = false;
-  
+
   if(ImGui::Shortcut(ImGuiMod_Ctrl | ImGuiKey_2, ImGuiInputFlags_RouteGlobal | ImGuiInputFlags_RouteOverFocused)) {
     collapsed = !collapsed;
     ImGui::SetNextWindowCollapsed(collapsed);
@@ -148,12 +148,12 @@ void ImGuiInspector::showScenePanel() {
   if(ImGui::CollapsingHeader("Scene", ImGuiTreeNodeFlags_DefaultOpen)) {
     ImGui::Spacing();
     ImGui::Spacing();
-    
+
     static const char* scene_filenames[]     {"sponza.lua", "minecraft.lua", "porsche.lua", "snake.lua", "house.lua", "teapot.lua"};
     static const char* scene_display_names[] {"Sponza", "Minecraft", "Porsche", "Snake Statue", "House", "Teapot"};
     static int scene_selected_idx = 0;
     static bool scene_switched = true;
-  
+
     ImGui::PushItemWidth(150.0f);
     if(ImGui::BeginCombo(" Scene List", scene_display_names[scene_selected_idx])) {
       for(int n = 0; n < IM_COUNTOF(scene_display_names); n++) {
@@ -183,8 +183,8 @@ void ImGuiInspector::showScenePanel() {
     ImGui::PopItemWidth();
 
     ImGui::SeparatorText("Skybox");
-    static const char* cubemap_filenames[]     {"desert.png", "river.png"};
-    static const char* cubemap_display_names[] {"Desert", "River"};
+    static const char* cubemap_filenames[]     {"desert.png", "lake.png"};
+    static const char* cubemap_display_names[] {"Desert", "Lake"};
     static int cubemap_selected_idx = 0;
 
     if(scene_switched) cubemap_selected_idx = 0;
@@ -203,7 +203,7 @@ void ImGuiInspector::showScenePanel() {
       ImGui::EndCombo();
     }
     ImGui::PopItemWidth();
-    
+
     ImGui::SeparatorText("Directional Light");
     DirectionalLight* dir_light = scene_manager->activeScene()->directionalLight();
 
@@ -214,7 +214,7 @@ void ImGuiInspector::showScenePanel() {
       light_dir = dir_light->dir();
       scene_switched = false;
     }
-    
+
     if(ImGui::SliderFloat(" Dir X", &light_dir.x(), -1.0f, 1.0f)) dir_light->setDir(light_dir);
     if(ImGui::SliderFloat(" Dir Y", &light_dir.y(), -1.0f, 0.0f)) dir_light->setDir(light_dir);
     if(ImGui::SliderFloat(" Dir Z", &light_dir.z(), -1.0f, 1.0f)) dir_light->setDir(light_dir);
@@ -223,14 +223,14 @@ void ImGuiInspector::showScenePanel() {
     ImGui::Spacing();
 
     ImGui::Checkbox("Cast Shadows", &dir_light->cast_shadows);
-  
+
     ImGui::SeparatorText("Main Camera");
 
     auto camera = scene_manager->activeScene()->mainCamera();
     f32 fov = camera->fov();
     if(ImGui::SliderFloat(" Fov", &fov,  50.0f, 120.0f))
       camera->setFOV(fov);
-    
+
     ImGui::Spacing();
   }
 }
@@ -243,7 +243,7 @@ void ImGuiInspector::showGraphicsPanel() {
     auto blinn_shader = render_manager->sceneRenderer().blinnShader();
 
     bool enable_mipmap = blinn_shader->mipmapEnabled();
-    
+
     if(ImGui::Checkbox("Mipmap", &enable_mipmap))
       blinn_shader->enableMipmap(enable_mipmap);
 
@@ -276,12 +276,12 @@ void ImGuiInspector::showDebugPanel() {
     ImGui::BeginDisabled(!render_manager->shadowingEnabled());
 
     ImGui::SeparatorText("Cascaded Shadow Mapping");
-    
+
     ShadowManager& shadow_manager = render_manager->shadowManager();
 
     // ---------- Cascade Resolution 禁用态起始 ----------
     ImGui::BeginDisabled(shadow_manager.cascadeBandViewEnabled() || shadow_manager.CSMFrozen());
-    
+
     static const i32   res[] = {256, 512, 1024, 2048};
     static const char* res_display_names[] = {"256", "512", "1024", "2048"};
     static int selected_idx = 2;
@@ -319,18 +319,18 @@ void ImGuiInspector::showDebugPanel() {
     ImGui::Separator();
 
     ImGui::BeginDisabled(frozen);
-    
+
     i32 cascade_count   = shadow_manager.cascadeCount();
     f32 max_shadow_dist = shadow_manager.maxShadowDistance();
 
     ImGui::PushItemWidth(200.0f);
-    
+
     if(ImGui::SliderFloat(" Max Shadow Distance", &max_shadow_dist,  0.2f, 50.0f))
       shadow_manager.setMaxShadowDistance(max_shadow_dist);
 
     if(ImGui::SliderInt(" Cascade Count", &cascade_count, 1, 4))
       shadow_manager.setCascadeCount(cascade_count);
-    
+
     ImGui::PopItemWidth();
 
     ImGui::EndDisabled();

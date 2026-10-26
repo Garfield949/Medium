@@ -22,8 +22,9 @@ class MeshNode;
 class DirectionalLight;
 class RenderManager;
 class FrameBuffer;
-struct RenderStatus;
+struct SkyBox;
 struct CSMContext;
+struct RenderStatus;
 
 class SceneRenderer {
 public:
@@ -38,7 +39,7 @@ public:
   /// @brief 渲染场景。
   void render(std::span<const MeshNode* const> scene_mesh_nodes,
               const CSMContext* csm_ctx,
-              CubeMap*          skybox_cubemap,
+              SkyBox*           skybox,
               FrameBuffer&      frame_buffer,
               RenderStatus&     render_status);
 
@@ -60,9 +61,9 @@ public:
   BlinnShader* blinnShader() { return &std::get<BlinnShader>(blinn_shader_); }
 
 private:
-  void drawSkybox(FrameBuffer&  frame_buffer,
-                  CubeMap*      skybox_cubemap,
-                  RenderStatus& render_status) const;
+  void drawSkybox(FrameBuffer&   frame_buffer,
+                  const CubeMap& skybox_cubemap,
+                  RenderStatus&  render_status) const;
 
   ShaderVariant blinn_shader_ = BlinnShader{};
 

@@ -9,6 +9,7 @@
 - 枚举：FooBar
 - 静态变量：FooBar
 - 全局常量：FooBar
+- constexpr常量：kFooBar / kFOO_BAR
 - 宏：MEDIUM_FOO_BAR
 
 - 普通变量：foo_bar

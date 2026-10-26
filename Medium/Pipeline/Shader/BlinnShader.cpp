@@ -6,16 +6,15 @@
 ///
 #include "BlinnShader.h"
 
-#include <array>
-
 #include "Base/Color.h"
 #include "Pipeline/Shadow/CSM.h"
-#include "Resources/TextureSlot.h"
-#include "Resources/Vertex.h"
-#include "Resources/Material.h"
-#include "Resources/Sampler.h"
 #include "Pipeline/RenderContext.h"
 #include "Pipeline/Shadow/ShadowQuery.h"
+#include "Resources/Vertex.h"
+#include "Resources/Sampler.h"
+#include "Resources/Material.h"
+#include "Resources/TextureSlot.h"
+#include "Resources/EnvironmentSH9.h"
 
 namespace Medium {
 
@@ -30,7 +29,8 @@ void BlinnShader::bind(const ShaderBindContext& bind_ctx, const Mat4f& world, co
     .material      = mat,
 
     .light_dir_inv = -lighting_ctx->light_dir,
-    .light_color   = lighting_ctx->light_color,
+    .light_color   =  lighting_ctx->light_color,
+    .sh9           =  lighting_ctx->sh9,
 
     .csm_ctx = lighting_ctx->csm_ctx,
   };
@@ -65,11 +65,11 @@ bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noe
 
   const Material* mat = uniforms.material;
 
-  LinearColor diffuse = sampleSlot(mat->diff_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy, mipmap_enabled_);
+  LinearColor albedo = sampleSlot(mat->diff_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy, mipmap_enabled_);
 
   f32 frag_alpha = 1.0f;
   if(mat->surface_mode == Material::SurfaceMode::Masked) { // Alpha Test
-    f32 value = diffuse.A;
+    f32 value = albedo.A;
     if(value < Material::kAlphaCutoff) return true;
   } else if(mat->surface_mode == Material::SurfaceMode::Transparent) {
     frag_alpha = mat->params.d;
@@ -178,11 +178,13 @@ bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noe
   }
 
   // 不受光的 frag 漫反射强度从 [-1,1] 被 wrap 到 [0.5,1] 再到 [0.25,1]，原半兰伯特是将 [-1,1] 映射到 [0,1].
-  f32 half_lambert = std::max(nl_shading, 0.0f) * 0.5f + 0.5f;
+  f32 half_lambert = std::pow(nl_shading * 0.5f + 0.5f, 2.0f);
 
-  f32 diff = half_lambert * half_lambert;
+  LinearColor direct = (albedo * half_lambert + specular) * uniforms.light_color * frag_visibility;
 
-  frag_color = (diffuse * diff + specular) * uniforms.light_color * frag_visibility;
+  LinearColor ambient = albedo * uniforms.sh9->evaluate(frag_n);
+
+  frag_color = direct + ambient;
 
   frag_color.A = frag_alpha;
 

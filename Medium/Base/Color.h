@@ -23,7 +23,7 @@ enum class ColorSpace {
 // https://www.w3.org/Graphics/Color/srgb
 inline const std::array<f32, 256> GammaDecodingLUT = [] {
   std::array<f32, 256> lut{};
-  constexpr f32 inv255 = 1.0f / 255.0f;
+  const f32 inv255 = 1.0f / 255.0f;
   for (size_t i = 0; i < 256; ++i) {
     if (const f32 channel = static_cast<f32>(i) * inv255; channel <= 0.04045f)
       lut[i] = channel / 12.92f;
