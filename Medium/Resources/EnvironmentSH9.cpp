@@ -99,7 +99,7 @@ EnvironmentSH9 EnvironmentSH9::FromCubeMap(const CubeMap &cube_map) {
         
         const auto sh9_basis = getSH9Basis(dir_world);
 
-        // ci = Σ L(ω) * Y_i(ω) * Δω
+        // ci = Σ L(ω) * Y_i(ω) * dω
         for(size_t i = 0; i < 9; ++i)
           coeff_acc[i] += Lw * static_cast<f64>(sh9_basis[i]) * solid_angle;
       }
