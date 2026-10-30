@@ -46,8 +46,7 @@ bool App::init() {
   if(!scene_manager_.init(window_manager_.aspectRatio()))
     return false;
 
-  if(!render_manager_.init(scene_manager_.activeScene(), window_manager_.physicalExtent()))
-    return false;
+  render_manager_.init(scene_manager_.activeScene(), window_manager_.physicalExtent());
 
   controller_.bind(scene_manager_.activeScene()->mainCamera(), &input_);
 

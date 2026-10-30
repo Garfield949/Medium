@@ -8,14 +8,11 @@
 
 #include <span>
 
-#include "Base/Geometry/Rect.h"
-
+#include "Pipeline/DrawQueue.h"
+#include "Pipeline/Shadow/CSM.h"
 #include "Pipeline/FrameBuffer.h"
 #include "Pipeline/RenderContext.h"
-#include "Pipeline/DrawQueue.h"
 #include "Pipeline/Shader/ShaderVariant.h"
-#include "Pipeline/Shadow/CSM.h"
-
 #include "Resources/Image2D.h"
 
 namespace Medium {
@@ -33,28 +30,64 @@ class ShadowManager {
 public:
   explicit ShadowManager() = default;
 
-  [[nodiscard]]
-  bool init(const Camera* main_camera,
-            DirectionalLight* dir_light, 
-            f32 max_shadow_dist,
-            i32 cascade_count);
-  
-  /// @brief 渲染。
+  void init(f32 max_shadow_dist, i32 cascade_count);
+
+  /// @note 需调用 DirectionalLight::applyViewFit, 所以指针不设 const.
   void render(std::span<const MeshNode* const> scene_mesh_nodes,
-              const AABB3D& bbox_scene_ws,
-              RenderStatus& render_status);
+              const Camera*     main_camera,
+              DirectionalLight* dir_light,
+              const AABB3D&     bbox_scene_ws,
+              RenderStatus&     render_status);
 
   // ---------- Setters ----------
-  /// @brief 绑定新的上下文。
-  void bind(const Camera* camera,
-            DirectionalLight* dir_light,
-            f32 max_shadow_dist,
-            i32 cascade_count) noexcept;
-
   /// @brief 设置 Cascade Tile 分辨率。
   void setCascadeTileRes(i32 res);
 
+  /// @brief 设置级联数量。
+  void setCascadeCount(i32 count) noexcept;
+
+  /// @brief 设置最大阴影距离。
+  void setMaxShadowDistance(f32 dist) noexcept;
+
+  /// @brief 设置是否冻结 CSM 数据。
+  void freezeCSM(bool freeze) noexcept {
+    if(freeze) csm_freeze_state_ = CSMFreezeState::Request;
+    else       csm_freeze_state_ = CSMFreezeState::UnFrozen;
+  }
+
+  /// @brief 设置是否显示级联带 debug 视图。
+  void enableCascadeBandView(bool enable) noexcept {
+    csm_ctx_.cascade_band_view_enabled = enable;
+  }
+
+  /// @brief 设置是否有显示 atlas debug 视图的需求。
+  void requestAtlasDebugView(bool request) noexcept {
+    atlas_preview_requested_ = request;
+  }
+
   // ---------- Getters ----------
+  /// @brief 获取级联切片信息。
+  const auto& cascadeSlices() const noexcept { return cascade_slices_; }
+  
+  /// @brief 获取单级联的分辨率。
+  i32 cascadeTileRes() const noexcept { return cascade_tile_res_; }
+
+  /// @brief 返回级联数量真值源。
+  i32 cascadeCount() const noexcept { return cascade_cnt_; }
+  
+  /// @brief 返回最大阴影距离真值源。
+  f32 maxShadowDistance() const noexcept { return max_shadow_dist_; }
+
+  /// @brief 返回是否已冻结 CSM 数据的真值源。
+  bool CSMFrozen() const noexcept {
+    return csm_freeze_state_ == CSMFreezeState::Frozen;
+  }
+
+  /// @brief 返回是否已启用级联带 debug 视图的真值源。
+  bool cascadeBandViewEnabled() const noexcept {
+    return csm_ctx_.cascade_band_view_enabled;
+  }
+
   /// @brief 获得 CSM 采样的上下文数据，主要用于着色器的 Shadow Query.
   const CSMContext& CSMCtx() const noexcept {
     return csm_ctx_;
@@ -64,53 +97,6 @@ public:
   const Image2D<Color>* CSMAtlasDebugImage() noexcept {
     updateAtlasDebugTexture();
     return &csm_atlas_debug_;
-  }
-  
-  /// @brief 获取级联切片信息。
-  const auto& cascadeSlices() const noexcept { return cascade_slices_; }
-  
-  /// @brief 获取单级联的分辨率。
-  i32 cascadeTileRes() const noexcept { return cascade_tile_res_; }
-
-  // ---------- ImGui ----------
-  /// @brief 设置级联数量。
-  void setCascadeCount(i32 count) noexcept;
-  
-  /// @brief 返回级联数量真值源。
-  i32 cascadeCount() const noexcept { return cascade_cnt_; }
-
-  /// @brief 设置最大阴影距离。
-  void setMaxShadowDistance(f32 dist) noexcept;
-  
-  /// @brief 返回最大阴影距离真值源。
-  f32 maxShadowDistance() const noexcept { return max_shadow_dist_; }
-
-  /// @brief 设置是否冻结 CSM 数据。
-  void freezeCSM(bool freeze) noexcept {
-    if(freeze)
-      csm_freeze_state_ = CSMFreezeState::Request;
-    else
-      csm_freeze_state_ = CSMFreezeState::UnFrozen;
-  }
-  
-  /// @brief 返回是否已冻结 CSM 数据的真值源。
-  bool CSMFrozen() const noexcept {
-    return csm_freeze_state_ == CSMFreezeState::Frozen;
-  }
-
-  /// @brief 设置是否显示级联带 debug 视图。
-  void enableCascadeBandView(bool enable) noexcept {
-    csm_ctx_.cascade_band_view_enabled = enable;
-  }
-
-  /// @brief 返回是否已启用级联带 debug 视图的真值源。
-  bool cascadeBandViewEnabled() const noexcept {
-    return csm_ctx_.cascade_band_view_enabled;
-  }
-
-  /// @brief 设置是否有显示 atlas debug 视图的需求。
-  void requestAtlasDebugView(bool request) noexcept {
-    atlas_preview_requested_ = request;
   }
 
 private:
@@ -139,7 +125,7 @@ private:
 private:
   ShaderVariant depth_shader_ = DepthShader{};
 
-  FrameBuffer    csm_atlas_{FrameBuffer::Type::DepthOnly};
+  FrameBuffer    csm_atlas_{FrameBuffer::Type::Depth};
   Image2D<Color> csm_atlas_debug_;
 
   CSMContext csm_ctx_;
@@ -149,9 +135,6 @@ private:
   i32 cascade_tile_res_ = 0;
   i32 cascade_cnt_      = 0;
   f32 max_shadow_dist_  = 0.0f;
-
-  const Camera* camera_ = nullptr;
-  DirectionalLight* dir_light_ = nullptr;  // 需 applyViewFit，不能是 const.
  
   RenderState opaque_render_state_;
   DrawQueue opaque_queue_{DrawQueue::Type::Opaque};

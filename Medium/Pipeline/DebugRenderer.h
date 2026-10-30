@@ -19,10 +19,10 @@ class DebugRenderer {
 public:
   explicit DebugRenderer() = default;
 
-  void drawAABBs(Mat4f mat_vp,
-                 const SceneDrawListView& draw_list,
-                 FrameBuffer&  frame_buffer,
-                 RenderStatus& render_status);
+  static void drawAABBs(Mat4f mat_vp,
+                        const SceneDrawListView& draw_list,
+                        FrameBuffer&  frame_buffer,
+                        RenderStatus& render_status);
 };
 
 } // namespace Medium

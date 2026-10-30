@@ -16,5 +16,5 @@ struct SceneDrawListView {
   std::span<const DrawCommand> opaque;
   std::span<const DrawCommand> transparent;
 };
-  
+
 } // namespace Medium

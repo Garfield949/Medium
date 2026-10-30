@@ -247,6 +247,12 @@ void ImGuiInspector::showGraphicsPanel() {
     if(ImGui::Checkbox("Mipmap", &enable_mipmap))
       blinn_shader->enableMipmap(enable_mipmap);
 
+    ImGui::SeparatorText("Ambient Occlusion");
+
+    bool enable_ssao = false;
+
+    ImGui::Checkbox("SSAO", &enable_ssao);
+
     ImGui::Spacing();
   }
 }

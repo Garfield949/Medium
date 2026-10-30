@@ -15,6 +15,7 @@ namespace Medium {
 /// @brief 视椎，纯几何类型，由六个世界空间中的裁剪平面描述。
 class Frustum {
 public:
+  explicit Frustum() = default;
   /// @brief 仅可通过 view projection 矩阵进行构造 Frustum
   static Frustum FromMatrixVP(const Mat4f& mat_vp) noexcept {
     Vec4f row0 = mat_vp.row(0); Vec4f row1 = mat_vp.row(1);
@@ -54,7 +55,6 @@ public:
   }
 
 private:
-  Frustum() = default;
   std::array<Plane, 6> planes;
 };
 

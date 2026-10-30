@@ -15,7 +15,7 @@ namespace Medium {
 class FrameBuffer {
 public:
   enum class Type {
-    ColorDepth, DepthOnly
+    ColorDepth, Depth
   };
 
   static constexpr f32 kDepthClearVal = 0.0f;

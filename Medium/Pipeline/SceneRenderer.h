@@ -6,75 +6,46 @@
 ///
 #pragma once
 
-#include <span>
-
-#include "Pipeline/DrawQueue.h"
 #include "Pipeline/RenderContext.h"
-#include "Pipeline/SceneDrawListView.h"
 #include "Pipeline/Shader/BlinnShader.h"
 #include "Pipeline/Shader/ShaderVariant.h"
 
 namespace Medium {
 
-class Camera;
-class CubeMap;
-class MeshNode;
-class DirectionalLight;
-class RenderManager;
 class FrameBuffer;
+class DirectionalLight;
+
 struct SkyBox;
 struct CSMContext;
 struct RenderStatus;
+struct CameraContext;
+struct SceneDrawListView;
 
 class SceneRenderer {
 public:
-  explicit SceneRenderer() = default;
+  explicit SceneRenderer();
 
-  [[nodiscard]]
-  bool init(const Camera* camera, const DirectionalLight* dir_light);
+  void render(const SceneDrawListView& draw_list_view,
+              const CameraContext&     camera_ctx,
+              const DirectionalLight*  dir_light,
+              const CSMContext*        csm_ctx,
+              const SkyBox*            skybox,
+              FrameBuffer&             frame_buffer,
+              RenderStatus&            render_status);
 
-  /// @brief 绑定新的上下文。
-  void bind(const Camera* camera, const DirectionalLight* dir_light) noexcept;
-
-  /// @brief 渲染场景。
-  void render(std::span<const MeshNode* const> scene_mesh_nodes,
-              const CSMContext* csm_ctx,
-              SkyBox*           skybox,
-              FrameBuffer&      frame_buffer,
-              RenderStatus&     render_status);
-
-  // ---------- Setters ----------
-  /// @brief 设置不透明和透明 pass 走哪个绘制分支。
+  /// @brief 主要控制不透明和透明 pass 走哪个绘制分支。
   void setDrawMode(DrawMode mode) noexcept {
     opaque_render_state_.draw_mode = mode;
     transp_render_state_.draw_mode = mode;
   }
 
-  // ---------- Getters ----------
-  SceneDrawListView drawListView() const noexcept {
-    return {
-      .opaque      = opaque_queue_.drawCommands(),
-      .transparent = transp_queue_.drawCommands()
-    };
-  }
-
   BlinnShader* blinnShader() { return &std::get<BlinnShader>(blinn_shader_); }
 
 private:
-  void drawSkybox(FrameBuffer&   frame_buffer,
-                  const CubeMap& skybox_cubemap,
-                  RenderStatus&  render_status) const;
-
   ShaderVariant blinn_shader_ = BlinnShader{};
-
-  const Camera* main_camera_ = nullptr;
-  const DirectionalLight* dir_light_ = nullptr;
 
   RenderState opaque_render_state_;
   RenderState transp_render_state_;
-
-  DrawQueue opaque_queue_{DrawQueue::Type::Opaque};
-  DrawQueue transp_queue_{DrawQueue::Type::Transparent};
 };
 
 } // Medium

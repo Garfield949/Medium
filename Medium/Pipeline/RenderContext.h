@@ -6,10 +6,10 @@
 ///
 #pragma once
 
+#include "Base/Types.h"
 #include "Base/Color.h"
 #include "Base/Geometry/Rect.h"
 #include "Base/Geometry/Frustum.h"
-#include "Base/Types.h"
 #include "Pipeline/RenderStatus.h"
 
 namespace Medium {
@@ -23,7 +23,9 @@ struct CSMContext;
 /// @brief 相机视图相关的上下文
 struct CameraContext {
   Vec3f   cam_pos;
+  Mat4f   mat_world;
   Mat4f   mat_view;
+  Mat4f   mat_proj;
   Mat4f   mat_vp;
   Frustum frustum; // 用于 culling.
 };

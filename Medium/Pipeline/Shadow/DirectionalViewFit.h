@@ -14,7 +14,7 @@ class Camera;
 
 /// @struct DirectionalViewFitParams
 struct DirectionalViewFitParams {
-  const Camera* camera = nullptr;
+  const Camera* main_camera = nullptr;
   Vec3f light_dir;
   i32 shadow_res;
   f32 slice_near;

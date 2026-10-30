@@ -6,8 +6,9 @@
 ///
 #pragma once
 
-#include "Base/Types.h"
 #include "Light.h"
+
+#include "Base/Types.h"
 #include "Scene/Camera.h"
 
 namespace Medium {

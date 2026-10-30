@@ -6,11 +6,12 @@
 ///
 #pragma once
 
+#include "Pipeline/DrawQueue.h"
+#include "Pipeline/FrameBuffer.h"
 #include "Pipeline/RenderStatus.h"
 #include "Pipeline/RenderContext.h"
-#include "Pipeline/FrameBuffer.h"
 #include "Pipeline/SceneRenderer.h"
-#include "Pipeline/DebugRenderer.h"
+#include "Pipeline/SceneDrawListView.h"
 #include "Pipeline/Shadow/ShadowManager.h"
 
 namespace Medium {
@@ -22,8 +23,8 @@ public:
   explicit RenderManager() = default;
 
   /// @brief 初始化。
-  bool init(Scene* scene, const Vec2i& buffer_extent_physical);
-
+  void init(Scene* scene, const Vec2i& buffer_extent_physical);
+  
   /// @brief 完成一帧阴影 pass 和主 pass 的渲染。
   void render();
 
@@ -47,6 +48,13 @@ public:
   /// @brief 获取渲染统计信息。
   const RenderStatus& renderStatus() const noexcept { return render_status_; }
 
+  SceneDrawListView sceneDrawListView() const noexcept {
+    return {
+      .opaque      = main_opaque_queue_.drawCommands(),
+      .transparent = main_transp_queue_.drawCommands()
+    };
+  }
+
   // ---------- ImGui ----------
   /// @brief 设置绘制模式（着色和线框）。
   /// @details 设置 SceneRenderer 为不透明和透明队列使用指定的 DrawMode，并根据模式决定是否在 draw 中
@@ -58,7 +66,7 @@ public:
   /// 合绘制模式组合判断是否开启阴影 pass.
   DrawMode drawMode() const noexcept { return draw_mode_; }
 
-  /// @brief 返回当前是否启用阴影功能。
+  /// @brief 返回是否启用阴影功能。
   bool shadowingEnabled() const noexcept;
 
   /// @brief 设置是否在 HDR 缓冲上叠加一层写深度的 AABB 调试线框。
@@ -66,25 +74,34 @@ public:
     draw_aabbs_ = enable;
   }
 
+  /// @brief 返回是否启用包围盒绘制。
   bool drawAABBs() const noexcept {
     return draw_aabbs_;
   }
+  
+private:
+  /// @brief 更新相机相关状态。
+  void updateCameraContext() noexcept;
+  /// @brief 更新绘制队列。
+  void updateDrawQueues();
+  
+  DrawMode draw_mode_  = DrawMode::Shaded;
+  bool     draw_aabbs_ = false;
+
+  RenderStatus render_status_;
 
 private:
-  DrawMode draw_mode_ = DrawMode::Shaded;
+  FrameBuffer frame_buffer_{FrameBuffer::Type::ColorDepth};
 
-  bool draw_aabbs_ = false;
-
-private:
   Scene* active_scene_ = nullptr;
 
-  FrameBuffer frame_buffer_{FrameBuffer::Type::ColorDepth};
+  CameraContext main_cam_ctx_;
   
-  ShadowManager shadow_manager_;
-  SceneRenderer scene_renderer_;
-  DebugRenderer debug_renderer_;
-  
-  RenderStatus render_status_;
+  ShadowManager shadow_manager_{};
+  SceneRenderer scene_renderer_{};
+
+  DrawQueue main_opaque_queue_{DrawQueue::Type::Opaque};
+  DrawQueue main_transp_queue_{DrawQueue::Type::Transparent};
 };
 
 } // namespace Medium

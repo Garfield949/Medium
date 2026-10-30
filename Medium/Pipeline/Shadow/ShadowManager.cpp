@@ -6,29 +6,22 @@
 ///
 #include "ShadowManager.h"
 
-#include "Base/Log.h"
-#include "Base/Color.h"
+#include "Pipeline/DrawCore.h"
+#include "Pipeline/Shadow/CSM.h"
+#include "Pipeline/RenderContext.h"
+#include "Pipeline/Shadow/DirectionalViewFit.h"
 #include "Scene/Camera.h"
 #include "Scene/Light/DirectionalLight.h"
-#include "Pipeline/Shadow/CSM.h"
-#include "Pipeline/Shadow/DirectionalViewFit.h"
-#include "Pipeline/RenderStatus.h"
-#include "Pipeline/DrawCore.h"
-#include "Pipeline/RenderContext.h"
-#include "Pipeline/DrawQueue.h"
 
 namespace Medium {
 
-bool ShadowManager::init(const Camera* main_camera,
-                         DirectionalLight* dir_light,
-                         f32 max_shadow_dist,
-                         i32 cascade_count) 
+void ShadowManager::init(f32 max_shadow_dist, i32 cascade_count) 
 {
   setCascadeTileRes(kDefaultCascadeTileRes);
+  setMaxShadowDistance(max_shadow_dist);
+  setCascadeCount(cascade_count);
 
   csm_ctx_.csm_atlas = &csm_atlas_;
-  
-  bind(main_camera, dir_light, max_shadow_dist, cascade_count);
 
   opaque_render_state_ = {
     .enable_depth_test  = true,
@@ -38,13 +31,13 @@ bool ShadowManager::init(const Camera* main_camera,
     .cull_mode          = CullMode::Back,
     .blend_mode         = BlendMode::Replace
   };
-
-  return true;
 }
 
 void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
-                           const AABB3D& bbox_scene_ws,
-                           RenderStatus& render_status)
+                           const Camera*     main_camera,
+                           DirectionalLight* dir_light,
+                           const AABB3D&     bbox_scene_ws,
+                           RenderStatus&     render_status)
 {
   auto update_policy = makeUpdatePolicy();
   
@@ -53,7 +46,7 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
   if(!update_policy.update_cascade_data) return;
 
   // 获取当前帧的阴影查询坐标系快照，用作冻结 CSM 数据时的 view 矩阵。
-  csm_ctx_.mat_view_snapshot = camera_->viewMatrix();
+  csm_ctx_.mat_view_snapshot = main_camera->viewMatrix();
 
   // 若不需更新 Atlas 则不清空其缓冲。
   if(update_policy.update_atlas) 
@@ -67,8 +60,8 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
     if(i > 0) fit_near = cascade_slices_[i] - csm_ctx_.blendBandWidth(i - 1);
 
     DirectionalViewFitParams fit_params{
-      .camera        = camera_,
-      .light_dir     = dir_light_->dir(),
+      .main_camera   = main_camera,
+      .light_dir     = dir_light->dir(),
       .shadow_res    = cascade_tile_res_,
       .slice_near    = fit_near,
       .slice_far     = fit_far,
@@ -76,12 +69,12 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
     };
 
     DirectionalViewFit fit = calcDirectionalViewFit(fit_params);
-    dir_light_->applyViewFit(fit);
+    dir_light->applyViewFit(fit);
 
     csm_ctx_.cascades[i] = {
       .slice_near     = cascade_slices_[i],
       .slice_far      = cascade_slices_[i + 1],
-      .mat_vp_light   = dir_light_->viewProjMatrix(),
+      .mat_vp_light   = dir_light->viewProjMatrix(),
       .viewport_atlas = cascade_viewports_[i],
       .texel_size_ws  = fit.shadow_texel_size_ws
     };
@@ -89,7 +82,7 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
     // 若不需要更新 Atlas，那么就不执行 Shadow Pass.
     if(!update_policy.update_atlas) continue;
 
-    const Camera* light_cam = dir_light_->attachedCamera();
+    const Camera* light_cam = dir_light->attachedCamera();
     CameraContext light_cam_ctx{
       .cam_pos  = light_cam->transform.worldPosition(),
       .mat_view = light_cam->viewMatrix(),
@@ -119,17 +112,6 @@ void ShadowManager::render(std::span<const MeshNode* const> scene_mesh_nodes,
   }
   
   if(csm_freeze_state_ == CSMFreezeState::Request) csm_freeze_state_ = CSMFreezeState::Frozen;
-}
-
-void ShadowManager::bind(const Camera* main_camera,
-                         DirectionalLight* dir_light,
-                         f32 max_shadow_dist,
-                         i32 cascade_count) noexcept 
-{
-  camera_ = main_camera;
-  dir_light_ = dir_light;
-  setCascadeCount(cascade_count);
-  setMaxShadowDistance(max_shadow_dist);
 }
 
 void ShadowManager::setCascadeCount(i32 count) noexcept {
