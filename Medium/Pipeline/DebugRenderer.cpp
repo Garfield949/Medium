@@ -7,19 +7,21 @@
 #include "DebugRenderer.h"
 
 #include "Base/Geometry/Rect.h"
+#include "Pipeline/RenderContext.h"
 #include "Resources/Mesh.h"
-#include "Pipeline/Clip.h"
-#include "Pipeline/DrawCore.h"
-#include "Pipeline/FrameBuffer.h"
-#include "Pipeline/DrawCommand.h"
-#include "Pipeline/RenderStatus.h"
-#include "Pipeline/SceneDrawListView.h"
+
+#include "Clip.h"
+#include "DrawCore.h"
+#include "FrameBuffer.h"
+#include "DrawCommand.h"
+#include "RenderStatus.h"
+#include "SceneDrawListView.h"
 
 namespace Medium {
 
 void DebugRenderer::drawAABBs(Mat4f mat_vp,
                               const SceneDrawListView& draw_list,
-                              FrameBuffer& frame_buffer,
+                              FrameBuffer&  frame_buffer,
                               RenderStatus& render_status) 
 {
   // 注意索引要对照 AABB3D::corners() 的实现。
@@ -30,6 +32,18 @@ void DebugRenderer::drawAABBs(Mat4f mat_vp,
   };
 
   RectF viewport = {0, 0, frame_buffer.widthF(), frame_buffer.heightF()};
+
+  // 实际线段绘制只用得到 depth_cmp.
+  RenderState render_state {
+    .enable_depth_test  = true,
+    .enable_depth_write = true,
+    .enable_color_write = true,
+    .draw_mode          = DrawMode::Shaded,
+    .cull_mode          = CullMode::Back,
+    .depth_cmp          = CompareOP::Greater,
+    .blend_mode         = BlendMode::Replace,
+    .color_write_target = ColorWriteTarget::HDR
+  };
 
   auto foo = [&](const DrawCommand& cmd) {
     // 获取各 submesh 的世界控件包围盒角点。
@@ -52,7 +66,7 @@ void DebugRenderer::drawAABBs(Mat4f mat_vp,
       v0 /= v0.w();
       v1 /= v1.w();
 
-      Pipeline::rasterizeLine(v0, v1, viewport, frame_buffer, LinearColor::Green(), &render_status);
+      Pipeline::rasterizeLine(v0, v1, render_state, viewport, LinearColor::Green(), frame_buffer, &render_status);
     }
   };
 

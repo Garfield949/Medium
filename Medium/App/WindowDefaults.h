@@ -9,9 +9,9 @@
 #include "Base/Types.h"
 
 namespace Medium::WindowDefaults {
-  inline constexpr i32 kDefaultWindowWidth  = 1440;
+  inline constexpr i32 kWidth  = 1440;
   
-  inline constexpr i32 kDefaultWindowHeight = 900;
+  inline constexpr i32 kHeight = 900;
   
-  inline constexpr const char* kDefaultWindowTitle = "Medium Canvas";
+  inline constexpr const char* kTitle = "Medium Canvas";
 }

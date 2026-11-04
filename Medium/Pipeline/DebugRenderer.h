@@ -13,6 +13,7 @@ namespace Medium {
 class FrameBuffer;
 struct DrawCommand;
 struct RenderStatus;
+struct RenderState;
 struct SceneDrawListView;
 
 class DebugRenderer {

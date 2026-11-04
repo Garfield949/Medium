@@ -21,6 +21,7 @@
 #include "Resources/AssetCache.h"
 
 namespace Medium {
+
 namespace {
 
 Vec3f readVec3f(const luabridge::LuaRef& tbl, std::string_view key) {
@@ -32,15 +33,10 @@ Vec3f readVec3f(const luabridge::LuaRef& tbl, std::string_view key) {
   };
 }
 
-} // 匿名命名空间，控制仅单文件可见
-} // namespace Medium
-
-
-// TODO: 鲁棒性处理（不过只要场景脚本写对也没啥大问题）
-namespace Medium {
+} // ===---------- 匿名命名空间，控制仅单文件可见 ----------===
 
 using namespace std;
-
+// TODO: 鲁棒性处理（不过只要场景脚本写对也没啥大问题）
 struct SceneLoader {
   static void SetupCamera(const luabridge::LuaRef& tbl_scene, Scene* scene, f32 aspect_ratio) {
     luabridge::LuaRef tbl_camera = tbl_scene["Camera"];

@@ -7,8 +7,8 @@
 #include "Texture2D.h"
 
 namespace Medium {
-namespace {
 
+namespace {
 /// @brief 降采样，将 Image 缩小为原来的一半。
 /// @details 降采样的核心在于计算 dst 每个像素在 src 上占据的面积，并将面积内像素颜色的加权平均作为该像素的值。
 /// @note 由于最终的加权平均必须在线性空间中完成，所以需传入图像颜色空间来决定如何 decode 像素颜色。
@@ -77,11 +77,7 @@ Image2D<Color> downsample(const Image2D<Color>& image_src, ColorSpace color_spac
   return image_dst;
 }
 
-} // 匿名命名空间，控制仅单文件可见
-} // namespace Medium
-
-
-namespace Medium {
+} // ===---------- 匿名命名空间，控制仅单文件可见 ----------===
 
 Texture2D::Texture2D(Image2D<Color> base, ColorSpace space): color_space_{space} {
   mip_levels_.push_back(std::move(base));

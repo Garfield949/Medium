@@ -5,11 +5,12 @@
 #pragma once
 
 #include "Pipeline/Shader/ShaderTypes.h"
+#include "Resources/Image2D.h"
 
 namespace Medium {
 
-class  Material;
-class  EnvironmentSH9;
+class Material;
+class EnvironmentSH9;
 struct Vertex;
 struct CSMContext;
 struct ShaderBindContext;
@@ -17,16 +18,17 @@ struct FSPayload;
 
 struct BlinnShader {
   struct Uniform {
-    Vec3f camera_pos;                    // 用于高光
-    Mat4f mat_wvp;                       // 用于顶点着色器
-    Mat4f mat_world;                     // 用于查询某些属性的世界空间位置
-    const Material* material = nullptr;  // 当前着色点(SubMesh)绑定的材质
+    Vec3f camera_pos;                         // 用于高光
+    Mat4f mat_wvp;                            // 用于顶点着色器
+    Mat4f mat_world;                          // 用于查询某些属性的世界空间位置
+    const Material* material = nullptr;       // 当前着色点(SubMesh)绑定的材质
 
-    Vec3f       light_dir_inv;           // 光照计算
-    LinearColor light_color;             // 光线颜色
-    const EnvironmentSH9* sh9 = nullptr;  // 9系球谐函数，漫反射计算
+    Vec3f       light_dir_inv;                // 光照计算
+    LinearColor light_color;                  // 光线颜色
+    const EnvironmentSH9* env_sh9 = nullptr;  // 9系球谐函数，漫反射计算
+    const Image2D<f32>* ao = nullptr;         // SSAO 缓冲
 
-    const CSMContext* csm_ctx = nullptr; // 级联阴影采样数据
+    const CSMContext* csm_ctx = nullptr;      // 级联阴影采样数据
   };
 
   Uniform uniforms;

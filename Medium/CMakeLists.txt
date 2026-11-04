@@ -17,10 +17,12 @@ target_sources(${PROJECT_NAME} PRIVATE
     Pipeline/Shadow/ShadowManager.cpp
     Pipeline/Clip.cpp
     Pipeline/DebugRenderer.cpp
+    Pipeline/DepthRenderer.cpp
     Pipeline/DrawCore.cpp
     Pipeline/RenderManager.cpp
     Pipeline/SceneRenderer.cpp
     Pipeline/DrawQueue.cpp
+    Pipeline/SSAORenderer.cpp
     Platform/Input.cpp
     Platform/Timer.cpp
     Resources/AssetCache.cpp

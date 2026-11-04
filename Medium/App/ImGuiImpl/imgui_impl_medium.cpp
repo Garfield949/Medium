@@ -111,8 +111,7 @@ Medium::Rect ImGui_ImplMedium_ClipRectToRect(const ImDrawCmd*  cmd,
   return { x0, h_fb_physical - y1, x1 - x0, y1 - y0 };
 }
   
-} // 匿名命名空间，控制仅单文件可见
-
+} // ===---------- 匿名命名空间，控制仅单文件可见 ----------===
 
 ImTextureID ImGui_ImplMedium_Image2DPtrToImTextureID(const ColorImage* ptr) {
   // ImTextureID 本身是个无符号整数，所以加一层转 uintptr_t (大小足以保存一个指针的无符号数) 完善「地址转整数」

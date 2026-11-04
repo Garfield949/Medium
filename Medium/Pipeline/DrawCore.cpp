@@ -23,9 +23,7 @@
 #include "Resources/Mesh.h"
 
 namespace Medium::Pipeline {
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-//                                          匿名空间私有实现                                         
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
 namespace {
 // 透视除法 x,y -> [-1,1], reversed-z -> [0,1].
 // 正交投影 w 恒为 1，可以不走这个循环，但非热点不用管。
@@ -174,10 +172,11 @@ FSIn computeFSIn(const std::array<Varying, 3>& varyings,
   return fs_in;
 }
 
-void bresenham(int x0, int y0, f32 z0, 
-               int x1, int y1, f32 z1, 
-               FrameBuffer&       buffer, 
-               const LinearColor& color, 
+void bresenham(int x0, int y0, f32 z0,
+               int x1, int y1, f32 z1,
+               const RenderState& state,
+               const LinearColor& color,
+               FrameBuffer&       buffer,
                RenderStatus*      render_status) { 
   // 确保x为最大位移方向
   bool steep = false; 
@@ -197,8 +196,8 @@ void bresenham(int x0, int y0, f32 z0,
   i32 dX = x1 - x0;
   // dX 为 0 直接绘制单点然后返回，否则下方的插值会导致除零。
   if (dX == 0) {
-    size_t idx = !steep ? buffer.getIndex(x0, y0) : buffer.getIndex(y0, x0);
-    if(buffer.depthTest(idx, z0)) {
+    size_t idx = !steep ? buffer.index(x0, y0) : buffer.index(y0, x0);
+    if(buffer.depthTest(idx, z0, state.depth_cmp)) {
       buffer.writeDepth(idx, z0);
       buffer.writeHDRColor(idx, color);
       if(render_status) ++render_status->statistics.written_pixels;
@@ -216,9 +215,9 @@ void bresenham(int x0, int y0, f32 z0,
   i32 y = y0;
 
   for(i32 i = x; i <= x1; i++) {
-    size_t idx = !steep ? buffer.getIndex(i, y) : buffer.getIndex(y, i);
+    size_t idx = !steep ? buffer.index(i, y) : buffer.index(y, i);
     f32 z = Math::lerp(z0, z1, static_cast<f32>(i - x0) / static_cast<f32>(dX));
-    if(buffer.depthTest(idx, z)) {
+    if(buffer.depthTest(idx, z, state.depth_cmp)) {
       buffer.writeDepth(idx, z);
       buffer.writeHDRColor(idx, color);
       if(render_status) ++render_status->statistics.written_pixels;
@@ -233,11 +232,11 @@ void bresenham(int x0, int y0, f32 z0,
 }
 
 /// @brief 做最终片段写入工作。
-void writeFragment(FrameBuffer&       buffer,
-                   const RenderState& state,
-                   size_t             frag_index, 
+void writeFragment(size_t             frag_index, 
                    f32                z_interp,
+                   const RenderState& state,
                    const LinearColor& color,
+                   FrameBuffer&       buffer,
                    RenderStatus*      status) {
   if(state.enable_depth_write) buffer.writeDepth(frag_index, z_interp);
   if(state.enable_color_write) {
@@ -267,8 +266,8 @@ void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
                        const std::array<Varying, 3>& varyings,
                        const RenderState&            render_state,
                        const RectF&                  viewport,
-                       FrameBuffer&                  buffer,
                        ShaderVariant&                shader,
+                       FrameBuffer&                  buffer,
                        RenderStatus*                 render_status)
 {
   std::array<Vec2i, 3> tri_fixed; // 将传入三角形的浮点屏幕坐标提升为次像素定点数；
@@ -372,17 +371,19 @@ void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
         const f32 z_interp = Interp::interpolate(tri_depth[0], tri_depth[1], tri_depth[2], weights);
         
         // Early-Z.
-        const size_t frag_index = buffer.getIndex(x, y);
+        const size_t pixel_idx = buffer.index(x, y);
         
         // 当深度测试关闭时不能直接 continue，否则会跳过 E(x+1,Y) 的推进。
-        const bool pass_depth_test = !render_state.enable_depth_test || buffer.depthTest(frag_index, z_interp);
+        const bool pass_depth_test 
+          = !render_state.enable_depth_test || buffer.depthTest(pixel_idx, z_interp, render_state.depth_cmp);
         
         if(pass_depth_test) {
           FSIn fs_in = computeFSIn(varyings, active_shader.kVaryingScalarCount, weights, w_invs, uv_gradient_params);
+          fs_in.pixel_index = pixel_idx;
 
           LinearColor frag_color;
           if(!active_shader.fragment(fs_in, frag_color)) 
-            writeFragment(buffer, render_state, frag_index, z_interp, frag_color, render_status);
+            writeFragment(pixel_idx, z_interp, render_state, frag_color, buffer, render_status);
         }
       }
       // E(X+1,Y) 方向推进
@@ -398,12 +399,8 @@ void rasterizeTriangle(const std::array<Vec4f, 3>&   triangle,
   }, shader);  // std::visit
 }
 
-} // 匿名命名空间，控制仅单文件可见
+} // ===---------- 匿名命名空间，控制仅单文件可见 ----------===
 
-
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
-//                                           公开接口实现                                          -
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 void executeDrawCommands(std::span<const DrawCommand> cmds,
                          const ShaderBindContext&     shader_ctx,
                          const RenderPassContext&     pass_ctx,
@@ -440,14 +437,14 @@ void draw(const IndexedDrawView& draw_view,
   const auto& 
   [vertices, indices, index_offset, index_count, vertex_offset] = draw_view;
 
-  for(i32 tri_cnt = index_count / 3, i = 0; i < tri_cnt; ++i) {
+  for(size_t tri_cnt = index_count / 3, i = 0; i < tri_cnt; ++i) {
     // 每 3 个紧邻的顶点索引为一个三角形。
-    const i32 tri_idx = index_offset + i * 3;
+    size_t tri_idx = index_offset + i * 3;
 
     // 将当前三角形作为裁剪输入，运行顶点着色器 World Space -> Clip Space，并获取待插值的 varying.
     ClipPolygon polygon;    
-    for(i32 j = 0; j < 3; ++j, ++polygon.num_verts) {
-      const i32 vert_idx = indices[tri_idx + j];
+    for(size_t j = 0; j < 3; ++j, ++polygon.num_verts) {
+      size_t vert_idx = indices[tri_idx + j];
       
       const VSOut vs_out = active_shader.vertex(vertices[vertex_offset + vert_idx]);
       
@@ -469,7 +466,7 @@ void draw(const IndexedDrawView& draw_view,
       for(i32 k = 0; k < polygon.num_verts; ++k) {
         Vec4f v0 = polygon.verts[k].pos;
         Vec4f v1 = polygon.verts[(k + 1) % polygon.num_verts].pos;
-        rasterizeLine(v0, v1, viewport, buffer, LinearColor::Navy(), render_status);
+        rasterizeLine(v0, v1, render_state, viewport, LinearColor::Navy(), buffer, render_status);
       }
       continue;
     }
@@ -500,7 +497,7 @@ void draw(const IndexedDrawView& draw_view,
       // 视口变换 NDC -> Screen Space; 顶点的 x,y 由 [-1.0,1.0] 映射到 [0.0, width], [0.0, height].
       for(auto& vert: triangle) NDCToViewport(vert, viewport);
 
-      rasterizeTriangle(triangle, varyings, render_state, viewport, buffer, shader, render_status);
+      rasterizeTriangle(triangle, varyings, render_state, viewport, shader, buffer, render_status);
     }
   } // for(i)
   }, shader); // std::visit
@@ -508,9 +505,10 @@ void draw(const IndexedDrawView& draw_view,
 
 bool rasterizeLine(Vec4f&             v0,
                    Vec4f&             v1,
+                   const RenderState& state,
                    const RectF&       viewport,
-                   FrameBuffer&       buffer,
                    const LinearColor& color,
+                   FrameBuffer&       buffer,
                    RenderStatus*      render_status)
 {  
   NDCToViewport(v0, viewport);
@@ -524,7 +522,7 @@ bool rasterizeLine(Vec4f&             v0,
   const i32 x1 = static_cast<i32>(std::min(std::round(v1.x()), x_max));
   const i32 y1 = static_cast<i32>(std::min(std::round(v1.y()), y_max));
 
-  bresenham(x0, y0, v0.z(), x1, y1, v1.z(), buffer, color, render_status);
+  bresenham(x0, y0, v0.z(), x1, y1, v1.z(), state, color, buffer, render_status);
 
   return true;
 }

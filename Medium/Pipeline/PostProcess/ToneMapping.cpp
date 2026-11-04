@@ -10,8 +10,8 @@
 #include "Pipeline/FrameBuffer.h"
 
 namespace Medium {
-namespace {
 
+namespace {
 /// @brief ACES 色调映射拟合
 /// @details 将各分量的高动态范围压缩到 [0, 1] LDR 范围内。
 /// @note    严格来说，线性颜色经色调映射后就不再是线性的了，语义上偷了点懒。
@@ -24,10 +24,9 @@ constexpr LinearColor ACESMethod(const LinearColor& src) noexcept {
   return {formula(src.R), formula(src.G), formula(src.B), src.A};
 }
 
-} // 匿名命名空间，控制仅单文件可见
-} // namespace Medium
+} // ===---------- 匿名命名空间，控制仅单文件可见 ----------===
 
-namespace Medium::PostProcess {
+namespace PostProcess {
 
 void toneMapping(FrameBuffer& frame_buffer) noexcept {
   assert(frame_buffer.type() == FrameBuffer::Type::ColorDepth);
@@ -40,3 +39,5 @@ void toneMapping(FrameBuffer& frame_buffer) noexcept {
 }
 
 } // namespace Medium::PostProcess
+
+} // namespace Medium

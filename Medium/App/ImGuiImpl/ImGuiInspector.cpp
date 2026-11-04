@@ -79,12 +79,13 @@ void ImGuiInspector::showStatisticsWindow() {
   ImGui::Text("CSM Atlas: [%d x %d]", shadow_manager.cascadeTileRes() * 2, shadow_manager.cascadeTileRes() * 2);
 
   ImGui::SeparatorText("Draw Calls");
-  ImGui::Text("Total                  : %d", render_status.statistics.totalDrawCalls());
   ImGui::Text("Shadow Pass Opaque     : %d", render_status.statistics.shadow_opaque_draw_calls);
-  ImGui::Text("Main Pass   Opaque     : %d", render_status.statistics.scene_opaque_draw_calls);
-  ImGui::Text("Main Pass   Transparent: %d", render_status.statistics.scene_transp_draw_calls);
+  ImGui::Text("Depth  Pass Opaque     : %d", render_status.statistics.depth_opaque_draw_calls);
+  ImGui::Text("Scene  Pass Opaque     : %d", render_status.statistics.scene_opaque_draw_calls);
+  ImGui::Text("Scene  Pass Transparent: %d", render_status.statistics.scene_transp_draw_calls);
+  ImGui::Text("Total                  : %d", render_status.statistics.totalDrawCalls());
 
-  ImGui::SeparatorText("Main Pass Workload");
+  ImGui::SeparatorText("Scene Pass Workload");
   ImGui::Text("Visible Polygons: %d", render_status.statistics.visible_polygons);
   if(physical_pixels * 1.1 <= render_status.statistics.written_pixels) {
     ImGui::Text("Colored Pixels  :");
@@ -249,9 +250,7 @@ void ImGuiInspector::showGraphicsPanel() {
 
     ImGui::SeparatorText("Ambient Occlusion");
 
-    bool enable_ssao = false;
-
-    ImGui::Checkbox("SSAO", &enable_ssao);
+    ImGui::Checkbox("SSAO", &render_manager->enable_ssao);
 
     ImGui::Spacing();
   }

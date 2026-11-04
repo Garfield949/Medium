@@ -40,6 +40,7 @@
 #include "Resources/CubeMap.h"
 
 namespace Medium {
+
 namespace {
 /// @brief 获取未经余弦卷积的球谐函数 Y(ω) 系数。
 std::array<f32, 9> getSH9Basis(const Vec3f& w_world) {
@@ -91,9 +92,8 @@ Vec3f calcWorldDir(CubeFace face, f32 s, f32 t) {
   // C++23, 提供优化假设。
   std::unreachable();
 }
-  
-} // 匿名命名空间，控制仅单文件可见
 
+} // ===---------- 匿名命名空间，控制仅单文件可见 ----------===
 
 EnvironmentSH9 EnvironmentSH9::FromCubeMap(const CubeMap &cube_map) {
   // Cubemap 可能总共有成百上千万像素，所以用双精度累加，结果转单精度。
@@ -166,5 +166,5 @@ LinearColor EnvironmentSH9::evaluate(const Vec3f& normal_world) const noexcept {
 
   return {rgb.x(), rgb.y(), rgb.z(), 1.0f};
 }
-  
+
 } // namespace Medium

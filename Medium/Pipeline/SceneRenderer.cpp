@@ -6,6 +6,7 @@
 ///
 #include "SceneRenderer.h"
 
+#include "Pipeline/RenderContext.h"
 #include "Pipeline/Shadow/CSM.h"
 #include "Pipeline/RenderStatus.h"
 #include "Pipeline/DrawCore.h"
@@ -16,7 +17,7 @@
 #include "Scene/Light/DirectionalLight.h"
 
 namespace Medium {
-
+  
 namespace {
 
 void drawSkybox(const CameraContext& camera_ctx,
@@ -36,7 +37,7 @@ void drawSkybox(const CameraContext& camera_ctx,
   for(i32 y = 0; y < h; ++y) {
     f32 y_ndc = 2.0f * (static_cast<f32>(y) + 0.5f) / h_f - 1.0f;
     for(i32 x = 0; x < w; ++x) {
-      const size_t frag_idx = frame_buffer.getIndex(x,y);
+      const size_t frag_idx = frame_buffer.index(x,y);
 
       // main opaque pass 后，未被遮挡的像素（未写深度的像素）即可为天空盒着色。
       if(frame_buffer.depthBuffer()[frag_idx] != FrameBuffer::kDepthClearVal)
@@ -57,26 +58,27 @@ void drawSkybox(const CameraContext& camera_ctx,
   }
 }
 
-}
-
+} // ===---------- 匿名命名空间，控制仅单文件可见 ----------===
 
 SceneRenderer::SceneRenderer() {
   opaque_render_state_ = {
     .enable_depth_test  = true,
-    .enable_depth_write = true,
+    .enable_depth_write = false,
     .enable_color_write = true,
     .draw_mode          = DrawMode::Shaded,
     .cull_mode          = CullMode::Back,
+    .depth_cmp          = CompareOP::Equal,
     .blend_mode         = BlendMode::Replace,
     .color_write_target = ColorWriteTarget::HDR
   };
   
   transp_render_state_ = {
-    .enable_depth_test  = true,
+    .enable_depth_test  = true,  // 开启深度测试，是为了与不透明物体占据的深度所比较。
     .enable_depth_write = false, // 透明队列关闭深度写入，否则在前面的透明物体会占用深度缓冲，导致后面的透明物体直接被丢弃无法参与正常混合。
     .enable_color_write = true,
     .draw_mode          = DrawMode::Shaded,
     .cull_mode          = CullMode::Back,
+    .depth_cmp          = CompareOP::Greater,
     .blend_mode         = BlendMode::PremultipliedOver,
     .color_write_target = ColorWriteTarget::HDR
   };
@@ -86,18 +88,17 @@ void SceneRenderer::render(const SceneDrawListView& draw_list_view,
                            const CameraContext&     camera_ctx,
                            const DirectionalLight*  dir_light,
                            const CSMContext*        csm_ctx,
+                           const Image2D<f32>*      ao,
                            const SkyBox*            skybox,
                            FrameBuffer&             frame_buffer,
                            RenderStatus&            render_status)
 {
-  frame_buffer.clearColor();
-  frame_buffer.clearDepth();
-
   LightingContext lighting_ctx {
     .light_dir   = dir_light->dir(),
     .light_color = dir_light->color,
     .csm_ctx     = csm_ctx,
-    .sh9         = &skybox->sh9
+    .env_sh9     = &skybox->env_sh9,
+    .ao          = ao
   };
 
   ShaderBindContext shader_ctx{
@@ -129,6 +130,17 @@ void SceneRenderer::render(const SceneDrawListView& draw_list_view,
 
   render_status.statistics.scene_opaque_draw_calls += draw_list_view.opaque.size();
   render_status.statistics.scene_transp_draw_calls += draw_list_view.transparent.size();
+}
+
+void SceneRenderer::setDrawMode(DrawMode mode) noexcept {
+  const bool wireframe = mode == DrawMode::Wireframe;
+
+  // 绘制模式为 Shaded 时会启用深度预 pass, 便需改变不透明的深度比较策略了，并关闭深度写入。
+  opaque_render_state_.depth_cmp = wireframe ? CompareOP::Greater : CompareOP::Equal;
+  opaque_render_state_.enable_depth_write = wireframe;
+  
+  opaque_render_state_.draw_mode = mode;
+  transp_render_state_.draw_mode = mode;
 }
 
 } // namespace Medium

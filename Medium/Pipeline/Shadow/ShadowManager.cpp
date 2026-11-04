@@ -23,12 +23,14 @@ void ShadowManager::init(f32 max_shadow_dist, i32 cascade_count)
 
   csm_ctx_.csm_atlas = &csm_atlas_;
 
+  // 不写颜色就直接忽略 .color_write_target 项了。
   opaque_render_state_ = {
     .enable_depth_test  = true,
     .enable_depth_write = true,
     .enable_color_write = false,
     .draw_mode          = DrawMode::Shaded,
     .cull_mode          = CullMode::Back,
+    .depth_cmp          = CompareOP::Greater,
     .blend_mode         = BlendMode::Replace
   };
 }
@@ -167,7 +169,7 @@ void ShadowManager::updateAtlasDebugTexture() noexcept {
       f32 z_max = 0.0f;
       for(int j = 0; j < kScale; ++j) {
         for(int i = 0; i < kScale; ++i) {
-          const size_t src_idx = csm_atlas_.getIndex(x * kScale + i, y * kScale + j);
+          const size_t src_idx = csm_atlas_.index(x * kScale + i, y * kScale + j);
           if(const f32 src_depth = depth_buf[src_idx]; z_max < src_depth)
             z_max = src_depth;
         }

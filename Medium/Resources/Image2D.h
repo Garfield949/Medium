@@ -12,6 +12,7 @@
 
 #include "Base/Types.h"
 #include "Base/Color.h"
+#include "Base/PixelIndex.h"
 
 namespace Medium {
 
@@ -50,12 +51,6 @@ public:
 
   size_t pixelCount() const noexcept { return pixels_.size(); }
 
-  // Medium 在 读入模型 -> NDC -> 视口变换 链路上全程采用原点在左下角的坐标系。
-  size_t index(i32 x, i32 y) const noexcept {
-    assert(x >= 0 && x < w_ && y >= 0 && y < h_);
-    return y * w_ + x;
-  }
-
   void resize(i32 width, i32 height) {
     assert(width > 0 && height > 0);
     pixels_.resize(width * height);
@@ -80,7 +75,7 @@ public:
 
   // C++23 多参数 operator[].
   decltype(auto) operator[](this auto& self, size_t x, size_t y) {
-    return self.pixels_[self.index(x,y)];
+    return self.pixels_[PixelIndex::get(x, y, self.w_)];
   }
 
   auto data(this auto& self) noexcept {

@@ -40,19 +40,16 @@ public:
               RenderStatus&     render_status);
 
   // ---------- Setters ----------
-  /// @brief 设置 Cascade Tile 分辨率。
-  void setCascadeTileRes(i32 res);
-
-  /// @brief 设置级联数量。
+  void setCascadeTileRes(i32 resolution);
   void setCascadeCount(i32 count) noexcept;
-
-  /// @brief 设置最大阴影距离。
-  void setMaxShadowDistance(f32 dist) noexcept;
+  void setMaxShadowDistance(f32 distance) noexcept;
 
   /// @brief 设置是否冻结 CSM 数据。
   void freezeCSM(bool freeze) noexcept {
-    if(freeze) csm_freeze_state_ = CSMFreezeState::Request;
-    else       csm_freeze_state_ = CSMFreezeState::UnFrozen;
+    if(freeze) 
+      csm_freeze_state_ = CSMFreezeState::Request;
+    else
+      csm_freeze_state_ = CSMFreezeState::UnFrozen;
   }
 
   /// @brief 设置是否显示级联带 debug 视图。

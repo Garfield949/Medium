@@ -119,7 +119,6 @@ bool App::onWindowResize() {
     fmt::print("Invalid window size: [{} x {}]\n", extent_physical.x(), extent_physical.y());
     return false;
   }
-
   
   if(!window_manager_.onResize()) return false;
   render_manager_.onResize(extent_physical);

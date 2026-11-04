@@ -92,9 +92,9 @@ void WindowManager::commitBuffer(const Color* packed_abgr8_buffer, i32 buffer_wi
 
 bool WindowManager::createSDLWindow() {
   sdl_window_ = SDL_CreateWindow(
-    WindowDefaults::kDefaultWindowTitle,
-    WindowDefaults::kDefaultWindowWidth,
-    WindowDefaults::kDefaultWindowHeight,
+    WindowDefaults::kTitle,
+    WindowDefaults::kWidth,
+    WindowDefaults::kHeight,
     // SDL_WINDOW_HIGH_PIXEL_DENSITY: 尽可能让窗口适配高 DPI.
     SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY
   );

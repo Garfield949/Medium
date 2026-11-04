@@ -6,11 +6,13 @@
 ///
 #include "RenderManager.h"
 
+#include "Resources/Image2D.h"
 #include "Scene/SceneManager.h"
 #include "Scene/Light/DirectionalLight.h"
-#include "Pipeline/RenderContext.h"
-#include "Pipeline/DebugRenderer.h"
-#include "Pipeline/PostProcess/ToneMapping.h"
+
+#include "RenderContext.h"
+#include "DebugRenderer.h"
+#include "PostProcess/ToneMapping.h"
 
 namespace Medium {
 
@@ -19,7 +21,7 @@ void RenderManager::init(Scene* scene, const Vec2i& buffer_extent_physical)
   shadow_manager_.init(scene->shadowConfig().max_shadow_dist,
                        scene->shadowConfig().csm_cascade_cnt);
 
-  frame_buffer_.resize(buffer_extent_physical.x(), buffer_extent_physical.y());
+  onResize(buffer_extent_physical);
 
   active_scene_ = scene;
 }
@@ -70,11 +72,35 @@ void RenderManager::render() {
                            active_scene_->worldAABB(), 
                            render_status_);
 
-  // ---------- Main Pass ----------
+  // -------- Depth Pre Pass --------
+  frame_buffer_.clearDepth();
+
+  // 若启用的是线框模式，则关闭深度预 pass：
+  // 1. 开启之前：线段着色点是与已经 clear 的背景深度做对比，无任何问题；
+  // 2. 开启之后：线段着色点是与已经占据了深度的实体表面做对比，由于线段着色点深度算法与重心坐标不同，前者的深度算出来会天然比后者小一些，无论
+  //    用 CompareOP::Equal 或 CompareOP::Greator 都没法解决。
+  if(draw_mode_ == DrawMode::Shaded)
+    depth_renderer_.render(sceneDrawListView(),
+                           main_cam_ctx_,
+                           frame_buffer_,
+                           render_status_);
+
+  // ----------- SSAO Pass -----------
+  const Image2D<f32>* ao = nullptr;
+  
+  if(draw_mode_ == DrawMode::Shaded && enable_ssao) {
+    ssao_renderer_.render(frame_buffer_, main_cam_ctx_);
+    ao = ssao_renderer_.ao();
+  }
+
+  // ----------- Main Pass -----------
+  frame_buffer_.clearColor();
+  
   scene_renderer_.render(sceneDrawListView(),
                          main_cam_ctx_,
                          active_scene_->directionalLight(),
                          shadow_pass_enabled ? &shadow_manager_.CSMCtx() : nullptr,
+                         ao,
                          active_scene_->skybox(),
                          frame_buffer_,
                          render_status_);
@@ -91,6 +117,7 @@ void RenderManager::render() {
 
 void RenderManager::onResize(const Vec2i& buffer_extent_physical) {
   frame_buffer_.resize(buffer_extent_physical.x(), buffer_extent_physical.y());
+  ssao_renderer_.resize(buffer_extent_physical.x(), buffer_extent_physical.y());
 }
 
 void RenderManager::setDrawMode(DrawMode mode) noexcept {

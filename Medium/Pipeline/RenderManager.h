@@ -6,13 +6,15 @@
 ///
 #pragma once
 
-#include "Pipeline/DrawQueue.h"
-#include "Pipeline/FrameBuffer.h"
-#include "Pipeline/RenderStatus.h"
-#include "Pipeline/RenderContext.h"
-#include "Pipeline/SceneRenderer.h"
-#include "Pipeline/SceneDrawListView.h"
-#include "Pipeline/Shadow/ShadowManager.h"
+#include "DrawQueue.h"
+#include "FrameBuffer.h"
+#include "RenderStatus.h"
+#include "RenderContext.h"
+#include "DepthRenderer.h"
+#include "SSAORenderer.h"
+#include "SceneRenderer.h"
+#include "SceneDrawListView.h"
+#include "Shadow/ShadowManager.h"
 
 namespace Medium {
 
@@ -78,6 +80,8 @@ public:
   bool drawAABBs() const noexcept {
     return draw_aabbs_;
   }
+
+  bool enable_ssao = true;
   
 private:
   /// @brief 更新相机相关状态。
@@ -98,6 +102,8 @@ private:
   CameraContext main_cam_ctx_;
   
   ShadowManager shadow_manager_{};
+  DepthRenderer depth_renderer_{};
+  SSAORenderer  ssao_renderer_{};
   SceneRenderer scene_renderer_{};
 
   DrawQueue main_opaque_queue_{DrawQueue::Type::Opaque};

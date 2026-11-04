@@ -54,9 +54,10 @@ void draw(const IndexedDrawView& draw_view,
 /// @brief 绘制线段，输入两个 ndc 线段端点。
 bool rasterizeLine(Vec4f&             v0_ndc,
                    Vec4f&             v1_ndc,
+                   const RenderState& state,
                    const RectF&       viewport,
-                   FrameBuffer&       buffer,
                    const LinearColor& color,
+                   FrameBuffer&       buffer,
                    RenderStatus*      render_status);
   
 } // namespace Medium::Pipeline

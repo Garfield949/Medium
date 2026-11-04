@@ -13,6 +13,7 @@ namespace Medium {
 struct Statistics {
   void reset() {
     shadow_opaque_draw_calls = 0;
+    depth_opaque_draw_calls  = 0;
     scene_opaque_draw_calls  = 0;
     scene_transp_draw_calls  = 0;
     visible_polygons         = 0;
@@ -20,10 +21,12 @@ struct Statistics {
   }
   i32 totalDrawCalls() const {
     return shadow_opaque_draw_calls + 
+           depth_opaque_draw_calls  +
            scene_opaque_draw_calls  + 
            scene_transp_draw_calls;
   }
   i32 shadow_opaque_draw_calls = 0;
+  i32 depth_opaque_draw_calls  = 0;
   i32 scene_opaque_draw_calls  = 0;
   i32 scene_transp_draw_calls  = 0;
   i32 visible_polygons         = 0;

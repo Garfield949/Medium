@@ -7,8 +7,11 @@
 #pragma once
 
 #include "Base/Color.h"
+#include "Base/PixelIndex.h"
 #include "Base/Geometry/Rect.h"
+
 #include "Resources/Image2D.h"
+#include "Pipeline/RenderContext.h"
 
 namespace Medium {
 
@@ -18,6 +21,7 @@ public:
     ColorDepth, Depth
   };
 
+  // 深度清空值为无限远。
   static constexpr f32 kDepthClearVal = 0.0f;
 
   explicit FrameBuffer(Type type) : type_{type} {}
@@ -26,8 +30,8 @@ public:
   /// @details NDCToViewport 的逻辑是将 NDC 坐标映射到 [0, width] [0, height]，即将视区左下角作为原点；而
   ///          屏幕坐标系是定义在左上角（想象将缓冲区展开，从屏幕顶端左上角起一行一行地对应）。+y 指向下的，故需翻
   ///          转 y 轴；缓冲区索引是从 0 开始的，故 y 值减一。
-  size_t getIndex(i32 x, i32 y) const noexcept {
-    return (h_ - y - 1) * w_ + x;
+  size_t index(i32 x, i32 y) const noexcept {
+    return PixelIndex::getFlipped(x, y, w_, h_);
   }
 
   /// @brief 清空 HDR 缓冲。
@@ -64,12 +68,14 @@ public:
   
   /// @brief 深度测试。
   /// @details Reversed-Z: [0 -> 离相机更远 ... -> 离相机更近 -> 1]
-  bool depthTest(size_t index, f32 new_depth) const noexcept {
-    return new_depth > buf_depth_[index];
+  bool depthTest(size_t index, f32 depth_new, CompareOP cmp) const noexcept {
+    const f32 depth_cur = buf_depth_[index]; 
+    return cmp == CompareOP::Greater ? depth_new  > depth_cur
+                                     : depth_new == depth_cur;
   }
 
-  void writeDepth(size_t index, f32 new_depth) noexcept {
-    buf_depth_[index] = new_depth;
+  void writeDepth(size_t index, f32 depth_new) noexcept {
+    buf_depth_[index] = depth_new;
   }
 
   f32 sampleDepth(f32 u, f32 v, const RectF& viewport) const {
@@ -81,19 +87,19 @@ public:
     i32 px = static_cast<i32>(std::clamp(std::floor(x), viewport.x, viewport.x + viewport.w - 1.0f));
     i32 py = static_cast<i32>(std::clamp(std::floor(y), viewport.y, viewport.y + viewport.h - 1.0f));
 
-    return buf_depth_[getIndex(px, py)];
+    return buf_depth_[index(px, py)];
   }
 
-  void resize(i32 new_width, i32 new_height) {
-    buf_depth_.resize(new_width, new_height);
+  void resize(i32 width, i32 height) {
+    buf_depth_.resize(width, height);
     
     if(type_ == Type::ColorDepth) {
-      buf_HDR_.resize(new_width, new_height);
-      buf_present_.resize(new_width, new_height);
+      buf_HDR_.resize(width, height);
+      buf_present_.resize(width, height);
     }
 
-    w_ = new_width;
-    h_ = new_height;
+    w_ = width;
+    h_ = height;
   }
 
   void resize(i32 resolution) { resize(resolution, resolution); }

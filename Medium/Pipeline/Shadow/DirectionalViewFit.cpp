@@ -11,6 +11,7 @@
 #include "DirectionalViewClip.h"
 
 namespace Medium {
+
 namespace {
 
 // 场景包围盒三角形索引表
@@ -48,13 +49,9 @@ std::pair<f32, f32> calcNearAndFar(const Vec2f& light_ortho_min,
   }
 
   return { near, far };
-} // calcNearAndFar
+}
 
-} // 匿名命名空间，控制仅单文件可见
-} // namespace Medium
-
-
-namespace Medium {
+} // ===---------- 匿名命名空间，控制仅单文件可见 ----------===
 
 DirectionalViewFit calcDirectionalViewFit(const DirectionalViewFitParams& params) {
   // 结构化绑定，auto 推导为 DirectionalViewFitParams. Camera 本身是一个 const Camera*, 绑定后变为

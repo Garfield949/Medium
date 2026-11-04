@@ -12,6 +12,7 @@
 #include "Pipeline/Shadow/ShadowQuery.h"
 #include "Resources/Vertex.h"
 #include "Resources/Sampler.h"
+#include "Resources/Image2D.h"
 #include "Resources/Material.h"
 #include "Resources/TextureSlot.h"
 #include "Resources/EnvironmentSH9.h"
@@ -30,7 +31,8 @@ void BlinnShader::bind(const ShaderBindContext& bind_ctx, const Mat4f& world, co
 
     .light_dir_inv = -lighting_ctx->light_dir,
     .light_color   =  lighting_ctx->light_color,
-    .sh9           =  lighting_ctx->sh9,
+    .env_sh9       =  lighting_ctx->env_sh9,
+    .ao            =  lighting_ctx->ao,
 
     .csm_ctx = lighting_ctx->csm_ctx,
   };
@@ -68,9 +70,11 @@ bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noe
   LinearColor albedo = sampleSlot(mat->diff_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy, mipmap_enabled_);
 
   f32 frag_alpha = 1.0f;
-  if(mat->surface_mode == Material::SurfaceMode::Masked) { // Alpha Test
-    f32 value = albedo.A;
-    if(value < Material::kAlphaCutoff) return true;
+  if(mat->surface_mode == Material::SurfaceMode::Masked) {
+    // Alpha 材质采样始终启用 mipmap, 因为 DepthShader 那边的 fragment 是始终启用的，就懒得改了。
+    const f32 coverage_alpha = mipmap_enabled_ ? albedo.A
+                                               : sampleSlot(mat->diff_slot, frag_uv, fs_in.duv_dx, fs_in.duv_dy, true).A;
+    if(coverage_alpha < Material::kAlphaCutoff) return true;
   } else if(mat->surface_mode == Material::SurfaceMode::Transparent) {
     frag_alpha = mat->params.d;
   }
@@ -81,12 +85,12 @@ bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noe
   if(csm_ctx) frag_z_view = (csm_ctx->mat_view_snapshot * frag_pos.homogeneous()).z();
 
   // Cascade Band View.
-  // csm_ctx 理论上只会在 ImGui 设置 Draw Mode 为 Wireframe 或者方向光取消 Cast Shadows 时，才会被 RenderManager
+  // csm_ctx 理论上只会在 ImGui 设置 Draw Mode 为 Wireframe 或者方向光取消 Cast Shadows 时，才会由 RenderManager
   // 传一个 nullptr 表示禁用 Shadow Query.
   if(csm_ctx && csm_ctx->cascade_band_view_enabled) {
     auto cascade_query = csm_ctx->cascadeQuery(frag_z_view);
 
-    // 不在级联范围内的 frag 会进入下方的正常着色逻辑。
+    // 不在级联范围内的 frag 会落入外部的正常着色逻辑。
     if(cascade_query) {
       auto [cascade, index] = cascade_query.value();
 
@@ -182,9 +186,19 @@ bool BlinnShader::fragment(const FSIn& fs_in, LinearColor& frag_color) const noe
 
   LinearColor direct = (albedo * half_lambert + specular) * uniforms.light_color * frag_visibility;
 
-  LinearColor ambient = albedo * uniforms.sh9->evaluate(frag_n);
+  LinearColor ambient = albedo * uniforms.env_sh9->evaluate(frag_n);
 
-  frag_color = direct + ambient;
+  f32 ao_visibility = uniforms.ao ? (*uniforms.ao)[fs_in.pixel_index] : 1.0f;
+
+  const f32 strength = 2.5f;
+  const f32 ao = std::clamp(
+      1.0f - strength * (1.0f - ao_visibility),
+      0.0f, 1.0f
+  );
+
+  //frag_color = {ao,ao,ao,frag_alpha};
+
+  frag_color = direct + ambient * ao;
 
   frag_color.A = frag_alpha;
 

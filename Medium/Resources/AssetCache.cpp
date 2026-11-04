@@ -24,8 +24,9 @@
 namespace fs = std::filesystem;
 
 namespace Medium {
+
 namespace {
-  
+
 using namespace tinyobj;
 
 // ---------- 用于 loadObj 函数里的 std::unordered_map: unique_map
@@ -149,11 +150,7 @@ void meshPostProcess(Mesh* mesh_new, bool no_normals) {
   mesh_new->calcAABBs();
 }
 
-} // 匿名命名空间，控制仅单文件可见
-} // namespace Medium
-
-
-namespace Medium {
+} // ===---------- 匿名命名空间，控制仅单文件可见 ----------===
 
 AssetCache::AssetCache()  = default;
 AssetCache::~AssetCache() = default;
@@ -264,7 +261,7 @@ SkyBox* AssetCache::loadSkyBox(const std::filesystem::path& cubemap_img_path) {
 
   auto skybox_owned     = std::make_unique<SkyBox>();
   skybox_owned->cubemap = CubeMap::FromHorizontalCross(img_base);
-  skybox_owned->sh9     = EnvironmentSH9::FromCubeMap(skybox_owned->cubemap);
+  skybox_owned->env_sh9 = EnvironmentSH9::FromCubeMap(skybox_owned->cubemap);
 
   // emplace 返回一个 std::pair<iterator, bool>，其中 bool 指示 key 是否已存在。
   // std::unique_ptr 禁止拷贝，只能移动。

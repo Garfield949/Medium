@@ -11,6 +11,7 @@
 #include "Base/Geometry/Rect.h"
 #include "Base/Geometry/Frustum.h"
 #include "Pipeline/RenderStatus.h"
+#include "Resources/Image2D.h"
 
 namespace Medium {
 
@@ -35,12 +36,13 @@ struct LightingContext {
   Vec3f       light_dir;
   LinearColor light_color;
   const CSMContext* csm_ctx = nullptr;
-  const EnvironmentSH9* sh9  = nullptr;
+  const EnvironmentSH9* env_sh9  = nullptr;
+  const Image2D<f32>* ao = nullptr;
 };
 
 /// @struct ShaderBindContext
 struct ShaderBindContext {
-  const CameraContext* camera_ctx = nullptr;
+  const CameraContext*     camera_ctx = nullptr;
   const LightingContext* lighting_ctx = nullptr;
 };
 
@@ -60,12 +62,17 @@ enum class ColorWriteTarget {
   HDR, Present
 };
 
+enum class CompareOP {
+  Greater, Equal
+};
+
 struct RenderState {
   bool enable_depth_test  = true;
   bool enable_depth_write = true;
   bool enable_color_write = true;
   DrawMode  draw_mode  = DrawMode::Shaded;
   CullMode  cull_mode  = CullMode::Back;
+  CompareOP depth_cmp  = CompareOP::Greater;
   BlendMode blend_mode = BlendMode::Replace;
   ColorWriteTarget color_write_target = ColorWriteTarget::HDR;
   Rect scissor{}; // 默认为一个非法 scissor，即不启用 scissor test.

@@ -7,6 +7,7 @@
 #pragma once
 
 #include <array>
+#include <cstddef>
 
 #include "Base/Color.h"
 #include "Base/Types.h"
@@ -67,6 +68,8 @@ struct FSIn {
   // uv 屏幕导数。
   Vec2f duv_dx;
   Vec2f duv_dy;
+
+  size_t pixel_index;
 };
 
 } // namespace Medium

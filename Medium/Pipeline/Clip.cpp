@@ -7,6 +7,7 @@
 #include "Clip.h"
 
 namespace Medium {
+  
 namespace {
 
 constexpr std::array kClipPlanes = {
@@ -67,11 +68,7 @@ ClipPolygon clipByPlane(const ClipPolygon& poly_in, const ClipPlane plane, i32 v
   return poly_out;
 }
 
-} // 匿名命名空间，控制仅单文件可见
-} // namespace Medium
-
-
-namespace Medium {
+} // ===---------- 匿名命名空间，控制仅单文件可见 ----------===
 
 // 不对插值过程中的 normal 和 tangent 进行归一化，因为 fragment 阶段会归一化。
 ClipVertex ClipVertex::Lerp(const ClipVertex& a, const ClipVertex& b, f32 t, i32 varying_scalar_count) noexcept {
