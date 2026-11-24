@@ -32,10 +32,10 @@ TODO
 
 - 优化 ShaderVariant 的分发策略
 
-- 包围盒线框debug
+- 包围盒线框debug: Done
 
-- Mipmap
+- Mipmap: Done
 
-- 环境光遮蔽
+- 环境光遮蔽: Done
 
 - License 署名 : Done
